@@ -1,0 +1,34 @@
+[
+  {
+    "id": "playa",
+    "name": "Playa & Piscina",
+    "slug": "playa",
+    "description": "Fajas diseñadas para lucir increible bajo tu bikini favorito. Resistentes al agua y de secado rapido.",
+    "image": "/images/collections/playa.jpg",
+    "productCount": 2
+  },
+  {
+    "id": "diario",
+    "name": "Dia a Dia",
+    "slug": "diario",
+    "description": "Comodidad y soporte para tu rutina diaria. Invisibles bajo cualquier outfit.",
+    "image": "/images/collections/diario.jpg",
+    "productCount": 3
+  },
+  {
+    "id": "eventos",
+    "name": "Eventos Especiales",
+    "slug": "eventos",
+    "description": "Esculpe tu silueta para bodas, fiestas y galas. Compresion premium para momentos unicos.",
+    "image": "/images/collections/eventos.jpg",
+    "productCount": 2
+  },
+  {
+    "id": "postparto",
+    "name": "Post-Parto",
+    "slug": "postparto",
+    "description": "Acompaña tu recuperacion con fajas diseñadas por expertos. Soporte y comodidad maternal.",
+    "image": "/images/collections/postparto.jpg",
+    "productCount": 1
+  }
+]

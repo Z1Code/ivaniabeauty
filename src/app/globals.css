@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-poppins), 'Poppins', sans-serif;
+  --font-serif: var(--font-playfair), 'Playfair Display', serif;
+  --font-script: var(--font-dancing), 'Dancing Script', cursive;
+  --color-rosa: #FF6B9D;
+  --color-rosa-light: #FFB8D0;
+  --color-rosa-dark: #E91E63;
+  --color-arena: #FFF5E6;
+  --color-perla: #FFFAF5;
+  --color-dorado: #D4AF37;
+  --color-turquesa: #40E0D0;
+  --color-coral: #FF7F7F;
+}
+
+@layer base {
+  :root {
+    --background: #FFFAF5;
+    --foreground: #2D2D2D;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: 'Poppins', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #FFF5E6;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #FFB8D0;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #FF6B9D;
+  }
+
+  /* Selection color */
+  ::selection {
+    background-color: #FFB8D0;
+    color: #2D2D2D;
+  }
+}
+
+@layer components {
+  /* Shimmer effect for CTAs */
+  .btn-shimmer {
+    background: linear-gradient(
+      90deg,
+      #FF6B9D 0%,
+      #E91E63 25%,
+      #D4AF37 50%,
+      #E91E63 75%,
+      #FF6B9D 100%
+    );
+    background-size: 200% auto;
+    animation: shimmer 3s linear infinite;
+    color: white;
+    border: none;
+    padding: 16px 40px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .btn-shimmer:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 40px rgba(255, 107, 157, 0.4);
+  }
+
+  /* Glassmorphism */
+  .glass {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+  }
+
+  .glass-rosa {
+    background: rgba(255, 107, 157, 0.1);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 107, 157, 0.2);
+    border-radius: 20px;
+  }
+
+  /* Ripple effect */
+  .ripple {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ripple::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255, 255, 255, 0.3) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .ripple:active::after {
+    opacity: 1;
+  }
+
+  /* Wave divider */
+  .wave-divider {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  .wave-divider svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* Text gradient */
+  .text-gradient-rosa {
+    background: linear-gradient(135deg, #FF6B9D, #E91E63, #D4AF37);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: floatSlow 8s ease-in-out infinite;
+  }
+
+  .cart-bounce {
+    animation: cartBounce 0.4s ease-in-out;
+  }
+}
+
+/* Keyframes (outside layers - they are not affected by cascade) */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-10px) rotate(2deg); }
+  66% { transform: translateY(5px) rotate(-1deg); }
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes confettiFall {
+  0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes cartBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.1); }
+  50% { transform: scale(1); }
+  75% { transform: scale(1.15); }
+}
+
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(10px); }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
