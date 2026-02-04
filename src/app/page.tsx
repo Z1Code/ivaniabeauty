@@ -6,6 +6,7 @@ import BeforeAfter from "@/components/shared/BeforeAfter";
 import Testimonials from "@/components/home/Testimonials";
 import SizeQuiz from "@/components/home/SizeQuiz";
 import InstagramFeed from "@/components/home/InstagramFeed";
+import TikTokFeed from "@/components/home/TikTokFeed";
 
 export default function Home() {
   return (
@@ -32,6 +33,7 @@ export default function Home() {
 
       <Testimonials />
       <SizeQuiz />
+      <TikTokFeed />
       <InstagramFeed />
     </>
   );
