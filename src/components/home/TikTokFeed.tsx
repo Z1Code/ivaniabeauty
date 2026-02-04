@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Play, Heart, MessageCircle, Music2 } from "lucide-react";
 import ScrollReveal from "@/components/ui/ScrollReveal";
@@ -9,7 +9,15 @@ import { useTranslation } from "@/hooks/useTranslation";
 
 const TIKTOK_PROFILE = "https://www.tiktok.com/@ivaniabeauty2";
 
-const videos = [
+interface TikTokVideo {
+  id: string;
+  thumbnail: string;
+  views: string;
+  likes: string;
+  url: string;
+}
+
+const fallbackVideos = [
   { gradient: "from-rosa-dark to-rosa", views: "45.2K", likes: "3.8K" },
   { gradient: "from-turquesa/70 to-rosa/50", views: "32.1K", likes: "2.5K" },
   { gradient: "from-rosa to-coral/60", views: "28.7K", likes: "2.1K" },
@@ -20,6 +28,20 @@ const videos = [
 
 export default function TikTokFeed() {
   const { t } = useTranslation();
+  const [tiktokVideos, setTiktokVideos] = useState<TikTokVideo[]>([]);
+
+  useEffect(() => {
+    fetch("/api/tiktok")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setTiktokVideos(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const hasRealVideos = tiktokVideos.length > 0;
 
   return (
     <section className="py-24 bg-arena">
@@ -35,10 +57,10 @@ export default function TikTokFeed() {
 
         {/* TikTok Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-12">
-          {videos.map((video, i) => (
-            <ScrollReveal key={i} direction="up" delay={i * 0.08}>
+          {(hasRealVideos ? tiktokVideos : fallbackVideos).map((video, i) => (
+            <ScrollReveal key={hasRealVideos ? (video as TikTokVideo).id : i} direction="up" delay={i * 0.08}>
               <a
-                href={TIKTOK_PROFILE}
+                href={hasRealVideos ? (video as TikTokVideo).url : TIKTOK_PROFILE}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -47,13 +69,27 @@ export default function TikTokFeed() {
                   transition={{ duration: 0.2 }}
                   className="aspect-[9/14] rounded-xl overflow-hidden relative group cursor-pointer shadow-md"
                 >
-                  {/* Gradient Background */}
-                  <div
-                    className={cn(
-                      "absolute inset-0 bg-gradient-to-b",
-                      video.gradient
-                    )}
-                  />
+                  {hasRealVideos ? (
+                    <>
+                      {/* Real TikTok Thumbnail */}
+                      <img
+                        src={(video as TikTokVideo).thumbnail}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {/* Rosa transparent overlay */}
+                      <div className="absolute inset-0 bg-rosa/25 mix-blend-multiply" />
+                    </>
+                  ) : (
+                    /* Gradient Fallback */
+                    <div
+                      className={cn(
+                        "absolute inset-0 bg-gradient-to-b",
+                        (video as { gradient: string }).gradient
+                      )}
+                    />
+                  )}
 
                   {/* Decorative Music Note */}
                   <div className="absolute top-3 right-3 opacity-20">
