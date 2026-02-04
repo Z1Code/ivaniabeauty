@@ -11,31 +11,32 @@ import {
 } from "lucide-react";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import useCart from "@/hooks/useCart";
+import { useTranslation } from "@/hooks/useTranslation";
 
 /* ---------- hotspot data ---------- */
 interface Hotspot {
   id: number;
-  label: string;
+  labelKey: string;
   top: string;
   left: string;
 }
 
 const hotspots: Hotspot[] = [
-  { id: 1, label: "Doble capa de compresion", top: "22%", left: "62%" },
-  { id: 2, label: "Costuras invisibles", top: "48%", left: "65%" },
-  { id: 3, label: "Tela antibacterial", top: "74%", left: "60%" },
+  { id: 1, labelKey: "featuredProduct.hotspotDoubleCompression", top: "22%", left: "62%" },
+  { id: 2, labelKey: "featuredProduct.hotspotInvisibleSeams", top: "48%", left: "65%" },
+  { id: 3, labelKey: "featuredProduct.hotspotAntibacterialFabric", top: "74%", left: "60%" },
 ];
 
 /* ---------- color / size options ---------- */
 interface ColorOption {
-  name: string;
+  nameKey: string;
   hex: string;
 }
 
 const colors: ColorOption[] = [
-  { name: "Nude", hex: "#E8C4A0" },
-  { name: "Negro", hex: "#1A1A1A" },
-  { name: "Champagne", hex: "#F7E7CE" },
+  { nameKey: "featuredProduct.colorNude", hex: "#E8C4A0" },
+  { nameKey: "featuredProduct.colorNegro", hex: "#1A1A1A" },
+  { nameKey: "featuredProduct.colorChampagne", hex: "#F7E7CE" },
 ];
 
 const sizes = ["XS", "S", "M", "L", "XL", "2XL"] as const;
@@ -44,6 +45,7 @@ const sizes = ["XS", "S", "M", "L", "XL", "2XL"] as const;
 /*  Viewer360                                                          */
 /* =================================================================== */
 function Viewer360() {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [rotation, setRotation] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -153,7 +155,7 @@ function Viewer360() {
                   transition={{ duration: 0.2 }}
                   className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 whitespace-nowrap bg-white shadow-xl rounded-lg px-3 py-2 text-xs font-sans text-gray-700 border border-rosa-light/40"
                 >
-                  {spot.label}
+                  {t(spot.labelKey)}
                   {/* Arrow */}
                   <span className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-white border-b border-r border-rosa-light/40 rotate-45 -mt-1" />
                 </motion.div>
@@ -166,7 +168,7 @@ function Viewer360() {
       {/* Drag instruction */}
       <p className="flex items-center gap-2 text-sm text-gray-400 font-sans">
         <RotateCw className="w-4 h-4" />
-        Arrastra para rotar
+        {t("featuredProduct.dragToRotate")}
       </p>
     </div>
   );
@@ -176,14 +178,15 @@ function Viewer360() {
 /*  FeaturedProduct                                                     */
 /* =================================================================== */
 export default function FeaturedProduct() {
-  const [selectedColor, setSelectedColor] = useState<string>(colors[0].name);
+  const { t } = useTranslation();
+  const [selectedColor, setSelectedColor] = useState<string>(t("featuredProduct.colorNude"));
   const [selectedSize, setSelectedSize] = useState<string>("M");
   const addItem = useCart((s) => s.addItem);
 
   const handleAddToCart = () => {
     addItem({
       id: "gala-sculpt-001",
-      name: "Faja Gala Sculpt",
+      name: t("featuredProduct.productName"),
       price: 129.99,
       image: "/products/gala-sculpt.jpg",
       color: selectedColor,
@@ -199,14 +202,14 @@ export default function FeaturedProduct() {
         <div className="text-center">
           <ScrollReveal direction="up">
             <h2 className="font-serif text-4xl text-center">
-              Producto Estrella
+              {t("featuredProduct.heading")}
             </h2>
             <div className="mx-auto mt-4 w-24 h-1 bg-gradient-to-r from-rosa-light via-rosa to-rosa-dark rounded-full" />
           </ScrollReveal>
 
           <ScrollReveal direction="up" delay={0.1}>
             <p className="font-script text-2xl text-rosa-dark mt-4">
-              Nuestra faja mas vendida
+              {t("featuredProduct.subtitle")}
             </p>
           </ScrollReveal>
         </div>
@@ -223,11 +226,11 @@ export default function FeaturedProduct() {
           <div className="flex flex-col gap-6">
             {/* Bestseller badge */}
             <span className="self-start bg-rosa text-white rounded-full px-4 py-1 text-sm font-sans font-medium">
-              Bestseller
+              {t("featuredProduct.badgeBestseller")}
             </span>
 
             {/* Name */}
-            <h3 className="font-serif text-3xl">Faja Gala Sculpt</h3>
+            <h3 className="font-serif text-3xl">{t("featuredProduct.productName")}</h3>
 
             {/* Rating */}
             <div className="flex items-center gap-2">
@@ -244,46 +247,43 @@ export default function FeaturedProduct() {
                 ))}
               </div>
               <span className="text-sm font-sans text-gray-500">
-                4.9 (312 rese&ntilde;as)
+                {t("featuredProduct.reviewsCount")}
               </span>
             </div>
 
             {/* Price */}
             <div className="flex items-baseline gap-3">
               <span className="text-2xl text-rosa-dark font-bold font-sans">
-                $129.99
+                {t("featuredProduct.price")}
               </span>
               <span className="text-gray-400 line-through font-sans">
-                $159.99
+                {t("featuredProduct.originalPrice")}
               </span>
             </div>
 
             {/* Description */}
             <p className="text-gray-600 font-sans leading-relaxed">
-              Nuestra faja estrella combina la maxima compresion con una comodidad
-              excepcional. Disenada con doble capa de compresion, costuras
-              invisibles y tela antibacterial premium. Moldea tu silueta de forma
-              natural y segura, ideal para uso diario o eventos especiales.
+              {t("featuredProduct.description")}
             </p>
 
             {/* Color selector */}
             <div>
               <span className="text-sm font-sans font-medium text-gray-700 mb-2 block">
-                Color: {selectedColor}
+                {t("featuredProduct.colorLabel")} {selectedColor}
               </span>
               <div className="flex gap-3">
                 {colors.map((color) => (
                   <button
-                    key={color.name}
+                    key={color.nameKey}
                     type="button"
-                    onClick={() => setSelectedColor(color.name)}
+                    onClick={() => setSelectedColor(t(color.nameKey))}
                     className={`w-9 h-9 rounded-full transition-all duration-200 ${
-                      selectedColor === color.name
+                      selectedColor === t(color.nameKey)
                         ? "ring-2 ring-offset-2 ring-rosa"
                         : "ring-1 ring-gray-200 hover:ring-rosa-light"
                     }`}
                     style={{ backgroundColor: color.hex }}
-                    aria-label={color.name}
+                    aria-label={t(color.nameKey)}
                   />
                 ))}
               </div>
@@ -292,7 +292,7 @@ export default function FeaturedProduct() {
             {/* Size selector */}
             <div>
               <span className="text-sm font-sans font-medium text-gray-700 mb-2 block">
-                Talla: {selectedSize}
+                {t("featuredProduct.sizeLabel")} {selectedSize}
               </span>
               <div className="flex flex-wrap gap-2">
                 {sizes.map((size) => (
@@ -320,23 +320,23 @@ export default function FeaturedProduct() {
               onClick={handleAddToCart}
               className="bg-rosa text-white rounded-full py-3 px-8 w-full font-sans font-semibold text-lg shadow-lg hover:bg-rosa-dark transition-colors duration-300 cursor-pointer"
             >
-              Agregar al Carrito
+              {t("featuredProduct.addToCart")}
             </motion.button>
 
             {/* Trust icons */}
             <div className="grid grid-cols-3 gap-4 pt-2">
               {[
-                { icon: Truck, label: "Envio Gratis" },
-                { icon: RefreshCw, label: "30 Dias Devolucion" },
-                { icon: Shield, label: "Pago Seguro" },
-              ].map(({ icon: Icon, label }) => (
+                { icon: Truck, labelKey: "featuredProduct.trustFreeShipping" },
+                { icon: RefreshCw, labelKey: "featuredProduct.trust30DayReturns" },
+                { icon: Shield, labelKey: "featuredProduct.trustSecurePayment" },
+              ].map(({ icon: Icon, labelKey }) => (
                 <div
-                  key={label}
+                  key={labelKey}
                   className="flex flex-col items-center gap-1 text-center"
                 >
                   <Icon className="w-5 h-5 text-rosa" />
                   <span className="text-xs font-sans text-gray-500">
-                    {label}
+                    {t(labelKey)}
                   </span>
                 </div>
               ))}

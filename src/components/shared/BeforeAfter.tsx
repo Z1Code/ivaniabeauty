@@ -3,8 +3,10 @@
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function BeforeAfter() {
+  const { t } = useTranslation();
   const [sliderPos, setSliderPos] = useState(50); // percentage 0-100
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -90,7 +92,7 @@ export default function BeforeAfter() {
 
         {/* "Sin Faja" label */}
         <span className="absolute bottom-4 left-4 rounded-full bg-white/80 px-4 py-1 text-sm font-medium text-gray-700 shadow-sm backdrop-blur-sm">
-          Sin Faja
+          {t("beforeAfter.without")}
         </span>
       </div>
 
@@ -111,7 +113,7 @@ export default function BeforeAfter() {
 
         {/* "Con Faja" label */}
         <span className="absolute right-4 bottom-4 rounded-full bg-white/80 px-4 py-1 text-sm font-medium text-rosa-dark shadow-sm backdrop-blur-sm">
-          Con Faja
+          {t("beforeAfter.with")}
         </span>
       </div>
 

@@ -13,6 +13,7 @@ import {
 
 import useCart from "@/hooks/useCart";
 import { formatPrice, getColorHex } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function CartDrawer() {
   const {
@@ -25,6 +26,7 @@ export default function CartDrawer() {
     subtotal,
   } = useCart();
 
+  const { t } = useTranslation();
   const [discountCode, setDiscountCode] = useState("");
 
   const count = totalItems();
@@ -55,7 +57,7 @@ export default function CartDrawer() {
             {/* Header */}
             <div className="flex justify-between items-center p-6 border-b border-rosa-light/30">
               <div className="flex items-center gap-3">
-                <h2 className="font-serif text-xl font-semibold">Tu Carrito</h2>
+                <h2 className="font-serif text-xl font-semibold">{t("cart.heading")}</h2>
                 <ShoppingBag className="w-5 h-5 text-rosa" />
                 {count > 0 && (
                   <span className="flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-rosa rounded-full">
@@ -65,7 +67,7 @@ export default function CartDrawer() {
               </div>
               <button
                 onClick={closeCart}
-                aria-label="Cerrar carrito"
+                aria-label={t("cart.closeAriaLabel")}
                 className="p-2 rounded-full hover:bg-rosa-light/30 transition-colors duration-200"
               >
                 <X className="w-5 h-5" />
@@ -79,17 +81,17 @@ export default function CartDrawer() {
                 <div className="flex flex-col items-center justify-center h-full text-center gap-4">
                   <ShoppingBag className="w-16 h-16 text-rosa-light" />
                   <p className="font-serif text-lg text-gray-500">
-                    Tu carrito esta vacio
+                    {t("cart.emptyHeading")}
                   </p>
                   <p className="text-sm text-gray-400">
-                    Agrega productos para comenzar tu compra
+                    {t("cart.emptyText")}
                   </p>
                   <Link
                     href="/shop"
                     onClick={closeCart}
                     className="mt-4 px-8 py-3 bg-rosa text-white rounded-full font-semibold hover:bg-rosa-dark transition-colors duration-300"
                   >
-                    Explorar Tienda
+                    {t("cart.emptyCta")}
                   </Link>
                 </div>
               ) : (
@@ -155,7 +157,7 @@ export default function CartDrawer() {
                                 )
                               }
                               className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:border-rosa hover:text-rosa transition-colors duration-200"
-                              aria-label="Reducir cantidad"
+                              aria-label={t("cart.decreaseQuantityAriaLabel")}
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -172,7 +174,7 @@ export default function CartDrawer() {
                                 )
                               }
                               className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:border-rosa hover:text-rosa transition-colors duration-200"
-                              aria-label="Aumentar cantidad"
+                              aria-label={t("cart.increaseQuantityAriaLabel")}
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -185,7 +187,7 @@ export default function CartDrawer() {
                             removeItem(item.id, item.color, item.size)
                           }
                           className="self-start p-1 text-gray-400 hover:text-rosa-dark transition-colors duration-200"
-                          aria-label="Eliminar producto"
+                          aria-label={t("cart.removeAriaLabel")}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -205,17 +207,17 @@ export default function CartDrawer() {
                     type="text"
                     value={discountCode}
                     onChange={(e) => setDiscountCode(e.target.value)}
-                    placeholder="Codigo de descuento"
+                    placeholder={t("cart.discountPlaceholder")}
                     className="flex-1 px-4 py-2 text-sm rounded-full border border-rosa-light/40 focus:border-rosa focus:ring-2 focus:ring-rosa/20 outline-none transition-all duration-200"
                   />
                   <button className="px-4 py-2 text-sm font-semibold text-rosa border border-rosa rounded-full hover:bg-rosa hover:text-white transition-colors duration-200">
-                    Aplicar
+                    {t("cart.discountApply")}
                   </button>
                 </div>
 
                 {/* Subtotal */}
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Subtotal</span>
+                  <span className="text-gray-600">{t("cart.subtotalLabel")}</span>
                   <span className="font-semibold text-lg">
                     {formatPrice(cartSubtotal)}
                   </span>
@@ -223,7 +225,7 @@ export default function CartDrawer() {
 
                 {/* Shipping Note */}
                 <p className="text-xs text-gray-500 text-center">
-                  Envio gratis en pedidos +$100
+                  {t("cart.freeShippingNote")}
                 </p>
 
                 {/* Checkout Button */}
@@ -232,7 +234,7 @@ export default function CartDrawer() {
                   onClick={closeCart}
                   className="block w-full py-3 bg-rosa text-white rounded-full font-semibold text-center hover:bg-rosa-dark transition-colors duration-300"
                 >
-                  Ir a Pagar
+                  {t("cart.checkoutButton")}
                 </Link>
 
                 {/* Continue Shopping */}
@@ -240,7 +242,7 @@ export default function CartDrawer() {
                   onClick={closeCart}
                   className="w-full text-center text-sm text-gray-500 hover:text-rosa-dark transition-colors duration-200"
                 >
-                  Continuar Comprando
+                  {t("cart.continueShopping")}
                 </button>
               </div>
             )}

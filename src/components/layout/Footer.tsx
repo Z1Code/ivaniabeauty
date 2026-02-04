@@ -5,22 +5,7 @@ import { motion } from "framer-motion";
 import { Instagram, Facebook, Twitter, Mail, Phone } from "lucide-react";
 
 import { SITE_NAME } from "@/lib/constants";
-
-const shopLinks = [
-  { label: "Todas las fajas", href: "/shop" },
-  { label: "Playa & Piscina", href: "/shop?category=playa-piscina" },
-  { label: "Dia a Dia", href: "/shop?category=dia-a-dia" },
-  { label: "Eventos", href: "/shop?category=eventos" },
-  { label: "Post-Parto", href: "/shop?category=post-parto" },
-];
-
-const infoLinks = [
-  { label: "Sobre Nosotros", href: "/#nosotros" },
-  { label: "Guia de Tallas", href: "/guia-tallas" },
-  { label: "Envios y Devoluciones", href: "/envios-devoluciones" },
-  { label: "Politica de Privacidad", href: "/privacidad" },
-  { label: "Terminos y Condiciones", href: "/terminos" },
-];
+import { useTranslation } from "@/hooks/useTranslation";
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
@@ -55,6 +40,23 @@ const itemVariants = {
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const { t } = useTranslation();
+
+  const shopLinks = [
+    { label: t("footer.shopAllShapewear"), href: "/shop" },
+    { label: t("footer.shopBeachPool"), href: "/shop?category=playa-piscina" },
+    { label: t("footer.shopEveryday"), href: "/shop?category=dia-a-dia" },
+    { label: t("footer.shopEvents"), href: "/shop?category=eventos" },
+    { label: t("footer.shopPostPartum"), href: "/shop?category=post-parto" },
+  ];
+
+  const infoLinks = [
+    { label: t("footer.infoAboutUs"), href: "/#nosotros" },
+    { label: t("footer.infoSizeGuide"), href: "/guia-tallas" },
+    { label: t("footer.infoShippingReturns"), href: "/envios-devoluciones" },
+    { label: t("footer.infoPrivacyPolicy"), href: "/privacidad" },
+    { label: t("footer.infoTerms"), href: "/terminos" },
+  ];
 
   return (
     <footer className="relative">
@@ -92,19 +94,17 @@ export default function Footer() {
                 </h3>
               </Link>
               <p className="font-script text-xl text-rosa-light mb-4">
-                Realza tu belleza natural
+                {t("footer.tagline")}
               </p>
               <p className="text-white/80 text-sm leading-relaxed max-w-xs">
-                Fajas premium que moldean tu silueta con comodidad y estilo.
-                Disenos exclusivos confeccionados con materiales de la mas
-                alta calidad para realzar tu confianza.
+                {t("footer.brandDescription")}
               </p>
             </motion.div>
 
             {/* Shop Links Column */}
             <motion.div variants={itemVariants}>
               <h4 className="font-serif text-lg font-semibold text-white mb-4">
-                Tienda
+                {t("footer.shopHeading")}
               </h4>
               <ul className="flex flex-col gap-2.5">
                 {shopLinks.map((link) => (
@@ -123,7 +123,7 @@ export default function Footer() {
             {/* Info Links Column */}
             <motion.div variants={itemVariants}>
               <h4 className="font-serif text-lg font-semibold text-white mb-4">
-                Informacion
+                {t("footer.infoHeading")}
               </h4>
               <ul className="flex flex-col gap-2.5">
                 {infoLinks.map((link) => (
@@ -142,7 +142,7 @@ export default function Footer() {
             {/* Contact Column */}
             <motion.div variants={itemVariants}>
               <h4 className="font-serif text-lg font-semibold text-white mb-4">
-                Contacto
+                {t("footer.contactHeading")}
               </h4>
               <ul className="flex flex-col gap-3 mb-6">
                 <li>
@@ -188,7 +188,7 @@ export default function Footer() {
         <div className="border-t border-white/15">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-xs text-white/60">
-              &copy; {currentYear} {SITE_NAME}. Todos los derechos reservados.
+              &copy; {currentYear} {SITE_NAME}. {t("footer.copyright")}
             </p>
             <div className="flex items-center gap-4">
               <span className="text-xs text-white/50 font-medium tracking-wide px-3 py-1 rounded-full border border-white/15">

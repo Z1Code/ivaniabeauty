@@ -8,10 +8,14 @@ import productsData from "@/data/products.json";
 import useFilters from "@/hooks/useFilters";
 import ProductCard from "@/components/ui/ProductCard";
 import Filters from "@/components/shared/Filters";
+import { useTranslation } from "@/hooks/useTranslation";
+
+type BilingualString = { en: string; es: string };
+type BilingualArray = { en: string[]; es: string[] };
 
 interface Product {
   id: string;
-  name: string;
+  name: BilingualString;
   slug: string;
   price: number;
   originalPrice: number | null;
@@ -20,10 +24,10 @@ interface Product {
   sizes: string[];
   compression: string;
   occasion: string;
-  badge: string | null;
-  description: string;
-  shortDescription: string;
-  features: string[];
+  badge: BilingualString | null;
+  description: BilingualString;
+  shortDescription: BilingualString;
+  features: BilingualArray;
   images: string[];
   rating: number;
   reviewCount: number;
@@ -33,6 +37,7 @@ interface Product {
 const allProducts = productsData as Product[];
 
 export default function ShopPage() {
+  const { t } = useTranslation();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const {
@@ -86,18 +91,18 @@ export default function ShopPage() {
         break;
       case "newest":
         results.sort((a, b) => {
-          const badgePriority = (badge: string | null) =>
-            badge === "Nuevo" ? 0 : 1;
+          const badgePriority = (badge: BilingualString | null) =>
+            badge?.en === "New" ? 0 : 1;
           return badgePriority(a.badge) - badgePriority(b.badge);
         });
         break;
       case "featured":
       default:
         results.sort((a, b) => {
-          const badgePriority = (badge: string | null) => {
-            if (badge === "Bestseller") return 0;
-            if (badge === "Oferta") return 1;
-            if (badge === "Nuevo") return 2;
+          const badgePriority = (badge: BilingualString | null) => {
+            if (badge?.en === "Bestseller") return 0;
+            if (badge?.en === "Sale") return 1;
+            if (badge?.en === "New") return 2;
             return 3;
           };
           return badgePriority(a.badge) - badgePriority(b.badge);
@@ -132,7 +137,7 @@ export default function ShopPage() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="font-serif text-4xl md:text-5xl text-white font-bold"
           >
-            Nuestra Tienda
+            {t("shop.pageTitle")}
           </motion.h1>
           <motion.nav
             initial={{ opacity: 0, y: 10 }}
@@ -145,10 +150,10 @@ export default function ShopPage() {
               href="/"
               className="hover:text-white transition-colors"
             >
-              Home
+              {t("shop.breadcrumbHome")}
             </Link>
             <span>/</span>
-            <span className="text-white">Tienda</span>
+            <span className="text-white">{t("shop.breadcrumbShop")}</span>
           </motion.nav>
         </div>
       </section>
@@ -175,8 +180,8 @@ export default function ShopPage() {
                   {filteredProducts.length}
                 </span>{" "}
                 {filteredProducts.length === 1
-                  ? "producto encontrado"
-                  : "productos encontrados"}
+                  ? t("shop.productFound")
+                  : t("shop.productsFound")}
               </motion.p>
 
               {/* Mobile Filter Button */}
@@ -185,7 +190,7 @@ export default function ShopPage() {
                 className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-rosa-light/40 text-sm font-medium text-gray-700 hover:border-rosa transition-colors cursor-pointer"
               >
                 <SlidersHorizontal className="w-4 h-4 text-rosa" />
-                Filtros
+                {t("shop.filtersButton")}
                 {hasActiveFilters && (
                   <span className="w-2 h-2 rounded-full bg-rosa" />
                 )}
@@ -230,17 +235,16 @@ export default function ShopPage() {
                   <PackageOpen className="w-10 h-10 text-rosa" />
                 </div>
                 <h3 className="font-serif text-2xl text-gray-800 mb-2">
-                  No encontramos productos
+                  {t("shop.emptyStateHeading")}
                 </h3>
                 <p className="text-gray-500 text-sm max-w-md mb-6">
-                  Intenta ajustar los filtros para encontrar lo que buscas. Tenemos
-                  opciones perfectas esperando por ti.
+                  {t("shop.emptyStateText")}
                 </p>
                 <button
                   onClick={clearFilters}
                   className="px-6 py-3 rounded-full bg-rosa text-white font-semibold text-sm hover:bg-rosa-dark transition-colors cursor-pointer shadow-md hover:shadow-lg"
                 >
-                  Limpiar filtros
+                  {t("shop.clearFiltersButton")}
                 </button>
               </motion.div>
             )}

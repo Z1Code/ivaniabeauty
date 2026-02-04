@@ -2,8 +2,9 @@ export function cn(...classes: (string | boolean | undefined | null)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-export function formatPrice(price: number): string {
-  return new Intl.NumberFormat("es-CO", {
+export function formatPrice(price: number, language: string = "es"): string {
+  const locale = language === "es" ? "es-CO" : "en-US";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: "USD",
   }).format(price);
@@ -21,7 +22,20 @@ export function getColorHex(color: string): string {
   return colors[color] || "#CCCCCC";
 }
 
-export function getCompressionLabel(level: string): string {
+export function getCompressionLabel(
+  level: string,
+  t?: (key: string) => string
+): string {
+  if (t) {
+    const keyMap: Record<string, string> = {
+      suave: "filters.compressionSoft",
+      media: "filters.compressionMedium",
+      firme: "filters.compressionFirm",
+    };
+    const key = keyMap[level];
+    if (key) return t(key);
+  }
+
   const labels: Record<string, string> = {
     suave: "Compresion Suave",
     media: "Compresion Media",

@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Camera, Heart, Send } from "lucide-react";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const gridGradients = [
   "from-rosa to-rosa-light",
@@ -18,6 +19,7 @@ const gridGradients = [
 const gridLikes = ["1.2k", "856", "2.1k", "1.5k", "943", "1.8k"];
 
 export default function InstagramFeed() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
 
@@ -34,10 +36,10 @@ export default function InstagramFeed() {
       <div className="max-w-6xl mx-auto px-6">
         <ScrollReveal direction="up">
           <h2 className="font-serif text-4xl text-center text-gray-800">
-            Siguenos en Instagram
+            {t("instagram.heading")}
           </h2>
           <p className="font-script text-2xl text-rosa text-center mt-3">
-            #IvaniaBeauty
+            {t("instagram.hashtag")}
           </p>
         </ScrollReveal>
 
@@ -86,10 +88,10 @@ export default function InstagramFeed() {
         <div id="contacto" className="mt-16">
           <ScrollReveal direction="up" delay={0.2}>
             <h3 className="font-serif text-3xl text-center text-gray-800">
-              Unete al Club Ivania Beauty
+              {t("instagram.newsletterHeading")}
             </h3>
             <p className="text-gray-600 text-center mt-3">
-              Recibe ofertas exclusivas y tips de moda
+              {t("instagram.newsletterSubtitle")}
             </p>
 
             <form
@@ -98,7 +100,7 @@ export default function InstagramFeed() {
             >
               <input
                 type="email"
-                placeholder="tu@email.com"
+                placeholder={t("instagram.emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -110,7 +112,7 @@ export default function InstagramFeed() {
                 whileTap={{ scale: 0.98 }}
                 className="bg-rosa text-white px-8 py-3 rounded-r-full hover:bg-rosa-dark transition-colors font-semibold flex items-center gap-2 cursor-pointer"
               >
-                Suscribirse
+                {t("instagram.subscribeButton")}
                 <Send className="w-4 h-4" />
               </motion.button>
             </form>
@@ -121,12 +123,12 @@ export default function InstagramFeed() {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center text-rosa-dark font-semibold mt-4 text-sm"
               >
-                Gracias por suscribirte!
+                {t("instagram.thankYouMessage")}
               </motion.p>
             )}
 
             <p className="text-xs text-gray-400 text-center mt-4">
-              Al suscribirte aceptas nuestra politica de privacidad
+              {t("instagram.privacyNotice")}
             </p>
           </ScrollReveal>
         </div>

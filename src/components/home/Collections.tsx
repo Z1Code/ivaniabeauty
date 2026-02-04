@@ -5,9 +5,10 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Sun, Coffee, Sparkles, Heart } from "lucide-react";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface CollectionItem {
-  name: string;
+  nameKey: string;
   icon: React.ElementType;
   gradient: string;
   slug: string;
@@ -15,25 +16,25 @@ interface CollectionItem {
 
 const collections: CollectionItem[] = [
   {
-    name: "Playa & Piscina",
+    nameKey: "collections.beachPool",
     icon: Sun,
     gradient: "from-turquesa/40 to-rosa-light/40",
     slug: "playa",
   },
   {
-    name: "Dia a Dia",
+    nameKey: "collections.everyday",
     icon: Coffee,
     gradient: "from-rosa-light/40 to-arena",
     slug: "diario",
   },
   {
-    name: "Eventos Especiales",
+    nameKey: "collections.specialEvents",
     icon: Sparkles,
     gradient: "from-dorado/30 to-rosa/30",
     slug: "eventos",
   },
   {
-    name: "Post-Parto",
+    nameKey: "collections.postPartum",
     icon: Heart,
     gradient: "from-rosa-light/40 to-coral/30",
     slug: "postparto",
@@ -41,6 +42,7 @@ const collections: CollectionItem[] = [
 ];
 
 function CollectionCard({ collection, index }: { collection: CollectionItem; index: number }) {
+  const { t } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
@@ -103,10 +105,10 @@ function CollectionCard({ collection, index }: { collection: CollectionItem; ind
           {/* Bottom text */}
           <div className="absolute bottom-0 left-0 right-0 p-6">
             <h3 className="font-serif text-xl text-white font-bold">
-              {collection.name}
+              {t(collection.nameKey)}
             </h3>
             <span className="text-sm text-white/90 opacity-0 group-hover:opacity-100 transition-opacity duration-300 inline-block mt-1">
-              Ver Coleccion &rarr;
+              {t("collections.viewCollection")} &rarr;
             </span>
           </div>
         </div>
@@ -116,13 +118,15 @@ function CollectionCard({ collection, index }: { collection: CollectionItem; ind
 }
 
 export default function Collections() {
+  const { t } = useTranslation();
+
   return (
     <section id="colecciones" className="py-24 bg-perla">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center">
           <ScrollReveal direction="up">
             <h2 className="font-serif text-4xl text-center">
-              Nuestras Colecciones
+              {t("collections.heading")}
             </h2>
             {/* Decorative line */}
             <div className="mx-auto mt-4 w-24 h-1 bg-gradient-to-r from-rosa-light via-rosa to-rosa-dark rounded-full" />
@@ -130,7 +134,7 @@ export default function Collections() {
 
           <ScrollReveal direction="up" delay={0.1}>
             <p className="font-script text-2xl text-rosa-dark mt-4">
-              Encuentra la faja perfecta para cada momento
+              {t("collections.subtitle")}
             </p>
           </ScrollReveal>
         </div>

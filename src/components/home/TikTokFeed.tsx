@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Play, Heart, MessageCircle, Music2 } from "lucide-react";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const TIKTOK_PROFILE = "https://www.tiktok.com/@ivaniabeauty2";
 
@@ -18,15 +19,17 @@ const videos = [
 ];
 
 export default function TikTokFeed() {
+  const { t } = useTranslation();
+
   return (
     <section className="py-24 bg-arena">
       <div className="max-w-6xl mx-auto px-6">
         <ScrollReveal direction="up">
           <h2 className="font-serif text-4xl text-center text-gray-800">
-            Siguenos en TikTok
+            {t("tiktok.heading")}
           </h2>
           <p className="font-script text-2xl text-rosa text-center mt-3">
-            @ivaniabeauty2
+            {t("tiktok.handle")}
           </p>
         </ScrollReveal>
 
@@ -117,7 +120,7 @@ export default function TikTokFeed() {
                 >
                   <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V9.07a8.16 8.16 0 004.76 1.52v-3.4a4.85 4.85 0 01-1-.5z" />
                 </svg>
-                Seguir en TikTok
+                {t("tiktok.followButton")}
               </motion.button>
             </a>
           </ScrollReveal>

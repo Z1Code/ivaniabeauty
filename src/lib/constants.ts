@@ -13,11 +13,11 @@ export const COLORS = {
 } as const;
 
 export const NAV_LINKS = [
-  { label: "Inicio", href: "/" },
-  { label: "Tienda", href: "/shop" },
-  { label: "Colecciones", href: "/#colecciones" },
-  { label: "Nosotros", href: "/#nosotros" },
-  { label: "Contacto", href: "/#contacto" },
+  { labelKey: "nav.home", href: "/" },
+  { labelKey: "nav.shop", href: "/shop" },
+  { labelKey: "nav.collections", href: "/#colecciones" },
+  { labelKey: "nav.about", href: "/#nosotros" },
+  { labelKey: "nav.contact", href: "/#contacto" },
 ] as const;
 
 export const SIZE_CHART = [

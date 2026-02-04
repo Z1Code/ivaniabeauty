@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import CartDrawer from "@/components/cart/CartDrawer";
 
 import ScrollProgress from "@/components/shared/ScrollProgress";
+import LanguageInitializer from "@/components/shared/LanguageInitializer";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -55,11 +56,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="en">
       <body
         className={`${poppins.variable} ${playfair.variable} ${dancingScript.variable} font-sans antialiased`}
       >
 
+        <LanguageInitializer />
         <ScrollProgress />
         <Header />
         <main>{children}</main>

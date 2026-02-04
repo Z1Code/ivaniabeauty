@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
 
 type AreaOption = "abdomen" | "cintura" | "piernas" | "gluteos";
 type CompressionOption = "suave" | "media" | "firme";
@@ -37,22 +38,22 @@ interface Measurements {
 }
 
 const areaOptions = [
-  { id: "abdomen" as AreaOption, label: "Abdomen", icon: Circle },
-  { id: "cintura" as AreaOption, label: "Cintura", icon: Maximize2 },
-  { id: "piernas" as AreaOption, label: "Piernas", icon: Footprints },
-  { id: "gluteos" as AreaOption, label: "Gluteos", icon: Heart },
+  { id: "abdomen" as AreaOption, labelKey: "sizeQuiz.areaAbdomen", icon: Circle },
+  { id: "cintura" as AreaOption, labelKey: "sizeQuiz.areaCintura", icon: Maximize2 },
+  { id: "piernas" as AreaOption, labelKey: "sizeQuiz.areaPiernas", icon: Footprints },
+  { id: "gluteos" as AreaOption, labelKey: "sizeQuiz.areaGluteos", icon: Heart },
 ];
 
 const compressionOptions = [
-  { id: "suave" as CompressionOption, label: "Suave", icon: Feather },
-  { id: "media" as CompressionOption, label: "Media", icon: Layers },
-  { id: "firme" as CompressionOption, label: "Firme", icon: Shield },
+  { id: "suave" as CompressionOption, labelKey: "sizeQuiz.compressionSuave", icon: Feather },
+  { id: "media" as CompressionOption, labelKey: "sizeQuiz.compressionMedia", icon: Layers },
+  { id: "firme" as CompressionOption, labelKey: "sizeQuiz.compressionFirme", icon: Shield },
 ];
 
 const occasionOptions = [
-  { id: "diario" as OccasionOption, label: "Diario", icon: Coffee },
-  { id: "deporte" as OccasionOption, label: "Deporte", icon: Activity },
-  { id: "evento" as OccasionOption, label: "Evento", icon: Star },
+  { id: "diario" as OccasionOption, labelKey: "sizeQuiz.occasionDiario", icon: Coffee },
+  { id: "deporte" as OccasionOption, labelKey: "sizeQuiz.occasionDeporte", icon: Activity },
+  { id: "evento" as OccasionOption, labelKey: "sizeQuiz.occasionEvento", icon: Star },
 ];
 
 function calculateSize(cintura: number, cadera: number): string {
@@ -68,43 +69,41 @@ function calculateSize(cintura: number, cadera: number): string {
 function getRecommendedProduct(
   area: AreaOption | null,
   occasion: OccasionOption | null
-): { name: string; description: string } {
+): { nameKey: string; descKey: string } {
   if (occasion === "deporte") {
     return {
-      name: "Waist Trainer Deluxe",
-      description:
-        "Ideal para entrenamientos de alta intensidad con soporte maximo.",
+      nameKey: "sizeQuiz.recommendedWaistTrainer",
+      descKey: "sizeQuiz.recommendedWaistTrainerDesc",
     };
   }
   if (occasion === "evento") {
     return {
-      name: "Faja Gala Sculpt",
-      description:
-        "Invisible bajo la ropa de gala. Moldea y define tu silueta.",
+      nameKey: "sizeQuiz.recommendedGalaSculpt",
+      descKey: "sizeQuiz.recommendedGalaSculptDesc",
     };
   }
   if (area === "gluteos") {
     return {
-      name: "Faja Levanta Gluteos",
-      description: "Realza y moldea tus curvas naturales con comodidad total.",
+      nameKey: "sizeQuiz.recommendedLevantaGluteos",
+      descKey: "sizeQuiz.recommendedLevantaGluteosDesc",
     };
   }
   if (area === "piernas") {
     return {
-      name: "Legging Sculpt Pro",
-      description: "Moldea piernas y muslos con compresion gradual.",
+      nameKey: "sizeQuiz.recommendedLeggingSculpt",
+      descKey: "sizeQuiz.recommendedLeggingSculptDesc",
     };
   }
   return {
-    name: "Faja Recovery Mama",
-    description:
-      "Soporte diario con maxima comodidad. Perfecta para todo el dia.",
+    nameKey: "sizeQuiz.recommendedRecoveryMama",
+    descKey: "sizeQuiz.recommendedRecoveryMamaDesc",
   };
 }
 
 const confettiColors = ["#FF6B9D", "#D4AF37", "#40E0D0", "#FF7F7F"];
 
 export default function SizeQuiz() {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [selections, setSelections] = useState<Selections>({
     area: null,
@@ -179,10 +178,10 @@ export default function SizeQuiz() {
       <div className="max-w-4xl mx-auto px-6">
         <ScrollReveal direction="up">
           <h2 className="font-serif text-4xl text-center text-gray-800">
-            Encuentra tu Talla Perfecta
+            {t("sizeQuiz.heading")}
           </h2>
           <p className="font-script text-2xl text-rosa text-center mt-4">
-            Responde 4 preguntas y te recomendamos el producto ideal
+            {t("sizeQuiz.subtitle")}
           </p>
         </ScrollReveal>
 
@@ -243,7 +242,7 @@ export default function SizeQuiz() {
                   transition={{ duration: 0.35, ease: "easeInOut" }}
                 >
                   <h3 className="font-serif text-xl text-center text-gray-700 mb-6">
-                    Que area quieres moldear?
+                    {t("sizeQuiz.step1Title")}
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     {areaOptions.map((opt) => {
@@ -274,7 +273,7 @@ export default function SizeQuiz() {
                               selected ? "text-rosa-dark" : "text-gray-700"
                             )}
                           >
-                            {opt.label}
+                            {t(opt.labelKey)}
                           </span>
                         </motion.div>
                       );
@@ -294,7 +293,7 @@ export default function SizeQuiz() {
                   transition={{ duration: 0.35, ease: "easeInOut" }}
                 >
                   <h3 className="font-serif text-xl text-center text-gray-700 mb-6">
-                    Nivel de compresion?
+                    {t("sizeQuiz.step2Title")}
                   </h3>
                   <div className="grid grid-cols-3 gap-4">
                     {compressionOptions.map((opt) => {
@@ -328,7 +327,7 @@ export default function SizeQuiz() {
                               selected ? "text-rosa-dark" : "text-gray-700"
                             )}
                           >
-                            {opt.label}
+                            {t(opt.labelKey)}
                           </span>
                         </motion.div>
                       );
@@ -348,7 +347,7 @@ export default function SizeQuiz() {
                   transition={{ duration: 0.35, ease: "easeInOut" }}
                 >
                   <h3 className="font-serif text-xl text-center text-gray-700 mb-6">
-                    Para que ocasion?
+                    {t("sizeQuiz.step3Title")}
                   </h3>
                   <div className="grid grid-cols-3 gap-4">
                     {occasionOptions.map((opt) => {
@@ -379,7 +378,7 @@ export default function SizeQuiz() {
                               selected ? "text-rosa-dark" : "text-gray-700"
                             )}
                           >
-                            {opt.label}
+                            {t(opt.labelKey)}
                           </span>
                         </motion.div>
                       );
@@ -399,16 +398,16 @@ export default function SizeQuiz() {
                   transition={{ duration: 0.35, ease: "easeInOut" }}
                 >
                   <h3 className="font-serif text-xl text-center text-gray-700 mb-6">
-                    Tus medidas
+                    {t("sizeQuiz.step4Title")}
                   </h3>
                   <div className="space-y-5">
                     <div>
                       <label className="block text-sm font-semibold text-gray-600 mb-2">
-                        Cintura (cm)
+                        {t("sizeQuiz.waistLabel")}
                       </label>
                       <input
                         type="number"
-                        placeholder="ej: 72"
+                        placeholder={t("sizeQuiz.waistPlaceholder")}
                         value={measurements.cintura}
                         onChange={(e) =>
                           setMeasurements((m) => ({
@@ -421,11 +420,11 @@ export default function SizeQuiz() {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-600 mb-2">
-                        Cadera (cm)
+                        {t("sizeQuiz.hipLabel")}
                       </label>
                       <input
                         type="number"
-                        placeholder="ej: 96"
+                        placeholder={t("sizeQuiz.hipPlaceholder")}
                         value={measurements.cadera}
                         onChange={(e) =>
                           setMeasurements((m) => ({
@@ -483,7 +482,7 @@ export default function SizeQuiz() {
 
                   <Sparkles className="w-10 h-10 text-dorado mx-auto mb-4" />
                   <p className="text-lg text-gray-600 mb-2">
-                    Tu talla recomendada es:
+                    {t("sizeQuiz.resultIntro")}
                   </p>
                   <motion.div
                     initial={{ scale: 0 }}
@@ -506,19 +505,19 @@ export default function SizeQuiz() {
                     className="glass-rosa p-6 rounded-2xl mt-8 max-w-sm mx-auto"
                   >
                     <p className="text-sm text-gray-500 mb-1">
-                      Producto recomendado
+                      {t("sizeQuiz.recommendedProductLabel")}
                     </p>
                     <h4 className="font-serif text-xl font-semibold text-gray-800 mb-2">
-                      {recommendedProduct.name}
+                      {t(recommendedProduct.nameKey)}
                     </h4>
                     <p className="text-gray-600 text-sm mb-4">
-                      {recommendedProduct.description}
+                      {t(recommendedProduct.descKey)}
                     </p>
                     <Link
                       href="/shop"
                       className="btn-shimmer inline-block text-sm px-6 py-3"
                     >
-                      Ver Producto
+                      {t("sizeQuiz.viewProduct")}
                     </Link>
                   </motion.div>
 
@@ -531,7 +530,7 @@ export default function SizeQuiz() {
                       href="/shop"
                       className="inline-block mt-6 text-rosa-dark font-semibold hover:underline transition-all"
                     >
-                      Ver todos los productos
+                      {t("sizeQuiz.viewAllProducts")}
                     </Link>
                   </motion.div>
                 </motion.div>
@@ -555,7 +554,7 @@ export default function SizeQuiz() {
                 )}
               >
                 <ArrowLeft className="w-4 h-4" />
-                Anterior
+                {t("sizeQuiz.prevButton")}
               </motion.button>
 
               <motion.button
@@ -570,7 +569,7 @@ export default function SizeQuiz() {
                     : "bg-rosa-light/40 text-gray-400 cursor-not-allowed"
                 )}
               >
-                {currentStep === 3 ? "Ver Resultado" : "Siguiente"}
+                {currentStep === 3 ? t("sizeQuiz.viewResultButton") : t("sizeQuiz.nextButton")}
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
             </div>

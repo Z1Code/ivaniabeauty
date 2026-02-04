@@ -1,7 +1,10 @@
 [
   {
     "id": "faja-playa-001",
-    "name": "Faja Bikini Invisible",
+    "name": {
+      "en": "Invisible Bikini Shaper",
+      "es": "Faja Bikini Invisible"
+    },
     "slug": "faja-bikini-invisible",
     "price": 89.99,
     "originalPrice": 119.99,
@@ -10,10 +13,22 @@
     "sizes": ["XS", "S", "M", "L", "XL", "2XL"],
     "compression": "media",
     "occasion": "playa",
-    "badge": "Bestseller",
-    "description": "Perfecta para lucir tu bikini favorito con total confianza. Tela ultraligera y transpirable que se adapta a tu silueta sin marcar.",
-    "shortDescription": "Moldea tu silueta bajo el bikini sin que nadie lo note.",
-    "features": ["Invisible bajo el bikini", "Secado rapido", "Proteccion UV", "Costuras planas"],
+    "badge": {
+      "en": "Bestseller",
+      "es": "Bestseller"
+    },
+    "description": {
+      "en": "Perfect for wearing your favorite bikini with total confidence. Ultra-lightweight and breathable fabric that adapts to your silhouette without showing lines.",
+      "es": "Perfecta para lucir tu bikini favorito con total confianza. Tela ultraligera y transpirable que se adapta a tu silueta sin marcar."
+    },
+    "shortDescription": {
+      "en": "Shape your silhouette under your bikini without anyone noticing.",
+      "es": "Moldea tu silueta bajo el bikini sin que nadie lo note."
+    },
+    "features": {
+      "en": ["Invisible under bikini", "Quick dry", "UV protection", "Flat seams"],
+      "es": ["Invisible bajo el bikini", "Secado rapido", "Proteccion UV", "Costuras planas"]
+    },
     "materials": "85% Nylon, 15% Spandex. Tela con tecnologia de secado rapido y proteccion UV50+.",
     "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
     "images": ["/images/products/playa-1.jpg", "/images/products/playa-2.jpg", "/images/products/playa-3.jpg", "/images/products/playa-4.jpg"],
@@ -23,7 +38,10 @@
   },
   {
     "id": "faja-diaria-002",
-    "name": "Faja Cinturilla Diaria",
+    "name": {
+      "en": "Daily Waist Shaper",
+      "es": "Faja Cinturilla Diaria"
+    },
     "slug": "faja-cinturilla-diaria",
     "price": 69.99,
     "originalPrice": null,
@@ -32,10 +50,22 @@
     "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
     "compression": "suave",
     "occasion": "diario",
-    "badge": "Nuevo",
-    "description": "La compañera perfecta para tu dia a dia. Comprension suave que moldea sin incomodar, ideal para usar bajo cualquier outfit.",
-    "shortDescription": "Comodidad diaria con moldeo suave y natural.",
-    "features": ["Ultra comoda", "Tela transpirable", "Sin costuras visibles", "Cintura alta"],
+    "badge": {
+      "en": "New",
+      "es": "Nuevo"
+    },
+    "description": {
+      "en": "The perfect companion for your everyday life. Light compression that shapes without discomfort, ideal for wearing under any outfit.",
+      "es": "La compañera perfecta para tu dia a dia. Comprension suave que moldea sin incomodar, ideal para usar bajo cualquier outfit."
+    },
+    "shortDescription": {
+      "en": "Daily comfort with soft, natural shaping.",
+      "es": "Comodidad diaria con moldeo suave y natural."
+    },
+    "features": {
+      "en": ["Ultra comfortable", "Breathable fabric", "No visible seams", "High waist"],
+      "es": ["Ultra comoda", "Tela transpirable", "Sin costuras visibles", "Cintura alta"]
+    },
     "materials": "80% Nylon, 20% Elastano. Tela antibacterial con tecnologia Dry-Fit.",
     "care": "Lavado a maquina en ciclo delicado. Secar a la sombra.",
     "images": ["/images/products/diaria-1.jpg", "/images/products/diaria-2.jpg", "/images/products/diaria-3.jpg", "/images/products/diaria-4.jpg"],
@@ -45,7 +75,10 @@
   },
   {
     "id": "faja-evento-003",
-    "name": "Faja Gala Sculpt",
+    "name": {
+      "en": "Gala Sculpt Shaper",
+      "es": "Faja Gala Sculpt"
+    },
     "slug": "faja-gala-sculpt",
     "price": 129.99,
     "originalPrice": 159.99,
@@ -54,10 +87,22 @@
     "sizes": ["XS", "S", "M", "L", "XL", "2XL"],
     "compression": "firme",
     "occasion": "evento",
-    "badge": "Oferta",
-    "description": "Diseñada para esos momentos especiales. Compresion firme que esculpe tu silueta para lucir espectacular con vestidos de gala, bodas y fiestas.",
-    "shortDescription": "Esculpe tu figura para cada ocasion especial.",
-    "features": ["Compresion firme", "Efecto push-up gluteos", "Cierre invisible", "Forro de algodon"],
+    "badge": {
+      "en": "Sale",
+      "es": "Oferta"
+    },
+    "description": {
+      "en": "Designed for those special moments. Firm compression that sculpts your silhouette to look spectacular with gala dresses, weddings, and parties.",
+      "es": "Diseñada para esos momentos especiales. Compresion firme que esculpe tu silueta para lucir espectacular con vestidos de gala, bodas y fiestas."
+    },
+    "shortDescription": {
+      "en": "Sculpt your figure for every special occasion.",
+      "es": "Esculpe tu figura para cada ocasion especial."
+    },
+    "features": {
+      "en": ["Firm compression", "Butt lift effect", "Invisible closure", "Cotton lining"],
+      "es": ["Compresion firme", "Efecto push-up gluteos", "Cierre invisible", "Forro de algodon"]
+    },
     "materials": "75% Nylon, 25% Spandex. Forro interior 100% algodon organico.",
     "care": "Lavar a mano con agua fria. Secar en plano. No planchar.",
     "images": ["/images/products/evento-1.jpg", "/images/products/evento-2.jpg", "/images/products/evento-3.jpg", "/images/products/evento-4.jpg"],
@@ -67,7 +112,10 @@
   },
   {
     "id": "faja-postparto-004",
-    "name": "Faja Recovery Mama",
+    "name": {
+      "en": "Recovery Mama Shaper",
+      "es": "Faja Recovery Mama"
+    },
     "slug": "faja-recovery-mama",
     "price": 99.99,
     "originalPrice": null,
@@ -77,9 +125,18 @@
     "compression": "media",
     "occasion": "diario",
     "badge": null,
-    "description": "Acompaña tu recuperacion postparto con soporte y comodidad. Diseñada con expertos en salud maternal para brindarte la compresion justa que necesitas.",
-    "shortDescription": "Soporte postparto diseñado con expertos en salud maternal.",
-    "features": ["Soporte abdominal", "Ajuste progresivo", "Apertura para lactancia", "Tela hipoalergenica"],
+    "description": {
+      "en": "Support your postpartum recovery with comfort and care. Designed with maternal health experts to provide the right amount of compression you need.",
+      "es": "Acompaña tu recuperacion postparto con soporte y comodidad. Diseñada con expertos en salud maternal para brindarte la compresion justa que necesitas."
+    },
+    "shortDescription": {
+      "en": "Postpartum support designed with maternal health experts.",
+      "es": "Soporte postparto diseñado con expertos en salud maternal."
+    },
+    "features": {
+      "en": ["Abdominal support", "Progressive adjustment", "Nursing opening", "Hypoallergenic fabric"],
+      "es": ["Soporte abdominal", "Ajuste progresivo", "Apertura para lactancia", "Tela hipoalergenica"]
+    },
     "materials": "90% Algodon organico, 10% Elastano. Certificada dermatologicamente.",
     "care": "Lavado a maquina en ciclo delicado. Se puede usar secadora a baja temperatura.",
     "images": ["/images/products/postparto-1.jpg", "/images/products/postparto-2.jpg", "/images/products/postparto-3.jpg", "/images/products/postparto-4.jpg"],
@@ -89,7 +146,10 @@
   },
   {
     "id": "faja-deportiva-005",
-    "name": "Faja Sport Active",
+    "name": {
+      "en": "Sport Active Shaper",
+      "es": "Faja Sport Active"
+    },
     "slug": "faja-sport-active",
     "price": 79.99,
     "originalPrice": 99.99,
@@ -98,10 +158,22 @@
     "sizes": ["XS", "S", "M", "L", "XL", "2XL"],
     "compression": "firme",
     "occasion": "deporte",
-    "badge": "Bestseller",
-    "description": "Maximiza tus entrenamientos con soporte extra. Compresion firme que activa la termogenesis mientras entrenas, ideal para gym, yoga y running.",
-    "shortDescription": "Potencia tus entrenamientos con soporte termico.",
-    "features": ["Efecto sauna", "Soporte lumbar", "Tela anti-sudor", "Bandas antideslizantes"],
+    "badge": {
+      "en": "Bestseller",
+      "es": "Bestseller"
+    },
+    "description": {
+      "en": "Maximize your workouts with extra support. Firm compression that activates thermogenesis while you train, ideal for gym, yoga, and running.",
+      "es": "Maximiza tus entrenamientos con soporte extra. Compresion firme que activa la termogenesis mientras entrenas, ideal para gym, yoga y running."
+    },
+    "shortDescription": {
+      "en": "Power up your workouts with thermal support.",
+      "es": "Potencia tus entrenamientos con soporte termico."
+    },
+    "features": {
+      "en": ["Sauna effect", "Lumbar support", "Anti-sweat fabric", "Non-slip bands"],
+      "es": ["Efecto sauna", "Soporte lumbar", "Tela anti-sudor", "Bandas antideslizantes"]
+    },
     "materials": "70% Neopreno, 20% Nylon, 10% Spandex. Interior de malla transpirable.",
     "care": "Lavar a mano despues de cada uso. Secar al aire libre.",
     "images": ["/images/products/sport-1.jpg", "/images/products/sport-2.jpg", "/images/products/sport-3.jpg", "/images/products/sport-4.jpg"],
@@ -111,7 +183,10 @@
   },
   {
     "id": "faja-playa-006",
-    "name": "Body Summer Glow",
+    "name": {
+      "en": "Summer Glow Body",
+      "es": "Body Summer Glow"
+    },
     "slug": "body-summer-glow",
     "price": 109.99,
     "originalPrice": null,
@@ -120,10 +195,22 @@
     "sizes": ["XS", "S", "M", "L", "XL"],
     "compression": "suave",
     "occasion": "playa",
-    "badge": "Nuevo",
-    "description": "El body perfecto para el verano. Moldea suavemente mientras luces increible en la playa o la piscina. Tela con brillo sutil que realza tu piel bronceada.",
-    "shortDescription": "Brilla este verano con un moldeo natural y elegante.",
-    "features": ["Brillo sutil", "Tirantes ajustables", "Resistente al cloro", "Secado ultra rapido"],
+    "badge": {
+      "en": "New",
+      "es": "Nuevo"
+    },
+    "description": {
+      "en": "The perfect body for summer. Gently shapes while you look incredible at the beach or pool. Fabric with a subtle shimmer that enhances your tanned skin.",
+      "es": "El body perfecto para el verano. Moldea suavemente mientras luces increible en la playa o la piscina. Tela con brillo sutil que realza tu piel bronceada."
+    },
+    "shortDescription": {
+      "en": "Shine this summer with natural and elegant shaping.",
+      "es": "Brilla este verano con un moldeo natural y elegante."
+    },
+    "features": {
+      "en": ["Subtle shimmer", "Adjustable straps", "Chlorine resistant", "Ultra quick dry"],
+      "es": ["Brillo sutil", "Tirantes ajustables", "Resistente al cloro", "Secado ultra rapido"]
+    },
     "materials": "82% Poliamida, 18% Elastano. Acabado con microparticulas luminosas.",
     "care": "Enjuagar con agua dulce despues del uso en piscina/mar. Lavar a mano.",
     "images": ["/images/products/summer-1.jpg", "/images/products/summer-2.jpg", "/images/products/summer-3.jpg", "/images/products/summer-4.jpg"],
@@ -133,7 +220,10 @@
   },
   {
     "id": "faja-cintura-007",
-    "name": "Waist Trainer Deluxe",
+    "name": {
+      "en": "Deluxe Waist Trainer",
+      "es": "Waist Trainer Deluxe"
+    },
     "slug": "waist-trainer-deluxe",
     "price": 119.99,
     "originalPrice": 149.99,
@@ -142,10 +232,22 @@
     "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
     "compression": "firme",
     "occasion": "diario",
-    "badge": "Oferta",
-    "description": "Nuestro waist trainer mas vendido. Triple hilera de ganchos para ajuste perfecto, varillas de acero flex que moldean sin incomodar. Resultados visibles desde el primer uso.",
-    "shortDescription": "Triple ajuste para moldear tu cintura con precision.",
-    "features": ["Triple hilera de ganchos", "Varillas flex de acero", "Efecto reloj de arena", "Interior de algodon"],
+    "badge": {
+      "en": "Sale",
+      "es": "Oferta"
+    },
+    "description": {
+      "en": "Our best-selling waist trainer. Triple row of hooks for a perfect fit, flex steel bones that shape without discomfort. Visible results from the first use.",
+      "es": "Nuestro waist trainer mas vendido. Triple hilera de ganchos para ajuste perfecto, varillas de acero flex que moldean sin incomodar. Resultados visibles desde el primer uso."
+    },
+    "shortDescription": {
+      "en": "Triple adjustment to shape your waist with precision.",
+      "es": "Triple ajuste para moldear tu cintura con precision."
+    },
+    "features": {
+      "en": ["Triple row of hooks", "Flex steel bones", "Hourglass effect", "Cotton interior"],
+      "es": ["Triple hilera de ganchos", "Varillas flex de acero", "Efecto reloj de arena", "Interior de algodon"]
+    },
     "materials": "Exterior: 100% Latex natural. Interior: 100% Algodon. Varillas de acero inoxidable.",
     "care": "Limpiar con paño humedo. No lavar a maquina. Guardar en plano.",
     "images": ["/images/products/waist-1.jpg", "/images/products/waist-2.jpg", "/images/products/waist-3.jpg", "/images/products/waist-4.jpg"],
@@ -155,7 +257,10 @@
   },
   {
     "id": "faja-body-008",
-    "name": "Full Body Elegance",
+    "name": {
+      "en": "Full Body Elegance",
+      "es": "Full Body Elegance"
+    },
     "slug": "full-body-elegance",
     "price": 149.99,
     "originalPrice": null,
@@ -165,9 +270,18 @@
     "compression": "media",
     "occasion": "evento",
     "badge": null,
-    "description": "Cobertura completa de busto a rodilla. Moldea, suaviza y esculpe toda tu silueta de forma uniforme. Perfecta bajo vestidos ajustados y outfits elegantes.",
-    "shortDescription": "Moldeo integral para una silueta impecable.",
-    "features": ["Cobertura completa", "Moldeo uniforme", "Tirantes desmontables", "Entrepierna abierta"],
+    "description": {
+      "en": "Full coverage from bust to knee. Shapes, smooths, and sculpts your entire silhouette uniformly. Perfect under fitted dresses and elegant outfits.",
+      "es": "Cobertura completa de busto a rodilla. Moldea, suaviza y esculpe toda tu silueta de forma uniforme. Perfecta bajo vestidos ajustados y outfits elegantes."
+    },
+    "shortDescription": {
+      "en": "Full-body shaping for a flawless silhouette.",
+      "es": "Moldeo integral para una silueta impecable."
+    },
+    "features": {
+      "en": ["Full coverage", "Uniform shaping", "Detachable straps", "Open crotch"],
+      "es": ["Cobertura completa", "Moldeo uniforme", "Tirantes desmontables", "Entrepierna abierta"]
+    },
     "materials": "78% Nylon, 22% Spandex. Zona del busto con copa preformada.",
     "care": "Lavar a mano con jabon neutro. No retorcer. Secar a la sombra.",
     "images": ["/images/products/body-1.jpg", "/images/products/body-2.jpg", "/images/products/body-3.jpg", "/images/products/body-4.jpg"],

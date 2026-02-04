@@ -14,12 +14,15 @@ import {
 
 import { NAV_LINKS, SITE_NAME } from "@/lib/constants";
 import useCart from "@/hooks/useCart";
+import { useTranslation } from "@/hooks/useTranslation";
+import LanguageToggle from "@/components/shared/LanguageToggle";
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { openCart, totalItems } = useCart();
   const cartCount = totalItems();
+  const { t } = useTranslation();
 
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 50);
@@ -80,7 +83,7 @@ export default function Header() {
                     href={link.href}
                     className="relative text-sm font-medium text-foreground/80 hover:text-rosa-dark transition-colors duration-300 group"
                   >
-                    {link.label}
+                    {t(link.labelKey)}
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-rosa rounded-full transition-all duration-300 group-hover:w-full" />
                   </Link>
                 </li>
@@ -89,9 +92,12 @@ export default function Header() {
 
             {/* Right Icons */}
             <div className="flex items-center gap-1 sm:gap-3">
+              {/* Language Toggle */}
+              <LanguageToggle />
+
               {/* Search */}
               <button
-                aria-label="Buscar"
+                aria-label={t("header.search")}
                 className="relative p-2 rounded-full text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40 transition-colors duration-300"
               >
                 <Search className="w-5 h-5" />
@@ -100,7 +106,7 @@ export default function Header() {
               {/* Wishlist */}
               <Link
                 href="/wishlist"
-                aria-label="Lista de deseos"
+                aria-label={t("header.wishlist")}
                 className="relative p-2 rounded-full text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40 transition-colors duration-300"
               >
                 <Heart className="w-5 h-5" />
@@ -109,7 +115,7 @@ export default function Header() {
               {/* Cart */}
               <button
                 onClick={openCart}
-                aria-label="Carrito de compras"
+                aria-label={t("header.cart")}
                 className="relative p-2 rounded-full text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40 transition-colors duration-300"
               >
                 <ShoppingBag className="w-5 h-5" />
@@ -131,7 +137,7 @@ export default function Header() {
               {/* Mobile Menu Toggle */}
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                aria-label="Abrir menu"
+                aria-label={t("header.openMenu")}
                 className="lg:hidden p-2 rounded-full text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40 transition-colors duration-300"
               >
                 <Menu className="w-6 h-6" />
@@ -168,13 +174,16 @@ export default function Header() {
                 <span className="font-serif text-xl font-semibold text-rosa tracking-wide">
                   {SITE_NAME}
                 </span>
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  aria-label="Cerrar menu"
-                  className="p-2 rounded-full text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40 transition-colors duration-300"
-                >
-                  <X className="w-6 h-6" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <LanguageToggle />
+                  <button
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-label={t("header.closeMenu")}
+                    className="p-2 rounded-full text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40 transition-colors duration-300"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
               </div>
 
               {/* Drawer Links */}
@@ -192,7 +201,7 @@ export default function Header() {
                         onClick={() => setMobileMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-lg font-medium text-foreground/80 hover:bg-rosa-light/30 hover:text-rosa-dark transition-colors duration-300"
                       >
-                        {link.label}
+                        {t(link.labelKey)}
                       </Link>
                     </motion.li>
                   ))}
@@ -202,7 +211,7 @@ export default function Header() {
               {/* Drawer Footer */}
               <div className="px-6 py-6 border-t border-rosa-light/50">
                 <p className="text-foreground/50 font-script text-center text-lg">
-                  Realza tu belleza natural
+                  {t("site.tagline")}
                 </p>
               </div>
             </motion.div>

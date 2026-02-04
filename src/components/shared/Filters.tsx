@@ -5,45 +5,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import useFilters from "@/hooks/useFilters";
 import { getColorHex, cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface FiltersProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const categories = [
-  { label: "Todas", value: null },
-  { label: "Playa", value: "playa" },
-  { label: "Diario", value: "diario" },
-  { label: "Eventos", value: "eventos" },
-  { label: "Post-Parto", value: "postparto" },
-];
-
 const sizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"];
-
-const compressions = [
-  { label: "Suave", value: "suave" },
-  { label: "Media", value: "media" },
-  { label: "Firme", value: "firme" },
-];
 
 const colorOptions = ["nude", "negro", "rosa", "champagne", "coral", "turquesa"];
 
-const pricePresets = [
-  { label: "Menos de $80", value: [0, 80] as [number, number] },
-  { label: "$80 - $120", value: [80, 120] as [number, number] },
-  { label: "Mas de $120", value: [120, 200] as [number, number] },
-];
-
-const sortOptions = [
-  { label: "Destacados", value: "featured" },
-  { label: "Precio: Menor a Mayor", value: "price-asc" },
-  { label: "Precio: Mayor a Menor", value: "price-desc" },
-  { label: "Mejor Valorados", value: "rating" },
-  { label: "Nuevos", value: "newest" },
-];
-
 function FilterContent() {
+  const { t } = useTranslation();
   const {
     category,
     size,
@@ -60,12 +34,40 @@ function FilterContent() {
     clearFilters,
   } = useFilters();
 
+  const categories = [
+    { label: t("filters.categoryAll"), value: null },
+    { label: t("filters.categoryBeach"), value: "playa" },
+    { label: t("filters.categoryDaily"), value: "diario" },
+    { label: t("filters.categoryEvents"), value: "eventos" },
+    { label: t("filters.categoryPostPartum"), value: "postparto" },
+  ];
+
+  const compressions = [
+    { label: t("filters.compressionSoft"), value: "suave" },
+    { label: t("filters.compressionMedium"), value: "media" },
+    { label: t("filters.compressionFirm"), value: "firme" },
+  ];
+
+  const pricePresets = [
+    { label: t("filters.priceLessThan80"), value: [0, 80] as [number, number] },
+    { label: t("filters.price80to120"), value: [80, 120] as [number, number] },
+    { label: t("filters.priceMoreThan120"), value: [120, 200] as [number, number] },
+  ];
+
+  const sortOptions = [
+    { label: t("filters.sortFeatured"), value: "featured" },
+    { label: t("filters.sortPriceAsc"), value: "price-asc" },
+    { label: t("filters.sortPriceDesc"), value: "price-desc" },
+    { label: t("filters.sortTopRated"), value: "rating" },
+    { label: t("filters.sortNewest"), value: "newest" },
+  ];
+
   return (
     <div className="space-y-0">
       {/* Categoria */}
       <div className="border-b border-rosa-light/30 pb-4 mb-4">
         <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
-          Categoria
+          {t("filters.categoryHeading")}
         </h4>
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => (
@@ -88,7 +90,7 @@ function FilterContent() {
       {/* Talla */}
       <div className="border-b border-rosa-light/30 pb-4 mb-4">
         <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
-          Talla
+          {t("filters.sizeHeading")}
         </h4>
         <div className="grid grid-cols-4 gap-2">
           {sizes.map((s) => (
@@ -111,7 +113,7 @@ function FilterContent() {
       {/* Compresion */}
       <div className="border-b border-rosa-light/30 pb-4 mb-4">
         <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
-          Compresion
+          {t("filters.compressionHeading")}
         </h4>
         <div className="flex flex-wrap gap-2">
           {compressions.map((comp) => (
@@ -136,7 +138,7 @@ function FilterContent() {
       {/* Color */}
       <div className="border-b border-rosa-light/30 pb-4 mb-4">
         <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
-          Color
+          {t("filters.colorHeading")}
         </h4>
         <div className="flex flex-wrap gap-3">
           {colorOptions.map((c) => (
@@ -151,7 +153,7 @@ function FilterContent() {
               )}
               style={{ backgroundColor: getColorHex(c) }}
               title={c.charAt(0).toUpperCase() + c.slice(1)}
-              aria-label={`Color ${c}`}
+              aria-label={`${t("filters.colorAriaLabel")} ${c}`}
             />
           ))}
         </div>
@@ -160,7 +162,7 @@ function FilterContent() {
       {/* Precio */}
       <div className="border-b border-rosa-light/30 pb-4 mb-4">
         <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
-          Precio
+          {t("filters.priceHeading")}
         </h4>
         <p className="text-xs text-gray-400 mb-2">
           ${priceRange[0]} - ${priceRange[1]}
@@ -190,7 +192,7 @@ function FilterContent() {
                 : "bg-rosa-light/30 text-gray-700 hover:bg-rosa-light/50"
             )}
           >
-            Todos
+            {t("filters.priceAll")}
           </button>
         </div>
       </div>
@@ -198,7 +200,7 @@ function FilterContent() {
       {/* Ordenar por */}
       <div className="border-b border-rosa-light/30 pb-4 mb-4">
         <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
-          Ordenar por
+          {t("filters.sortHeading")}
         </h4>
         <div className="flex flex-col gap-1.5">
           {sortOptions.map((opt) => (
@@ -224,7 +226,7 @@ function FilterContent() {
           onClick={clearFilters}
           className="text-rosa underline text-sm font-medium hover:text-rosa-dark transition-colors cursor-pointer"
         >
-          Limpiar Filtros
+          {t("filters.clearFilters")}
         </button>
       </div>
     </div>
@@ -232,13 +234,14 @@ function FilterContent() {
 }
 
 export default function Filters({ isOpen, onClose }: FiltersProps) {
+  const { t } = useTranslation();
   return (
     <>
       {/* Desktop Sidebar - always visible on lg+ */}
       <aside className="hidden lg:block">
         <div className="sticky top-24">
           <h3 className="font-serif text-lg font-semibold text-gray-800 mb-6">
-            Filtros
+            {t("filters.heading")}
           </h3>
           <FilterContent />
         </div>
@@ -275,14 +278,14 @@ export default function Filters({ isOpen, onClose }: FiltersProps) {
               <button
                 onClick={onClose}
                 className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"
-                aria-label="Cerrar filtros"
+                aria-label={t("filters.closeFiltersAriaLabel")}
               >
                 <X className="w-4 h-4" />
               </button>
 
               {/* Title */}
               <h3 className="font-serif text-lg font-semibold text-gray-800 mb-6">
-                Filtros
+                {t("filters.heading")}
               </h3>
 
               <FilterContent />
@@ -293,7 +296,7 @@ export default function Filters({ isOpen, onClose }: FiltersProps) {
                   onClick={onClose}
                   className="w-full bg-rosa text-white rounded-full py-3 font-semibold text-sm hover:bg-rosa-dark transition-colors cursor-pointer"
                 >
-                  Aplicar Filtros
+                  {t("filters.applyFilters")}
                 </button>
               </div>
             </motion.div>

@@ -5,38 +5,39 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Testimonial {
-  name: string;
+  nameKey: string;
   rating: number;
-  text: string;
-  product: string;
+  textKey: string;
+  productKey: string;
 }
 
-const testimonials: Testimonial[] = [
+const testimonialItems: Testimonial[] = [
   {
-    name: "Maria Garcia",
+    nameKey: "testimonials.review1Name",
     rating: 5,
-    text: "Increible! La faja es super comoda y no se nota bajo la ropa. La use en mi boda y me sentia espectacular.",
-    product: "Faja Gala Sculpt",
+    textKey: "testimonials.review1Text",
+    productKey: "testimonials.review1Product",
   },
   {
-    name: "Laura Martinez",
+    nameKey: "testimonials.review2Name",
     rating: 5,
-    text: "Perfecta para la playa. Se seca super rapido y moldea sin incomodar. No puedo salir de vacaciones sin ella.",
-    product: "Faja Bikini Invisible",
+    textKey: "testimonials.review2Text",
+    productKey: "testimonials.review2Product",
   },
   {
-    name: "Carolina Ruiz",
+    nameKey: "testimonials.review3Name",
     rating: 4,
-    text: "Despues del parto necesitaba soporte y esta faja fue mi salvacion. Muy comoda para usar todo el dia.",
-    product: "Faja Recovery Mama",
+    textKey: "testimonials.review3Text",
+    productKey: "testimonials.review3Product",
   },
   {
-    name: "Ana Sofia Lopez",
+    nameKey: "testimonials.review4Name",
     rating: 5,
-    text: "El waist trainer es increible. Resultados visibles desde la primera semana. 100% recomendado!",
-    product: "Waist Trainer Deluxe",
+    textKey: "testimonials.review4Text",
+    productKey: "testimonials.review4Product",
   },
 ];
 
@@ -49,19 +50,20 @@ function getInitials(name: string): string {
 }
 
 export default function Testimonials() {
+  const { t } = useTranslation();
   const [current, setCurrent] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [slideDirection, setSlideDirection] = useState(1);
 
   const goNext = useCallback(() => {
     setSlideDirection(1);
-    setCurrent((prev) => (prev + 1) % testimonials.length);
+    setCurrent((prev) => (prev + 1) % testimonialItems.length);
   }, []);
 
   const goPrev = useCallback(() => {
     setSlideDirection(-1);
     setCurrent(
-      (prev) => (prev - 1 + testimonials.length) % testimonials.length
+      (prev) => (prev - 1 + testimonialItems.length) % testimonialItems.length
     );
   }, []);
 
@@ -90,17 +92,17 @@ export default function Testimonials() {
     }),
   };
 
-  const testimonial = testimonials[current];
+  const testimonial = testimonialItems[current];
 
   return (
     <section className="py-24 bg-rosa-light/20">
       <div className="max-w-4xl mx-auto px-6">
         <ScrollReveal direction="up">
           <h2 className="font-serif text-4xl text-center text-gray-800">
-            Lo Que Dicen Nuestras Clientas
+            {t("testimonials.heading")}
           </h2>
           <p className="font-script text-2xl text-rosa text-center mt-4">
-            Historias reales de mujeres reales
+            {t("testimonials.subtitle")}
           </p>
         </ScrollReveal>
 
@@ -115,7 +117,7 @@ export default function Testimonials() {
             whileTap={{ scale: 0.9 }}
             onClick={goPrev}
             className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-rosa-dark hover:bg-rosa-light/30 transition-colors cursor-pointer"
-            aria-label="Anterior testimonio"
+            aria-label={t("testimonials.prevAriaLabel")}
           >
             <ChevronLeft className="w-5 h-5" />
           </motion.button>
@@ -126,7 +128,7 @@ export default function Testimonials() {
             whileTap={{ scale: 0.9 }}
             onClick={goNext}
             className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-rosa-dark hover:bg-rosa-light/30 transition-colors cursor-pointer"
-            aria-label="Siguiente testimonio"
+            aria-label={t("testimonials.nextAriaLabel")}
           >
             <ChevronRight className="w-5 h-5" />
           </motion.button>
@@ -147,7 +149,7 @@ export default function Testimonials() {
                 {/* Avatar */}
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-rosa to-rosa-dark mx-auto flex items-center justify-center mb-4">
                   <span className="text-white font-bold text-lg">
-                    {getInitials(testimonial.name)}
+                    {getInitials(t(testimonial.nameKey))}
                   </span>
                 </div>
 
@@ -170,22 +172,22 @@ export default function Testimonials() {
                 <div className="relative max-w-lg mx-auto mb-6">
                   <Quote className="w-6 h-6 text-rosa-light/60 absolute -top-2 -left-2" />
                   <p className="italic text-gray-700 text-lg leading-relaxed px-6">
-                    {testimonial.text}
+                    {t(testimonial.textKey)}
                   </p>
                 </div>
 
                 {/* Name & Product */}
                 <p className="font-semibold text-gray-800">
-                  {testimonial.name}
+                  {t(testimonial.nameKey)}
                 </p>
-                <p className="text-rosa text-sm mt-1">{testimonial.product}</p>
+                <p className="text-rosa text-sm mt-1">{t(testimonial.productKey)}</p>
               </motion.div>
             </AnimatePresence>
           </div>
 
           {/* Dot Indicators */}
           <div className="flex items-center justify-center gap-2 mt-8">
-            {testimonials.map((_, i) => (
+            {testimonialItems.map((_, i) => (
               <button
                 key={i}
                 onClick={() => {
@@ -198,7 +200,7 @@ export default function Testimonials() {
                     ? "w-8 h-3 bg-rosa"
                     : "w-3 h-3 bg-rosa-light/50 hover:bg-rosa-light"
                 )}
-                aria-label={`Ir al testimonio ${i + 1}`}
+                aria-label={`${t("testimonials.goToAriaLabel")} ${i + 1}`}
               />
             ))}
           </div>

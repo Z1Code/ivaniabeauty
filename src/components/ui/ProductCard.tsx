@@ -5,14 +5,18 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Star, Eye } from "lucide-react";
 import { formatPrice, getColorHex, cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
+import { getLocalizedField } from "@/lib/productHelpers";
+
+type BilingualString = { en: string; es: string };
 
 export interface Product {
   id: string;
-  name: string;
+  name: BilingualString;
   slug: string;
   price: number;
   originalPrice?: number | null;
-  badge?: string | null;
+  badge?: BilingualString | null;
   images: string[];
   rating: number;
   reviewCount: number;
@@ -27,13 +31,15 @@ interface ProductCardProps {
 
 const badgeStyles: Record<string, string> = {
   Bestseller: "bg-rosa",
+  New: "bg-turquesa",
   Nuevo: "bg-turquesa",
+  Sale: "bg-dorado",
   Oferta: "bg-dorado",
 };
 
 export default function ProductCard({ product, className }: ProductCardProps) {
+  const { t, language } = useTranslation();
   const {
-    name,
     slug,
     price,
     originalPrice,
@@ -42,6 +48,9 @@ export default function ProductCard({ product, className }: ProductCardProps) {
     reviewCount,
     colors,
   } = product;
+
+  const name = getLocalizedField(product.name, language);
+  const localBadge = getLocalizedField(badge, language);
 
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating - fullStars >= 0.5;
@@ -66,14 +75,14 @@ export default function ProductCard({ product, className }: ProductCardProps) {
             />
 
             {/* Badge */}
-            {badge && (
+            {localBadge && (
               <span
                 className={cn(
                   "absolute top-3 left-3 z-10 px-3 py-1 text-xs font-semibold text-white rounded-full",
-                  badgeStyles[badge] || "bg-rosa"
+                  badgeStyles[localBadge] || "bg-rosa"
                 )}
               >
-                {badge}
+                {localBadge}
               </span>
             )}
 
@@ -82,7 +91,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               initial={{ opacity: 0 }}
               whileHover={{ scale: 1.1 }}
               className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-rosa-dark opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer hover:bg-white"
-              aria-label="Vista rapida"
+              aria-label={t("productDetail.quickViewAriaLabel")}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();

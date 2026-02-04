@@ -23,14 +23,19 @@ import useCart from "@/hooks/useCart";
 import { formatPrice, getColorHex } from "@/lib/utils";
 import { SIZE_CHART } from "@/lib/constants";
 import ProductCard from "@/components/ui/ProductCard";
+import { useTranslation } from "@/hooks/useTranslation";
+import { getLocalizedField } from "@/lib/productHelpers";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
+type BilingualString = { en: string; es: string };
+type BilingualArray = { en: string[]; es: string[] };
+
 interface ProductData {
   id: string;
-  name: string;
+  name: BilingualString;
   slug: string;
   price: number;
   originalPrice: number | null;
@@ -39,10 +44,10 @@ interface ProductData {
   sizes: string[];
   compression: string;
   occasion: string;
-  badge: string | null;
-  description: string;
-  shortDescription: string;
-  features: string[];
+  badge: BilingualString | null;
+  description: BilingualString;
+  shortDescription: BilingualString;
+  features: BilingualArray;
   materials: string;
   care: string;
   images: string[];
@@ -52,35 +57,8 @@ interface ProductData {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Mock reviews                                                       */
+/*  Mock reviews (structure only - text is translated via i18n)         */
 /* ------------------------------------------------------------------ */
-
-const MOCK_REVIEWS = [
-  {
-    id: 1,
-    name: "Maria Garcia",
-    avatar: "MG",
-    rating: 5,
-    date: "15 Enero, 2026",
-    text: "Increible calidad! La tela es super suave y realmente moldea sin incomodar. Ya es mi tercera compra en Ivania Beauty y nunca me decepcionan.",
-  },
-  {
-    id: 2,
-    name: "Laura Martinez",
-    avatar: "LM",
-    rating: 4,
-    date: "8 Enero, 2026",
-    text: "Muy buena faja, la uso todos los dias y se mantiene como nueva. El envio fue rapidisimo. Solo le doy 4 estrellas porque me hubiera gustado mas opciones de color.",
-  },
-  {
-    id: 3,
-    name: "Carolina Lopez",
-    avatar: "CL",
-    rating: 5,
-    date: "28 Diciembre, 2025",
-    text: "La mejor faja que he probado! Se siente como una segunda piel. La guia de tallas fue muy precisa, me quedo perfecta a la primera.",
-  },
-];
 
 /* ------------------------------------------------------------------ */
 /*  Thumbnail gradient palette                                         */
@@ -98,13 +76,6 @@ const THUMB_GRADIENTS = [
 /* ------------------------------------------------------------------ */
 
 type TabKey = "descripcion" | "tallas" | "materiales" | "resenas";
-
-const TAB_LABELS: { key: TabKey; label: string }[] = [
-  { key: "descripcion", label: "Descripcion" },
-  { key: "tallas", label: "Guia de Tallas" },
-  { key: "materiales", label: "Materiales" },
-  { key: "resenas", label: "Resenas" },
-];
 
 /* ================================================================== */
 /*  PAGE COMPONENT                                                     */
@@ -135,6 +106,7 @@ export default function ProductDetailPage() {
 /* ================================================================== */
 
 function ProductNotFound() {
+  const { t } = useTranslation();
   return (
     <section className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center pt-28">
       <motion.div
@@ -143,17 +115,16 @@ function ProductNotFound() {
         transition={{ duration: 0.5 }}
       >
         <h1 className="font-serif text-3xl font-bold text-gray-800 mb-4">
-          Producto no encontrado
+          {t("productDetail.notFoundHeading")}
         </h1>
         <p className="text-gray-500 mb-8 max-w-md mx-auto">
-          Lo sentimos, el producto que buscas no existe o ha sido removido de
-          nuestra tienda.
+          {t("productDetail.notFoundText")}
         </p>
         <Link
           href="/shop"
           className="inline-flex items-center gap-2 px-8 py-3 bg-rosa text-white rounded-full font-semibold hover:bg-rosa-dark transition-colors"
         >
-          Volver a la Tienda
+          {t("productDetail.notFoundCta")}
         </Link>
       </motion.div>
     </section>
@@ -165,7 +136,15 @@ function ProductNotFound() {
 /* ================================================================== */
 
 function ProductDetail({ product }: { product: ProductData }) {
+  const { t, language } = useTranslation();
   const addItem = useCart((s) => s.addItem);
+
+  /* ----- localized product fields ----- */
+  const localName = getLocalizedField(product.name, language);
+  const localDescription = getLocalizedField(product.description, language);
+  const localShortDescription = getLocalizedField(product.shortDescription, language);
+  const localFeatures = getLocalizedField(product.features, language);
+  const localBadge = getLocalizedField(product.badge, language);
 
   /* ----- local state ----- */
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -175,6 +154,42 @@ function ProductDetail({ product }: { product: ProductData }) {
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("descripcion");
   const [show360, setShow360] = useState(false);
+
+  /* ----- translated tab labels ----- */
+  const TAB_LABELS: { key: TabKey; label: string }[] = [
+    { key: "descripcion", label: t("productDetail.tabDescription") },
+    { key: "tallas", label: t("productDetail.tabSizeGuide") },
+    { key: "materiales", label: t("productDetail.tabMaterials") },
+    { key: "resenas", label: t("productDetail.tabReviews") },
+  ];
+
+  /* ----- translated mock reviews ----- */
+  const MOCK_REVIEWS = [
+    {
+      id: 1,
+      name: "Maria Garcia",
+      avatar: "MG",
+      rating: 5,
+      date: "15 Enero, 2026",
+      text: t("testimonials.review1Text"),
+    },
+    {
+      id: 2,
+      name: "Laura Martinez",
+      avatar: "LM",
+      rating: 4,
+      date: "8 Enero, 2026",
+      text: t("testimonials.review2Text"),
+    },
+    {
+      id: 3,
+      name: "Carolina Lopez",
+      avatar: "CL",
+      rating: 5,
+      date: "28 Diciembre, 2025",
+      text: t("testimonials.review3Text"),
+    },
+  ];
 
   /* ----- derived ----- */
   const discountPercent =
@@ -205,7 +220,7 @@ function ProductDetail({ product }: { product: ProductData }) {
   const handleAddToCart = () => {
     addItem({
       id: product.id,
-      name: product.name,
+      name: localName,
       price: product.price,
       image: product.images[0] ?? "",
       color: selectedColor,
@@ -215,12 +230,13 @@ function ProductDetail({ product }: { product: ProductData }) {
   };
 
   /* ----- badge style helper ----- */
+  const badgeEnKey = product.badge?.en ?? "";
   const badgeBg =
-    product.badge === "Bestseller"
+    badgeEnKey === "Bestseller"
       ? "bg-rosa"
-      : product.badge === "Nuevo"
+      : badgeEnKey === "New"
         ? "bg-turquesa"
-        : product.badge === "Oferta"
+        : badgeEnKey === "Sale"
           ? "bg-dorado"
           : "bg-rosa";
 
@@ -230,14 +246,14 @@ function ProductDetail({ product }: { product: ProductData }) {
       {/* ---------- BREADCRUMB ---------- */}
       <nav className="text-sm text-gray-500 mb-8 flex items-center gap-1 flex-wrap">
         <Link href="/" className="hover:text-rosa transition-colors">
-          Home
+          {t("productDetail.breadcrumbHome")}
         </Link>
         <ChevronRight className="w-3.5 h-3.5" />
         <Link href="/shop" className="hover:text-rosa transition-colors">
-          Tienda
+          {t("productDetail.breadcrumbShop")}
         </Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-gray-800 font-medium">{product.name}</span>
+        <span className="text-gray-800 font-medium">{localName}</span>
       </nav>
 
       {/* ---------- TWO COLUMN GRID ---------- */}
@@ -277,7 +293,7 @@ function ProductDetail({ product }: { product: ProductData }) {
               <span
                 className={`absolute top-4 left-4 z-10 px-4 py-1.5 text-xs font-semibold text-white rounded-full ${badgeBg}`}
               >
-                {product.badge}
+                {localBadge}
               </span>
             )}
           </div>
@@ -293,7 +309,7 @@ function ProductDetail({ product }: { product: ProductData }) {
                     ? "ring-2 ring-rosa ring-offset-2"
                     : "opacity-70 hover:opacity-100"
                 }`}
-                aria-label={`Imagen ${i + 1}`}
+                aria-label={`${t("productDetail.imageAriaLabel")} ${i + 1}`}
               />
             ))}
           </div>
@@ -304,7 +320,7 @@ function ProductDetail({ product }: { product: ProductData }) {
             className="mt-4 flex items-center gap-2 text-sm text-rosa font-semibold hover:text-rosa-dark transition-colors cursor-pointer"
           >
             <RotateCw className="w-4 h-4" />
-            Vista 360
+            {t("productDetail.view360")}
           </button>
 
           {/* --- 360 viewer --- */}
@@ -320,17 +336,17 @@ function ProductDetail({ product }: { product: ProductData }) {
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           {/* Badge pill */}
-          {product.badge && (
+          {localBadge && (
             <span
               className={`inline-block px-3 py-1 text-xs font-semibold text-white rounded-full mb-3 ${badgeBg}`}
             >
-              {product.badge}
+              {localBadge}
             </span>
           )}
 
           {/* Name */}
           <h1 className="font-serif text-3xl font-bold text-gray-900">
-            {product.name}
+            {localName}
           </h1>
 
           {/* Rating */}
@@ -356,7 +372,7 @@ function ProductDetail({ product }: { product: ProductData }) {
               {product.rating}
             </span>
             <span className="text-sm text-gray-500">
-              ({product.reviewCount} resenas)
+              ({product.reviewCount} {t("productDetail.reviewsLabel")})
             </span>
           </div>
 
@@ -381,7 +397,7 @@ function ProductDetail({ product }: { product: ProductData }) {
 
           {/* Short description */}
           <p className="text-gray-600 mt-4 leading-relaxed">
-            {product.shortDescription}
+            {localShortDescription}
           </p>
 
           {/* Divider */}
@@ -390,7 +406,7 @@ function ProductDetail({ product }: { product: ProductData }) {
           {/* ----- Color selector ----- */}
           <div className="mb-6">
             <p className="text-sm font-semibold text-gray-700 mb-3">
-              Color:{" "}
+              {t("productDetail.colorLabel")}{" "}
               <span className="font-normal capitalize text-gray-500">
                 {selectedColor}
               </span>
@@ -417,16 +433,16 @@ function ProductDetail({ product }: { product: ProductData }) {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-semibold text-gray-700">
-                Talla:{" "}
+                {t("productDetail.sizeLabel")}{" "}
                 <span className="font-normal text-gray-500">
-                  {selectedSize || "Selecciona"}
+                  {selectedSize || t("productDetail.sizeSelect")}
                 </span>
               </p>
               <button
                 onClick={() => setShowSizeGuide(true)}
                 className="text-sm text-rosa font-semibold underline underline-offset-2 hover:text-rosa-dark transition-colors cursor-pointer"
               >
-                Guia de Tallas
+                {t("productDetail.sizeGuideLink")}
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -449,13 +465,13 @@ function ProductDetail({ product }: { product: ProductData }) {
           {/* ----- Quantity ----- */}
           <div className="mb-6">
             <p className="text-sm font-semibold text-gray-700 mb-3">
-              Cantidad
+              {t("productDetail.quantityLabel")}
             </p>
             <div className="inline-flex items-center border border-gray-300 rounded-full overflow-hidden">
               <button
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                 className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-rosa-light/30 transition-colors cursor-pointer"
-                aria-label="Disminuir cantidad"
+                aria-label={t("productDetail.decreaseQuantityAriaLabel")}
               >
                 <Minus className="w-4 h-4" />
               </button>
@@ -465,7 +481,7 @@ function ProductDetail({ product }: { product: ProductData }) {
               <button
                 onClick={() => setQuantity((q) => q + 1)}
                 className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-rosa-light/30 transition-colors cursor-pointer"
-                aria-label="Aumentar cantidad"
+                aria-label={t("productDetail.increaseQuantityAriaLabel")}
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -479,7 +495,7 @@ function ProductDetail({ product }: { product: ProductData }) {
             className="w-full py-4 bg-rosa text-white rounded-full text-lg font-semibold hover:bg-rosa-dark transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             <ShoppingBag className="w-5 h-5" />
-            Agregar al Carrito
+            {t("productDetail.addToCart")}
           </motion.button>
 
           {/* ----- Buy Now ----- */}
@@ -488,22 +504,22 @@ function ProductDetail({ product }: { product: ProductData }) {
             onClick={handleAddToCart}
             className="w-full mt-3 py-4 border-2 border-rosa text-rosa rounded-full text-lg font-semibold hover:bg-rosa hover:text-white transition-colors cursor-pointer"
           >
-            Comprar Ahora
+            {t("productDetail.buyNow")}
           </motion.button>
 
           {/* ----- Trust badges ----- */}
           <div className="mt-6 flex justify-center gap-8 text-gray-500">
             <div className="flex flex-col items-center gap-1 text-xs">
               <Truck className="w-5 h-5 text-rosa" />
-              <span>Envio Gratis</span>
+              <span>{t("productDetail.trustFreeShipping")}</span>
             </div>
             <div className="flex flex-col items-center gap-1 text-xs">
               <RefreshCw className="w-5 h-5 text-rosa" />
-              <span>30 Dias Devolucion</span>
+              <span>{t("productDetail.trust30DayReturns")}</span>
             </div>
             <div className="flex flex-col items-center gap-1 text-xs">
               <Shield className="w-5 h-5 text-rosa" />
-              <span>Pago Seguro</span>
+              <span>{t("productDetail.trustSecurePayment")}</span>
             </div>
           </div>
         </motion.div>
@@ -541,10 +557,10 @@ function ProductDetail({ product }: { product: ProductData }) {
             {activeTab === "descripcion" && (
               <TabPanel key="descripcion">
                 <p className="text-gray-600 leading-relaxed mb-6">
-                  {product.description}
+                  {localDescription}
                 </p>
                 <ul className="space-y-3">
-                  {product.features.map((feat) => (
+                  {localFeatures.map((feat) => (
                     <li key={feat} className="flex items-center gap-3">
                       <CheckCircle className="w-5 h-5 text-turquesa flex-shrink-0" />
                       <span className="text-gray-700">{feat}</span>
@@ -565,7 +581,7 @@ function ProductDetail({ product }: { product: ProductData }) {
                 <div className="space-y-6">
                   <div>
                     <h4 className="font-semibold text-gray-800 mb-2">
-                      Composicion
+                      {t("productDetail.compositionHeading")}
                     </h4>
                     <p className="text-gray-600 leading-relaxed">
                       {product.materials}
@@ -573,7 +589,7 @@ function ProductDetail({ product }: { product: ProductData }) {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-800 mb-2">
-                      Cuidados
+                      {t("productDetail.careHeading")}
                     </h4>
                     <p className="text-gray-600 leading-relaxed">
                       {product.care}
@@ -596,7 +612,7 @@ function ProductDetail({ product }: { product: ProductData }) {
       {relatedProducts.length > 0 && (
         <div className="mt-16 mb-8">
           <h2 className="font-serif text-2xl font-bold text-gray-900 mb-8">
-            Tambien te puede gustar
+            {t("productDetail.relatedProductsHeading")}
           </h2>
           <div className="flex gap-6 overflow-x-auto pb-4 -mx-4 px-4 snap-x">
             {relatedProducts.map((rp) => (
@@ -633,16 +649,17 @@ function TabPanel({ children }: { children: React.ReactNode }) {
 /* ---------- Size Chart Table ---------- */
 
 function SizeChartTable() {
+  const { t } = useTranslation();
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left">
         <thead>
           <tr className="border-b border-rosa-light/40">
-            <th className="py-3 pr-6 font-semibold text-gray-800">Talla</th>
+            <th className="py-3 pr-6 font-semibold text-gray-800">{t("productDetail.sizeChartSize")}</th>
             <th className="py-3 pr-6 font-semibold text-gray-800">
-              Cintura (cm)
+              {t("productDetail.sizeChartWaist")}
             </th>
-            <th className="py-3 font-semibold text-gray-800">Cadera (cm)</th>
+            <th className="py-3 font-semibold text-gray-800">{t("productDetail.sizeChartHip")}</th>
           </tr>
         </thead>
         <tbody>
@@ -667,6 +684,7 @@ function SizeChartTable() {
 /* ---------- Size Guide Modal ---------- */
 
 function SizeGuideModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -695,32 +713,29 @@ function SizeGuideModal({ onClose }: { onClose: () => void }) {
         <button
           onClick={onClose}
           className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
-          aria-label="Cerrar"
+          aria-label={t("productDetail.closeAriaLabel")}
         >
           <X className="w-5 h-5 text-gray-500" />
         </button>
 
         <h2 className="font-serif text-2xl font-bold text-gray-900 mb-6">
-          Guia de Tallas
+          {t("productDetail.sizeGuideModalTitle")}
         </h2>
 
         <SizeChartTable />
 
         {/* How to measure */}
         <div className="mt-8 p-4 bg-arena/60 rounded-xl">
-          <h3 className="font-semibold text-gray-800 mb-2">Como medirte</h3>
+          <h3 className="font-semibold text-gray-800 mb-2">{t("productDetail.howToMeasureHeading")}</h3>
           <ul className="space-y-2 text-sm text-gray-600">
             <li>
-              <strong>Cintura:</strong> Mide alrededor de la parte mas estrecha
-              de tu torso, generalmente a la altura del ombligo.
+              <strong>{t("productDetail.sizeChartWaist").split(" ")[0]}:</strong> {t("productDetail.howToMeasureWaist")}
             </li>
             <li>
-              <strong>Cadera:</strong> Mide alrededor de la parte mas ancha de
-              tus caderas, pasando por los gluteos.
+              <strong>{t("productDetail.sizeChartHip").split(" ")[0]}:</strong> {t("productDetail.howToMeasureHip")}
             </li>
             <li>
-              Usa una cinta metrica flexible y manten la cinta ajustada pero sin
-              apretar.
+              {t("productDetail.howToMeasureTip")}
             </li>
           </ul>
         </div>
@@ -729,7 +744,7 @@ function SizeGuideModal({ onClose }: { onClose: () => void }) {
           onClick={onClose}
           className="mt-6 w-full py-3 bg-rosa text-white rounded-full font-semibold hover:bg-rosa-dark transition-colors cursor-pointer"
         >
-          Entendido
+          {t("productDetail.sizeGuideClose")}
         </button>
       </motion.div>
     </motion.div>
@@ -739,6 +754,7 @@ function SizeGuideModal({ onClose }: { onClose: () => void }) {
 /* ---------- 360 Viewer ---------- */
 
 function Viewer360() {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [rotation, setRotation] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -802,7 +818,7 @@ function Viewer360() {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="flex items-center gap-2 text-gray-500 text-sm bg-white/60 backdrop-blur-sm rounded-full px-4 py-2">
             <RotateCw className="w-4 h-4" />
-            <span>Arrastra para girar</span>
+            <span>{t("productDetail.dragToSpin")}</span>
           </div>
         </div>
       </div>
@@ -813,6 +829,35 @@ function Viewer360() {
 /* ---------- Reviews List ---------- */
 
 function ReviewsList({ rating, count }: { rating: number; count: number }) {
+  const { t } = useTranslation();
+
+  const MOCK_REVIEWS = [
+    {
+      id: 1,
+      name: "Maria Garcia",
+      avatar: "MG",
+      rating: 5,
+      date: "15 Enero, 2026",
+      text: t("testimonials.review1Text"),
+    },
+    {
+      id: 2,
+      name: "Laura Martinez",
+      avatar: "LM",
+      rating: 4,
+      date: "8 Enero, 2026",
+      text: t("testimonials.review2Text"),
+    },
+    {
+      id: 3,
+      name: "Carolina Lopez",
+      avatar: "CL",
+      rating: 5,
+      date: "28 Diciembre, 2025",
+      text: t("testimonials.review3Text"),
+    },
+  ];
+
   return (
     <div>
       {/* Summary */}
@@ -831,7 +876,7 @@ function ReviewsList({ rating, count }: { rating: number; count: number }) {
               />
             ))}
           </div>
-          <p className="text-xs text-gray-500 mt-1">{count} resenas</p>
+          <p className="text-xs text-gray-500 mt-1">{count} {t("productDetail.reviewsLabel")}</p>
         </div>
       </div>
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Sparkles, ArrowRight, ChevronDown } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const containerVariants = {
   hidden: {},
@@ -23,14 +24,15 @@ const childVariants = {
   },
 };
 
-const trustItems = [
-  "Envio Gratis",
-  "30 Dias de Devolucion",
-  "Pago Seguro",
-];
-
 export default function Hero() {
+  const { t } = useTranslation();
   const { scrollY } = useScroll();
+
+  const trustItems = [
+    t("hero.trustFreeShipping"),
+    t("hero.trust30DayReturns"),
+    t("hero.trustSecurePayment"),
+  ];
 
   // Parallax transforms for background decorative elements
   const y1 = useTransform(scrollY, [0, 600], [0, -120]);
@@ -100,7 +102,7 @@ export default function Hero() {
         >
           <Sparkles className="w-4 h-4 text-rosa-dark" />
           <span className="text-sm font-semibold uppercase tracking-[0.3em] text-rosa-dark">
-            Coleccion Verano 2025
+            {t("hero.seasonTag")}
           </span>
           <Sparkles className="w-4 h-4 text-rosa-dark" />
         </motion.div>
@@ -111,10 +113,10 @@ export default function Hero() {
           className="font-serif text-5xl md:text-6xl lg:text-7xl font-bold leading-tight"
         >
           <span className="block">
-            Tu Silueta{" "}
-            <span className="text-gradient-rosa">Perfecta</span>,
+            {t("hero.headlineLine1")}{" "}
+            <span className="text-gradient-rosa">{t("hero.headlineHighlight")}</span>,
           </span>
-          <span className="block mt-2">Tu Mejor Verano</span>
+          <span className="block mt-2">{t("hero.headlineLine2")}</span>
         </motion.h1>
 
         {/* Subtitle */}
@@ -122,7 +124,7 @@ export default function Hero() {
           variants={childVariants}
           className="mt-6 text-lg text-gray-600 max-w-xl"
         >
-          Fajas premium que moldean sin sacrificar tu comodidad
+          {t("hero.subtitle")}
         </motion.p>
 
         {/* CTA Button */}
@@ -131,7 +133,7 @@ export default function Hero() {
             href="/shop"
             className="btn-shimmer inline-flex items-center gap-2"
           >
-            Descubre tu Faja Ideal
+            {t("hero.cta")}
             <ArrowRight className="w-5 h-5" />
           </Link>
         </motion.div>
