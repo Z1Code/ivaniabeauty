@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -9,7 +10,6 @@ import {
   ShoppingBag,
   Menu,
   X,
-  Sparkles,
 } from "lucide-react";
 
 import { NAV_LINKS, SITE_NAME } from "@/lib/constants";
@@ -59,12 +59,14 @@ export default function Header() {
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 group">
-              <motion.div
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              >
-                <Sparkles className="w-5 h-5 text-rosa" />
-              </motion.div>
+              <Image
+                src="/logo.png"
+                alt={SITE_NAME}
+                width={36}
+                height={36}
+                className="w-8 h-8 md:w-9 md:h-9 object-contain"
+                priority
+              />
               <span className="font-serif text-xl md:text-2xl font-bold text-rosa-dark tracking-wide">
                 {SITE_NAME}
               </span>
