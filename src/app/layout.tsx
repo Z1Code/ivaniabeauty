@@ -4,7 +4,7 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import CartDrawer from "@/components/cart/CartDrawer";
-import CustomCursor from "@/components/shared/CustomCursor";
+
 import ScrollProgress from "@/components/shared/ScrollProgress";
 
 const poppins = Poppins({
@@ -45,7 +45,7 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${playfair.variable} ${dancingScript.variable} font-sans antialiased`}
       >
-        <CustomCursor />
+
         <ScrollProgress />
         <Header />
         <main>{children}</main>
