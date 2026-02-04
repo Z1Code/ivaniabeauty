@@ -37,7 +37,7 @@ export default function InstagramFeed() {
             Siguenos en Instagram
           </h2>
           <p className="font-script text-2xl text-rosa text-center mt-3">
-            #MiBellaForma
+            #IvaniaBeauty
           </p>
         </ScrollReveal>
 
@@ -86,7 +86,7 @@ export default function InstagramFeed() {
         <div id="contacto" className="mt-16">
           <ScrollReveal direction="up" delay={0.2}>
             <h3 className="font-serif text-3xl text-center text-gray-800">
-              Unete al Club Bella Forma
+              Unete al Club Ivania Beauty
             </h3>
             <p className="text-gray-600 text-center mt-3">
               Recibe ofertas exclusivas y tips de moda

@@ -78,7 +78,7 @@ export default function Footer() {
             {/* Brand Column */}
             <motion.div variants={itemVariants} className="sm:col-span-2 lg:col-span-1">
               <Link href="/" className="inline-block">
-                <h3 className="font-serif text-2xl font-bold text-white mb-2">
+                <h3 className="font-sans text-2xl font-bold text-white tracking-tight uppercase mb-2">
                   {SITE_NAME}
                 </h3>
               </Link>
@@ -138,11 +138,11 @@ export default function Footer() {
               <ul className="flex flex-col gap-3 mb-6">
                 <li>
                   <a
-                    href="mailto:hola@bellaforma.com"
+                    href="mailto:hola@ivaniabeauty.com"
                     className="flex items-center gap-2 text-sm text-white/75 hover:text-white transition-colors duration-300"
                   >
                     <Mail className="w-4 h-4 shrink-0" />
-                    hola@bellaforma.com
+                    hola@ivaniabeauty.com
                   </a>
                 </li>
                 <li>

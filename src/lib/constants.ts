@@ -1,4 +1,4 @@
-export const SITE_NAME = "Bella Forma";
+export const SITE_NAME = "Ivania Beauty";
 export const SITE_DESCRIPTION = "Fajas premium que moldean sin sacrificar tu comodidad";
 
 export const COLORS = {

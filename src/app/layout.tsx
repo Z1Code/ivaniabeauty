@@ -29,7 +29,7 @@ const dancingScript = Dancing_Script({
 });
 
 export const metadata: Metadata = {
-  title: "Bella Forma | Fajas Premium - Tu Silueta Perfecta",
+  title: "Ivania Beauty | Fajas Premium - Tu Silueta Perfecta",
   description:
     "Fajas premium que moldean sin sacrificar tu comodidad. Descubre nuestra coleccion de fajas para playa, dia a dia, eventos y post-parto.",
   keywords: "fajas, fajas premium, shapewear, moldear, silueta, playa, bikini",

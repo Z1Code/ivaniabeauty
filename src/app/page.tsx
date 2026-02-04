@@ -19,7 +19,7 @@ export default function Home() {
       <section className="py-24 bg-arena">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="font-serif text-4xl text-center mb-4">
-            El Efecto <span className="text-gradient-rosa">Bella Forma</span>
+            El Efecto <span className="text-gradient-rosa">Ivania Beauty</span>
           </h2>
           <p className="font-script text-xl text-rosa text-center mb-12">
             Descubre la diferencia

@@ -62,7 +62,7 @@ const MOCK_REVIEWS = [
     avatar: "MG",
     rating: 5,
     date: "15 Enero, 2026",
-    text: "Increible calidad! La tela es super suave y realmente moldea sin incomodar. Ya es mi tercera compra en Bella Forma y nunca me decepcionan.",
+    text: "Increible calidad! La tela es super suave y realmente moldea sin incomodar. Ya es mi tercera compra en Ivania Beauty y nunca me decepcionan.",
   },
   {
     id: 2,
