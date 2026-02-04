@@ -67,7 +67,7 @@ export default function Header() {
                 className="w-8 h-8 md:w-9 md:h-9 object-contain"
                 priority
               />
-              <span className="font-sans text-xl md:text-2xl font-bold text-rosa tracking-tight uppercase">
+              <span className="font-serif text-xl md:text-2xl font-bold text-rosa tracking-wide">
                 {SITE_NAME}
               </span>
             </Link>
@@ -165,7 +165,7 @@ export default function Header() {
             >
               {/* Drawer Header */}
               <div className="flex items-center justify-between px-6 h-16 border-b border-rosa-light/50">
-                <span className="font-sans text-xl font-bold text-rosa tracking-tight uppercase">
+                <span className="font-serif text-xl font-bold text-rosa tracking-wide">
                   {SITE_NAME}
                 </span>
                 <button

@@ -78,7 +78,7 @@ export default function Footer() {
             {/* Brand Column */}
             <motion.div variants={itemVariants} className="sm:col-span-2 lg:col-span-1">
               <Link href="/" className="inline-block">
-                <h3 className="font-sans text-2xl font-bold text-white tracking-tight uppercase mb-2">
+                <h3 className="font-serif text-2xl font-bold text-white tracking-wide mb-2">
                   {SITE_NAME}
                 </h3>
               </Link>
