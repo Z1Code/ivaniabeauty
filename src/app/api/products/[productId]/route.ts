@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProductBySlug } from "@/lib/services/products";
 
-// GET: Public endpoint - returns a single product by slug
+// GET: Public endpoint - returns a single product by slug/productId
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const { slug } = await params;
+    const { productId } = await params;
 
-    if (!slug) {
+    if (!productId) {
       return NextResponse.json(
         { error: "Product slug is required" },
         { status: 400 }
       );
     }
 
-    const product = await getProductBySlug(slug);
+    const product = await getProductBySlug(productId);
 
     if (!product) {
       return NextResponse.json(
