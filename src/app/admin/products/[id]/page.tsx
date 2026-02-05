@@ -45,6 +45,7 @@ export default async function EditProductPage({
     isFeatured: data.isFeatured || false,
     isActive: data.isActive !== false,
     sortOrder: data.sortOrder?.toString() || "0",
+    sizeChartImageUrl: data.sizeChartImageUrl || null,
   };
 
   return <ProductForm initialData={initialData} isEditing />;

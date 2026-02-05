@@ -58,6 +58,7 @@ interface ProductFormData {
   isFeatured: boolean;
   isActive: boolean;
   sortOrder: string;
+  sizeChartImageUrl: string | null;
 }
 
 interface ProductFormProps {
@@ -114,6 +115,7 @@ export default function ProductForm({
     isFeatured: initialData?.isFeatured || false,
     isActive: initialData?.isActive !== false,
     sortOrder: initialData?.sortOrder?.toString() || "0",
+    sizeChartImageUrl: initialData?.sizeChartImageUrl || null,
   });
 
   function updateField<K extends keyof ProductFormData>(
@@ -190,6 +192,7 @@ export default function ProductForm({
         badgeEn: form.badgeEn || null,
         badgeEs: form.badgeEs || null,
         sku: form.sku || null,
+        sizeChartImageUrl: form.sizeChartImageUrl || null,
       };
 
       const url = isEditing
@@ -490,6 +493,43 @@ export default function ProductForm({
               images={form.images}
               onImagesChange={(imgs) => updateField("images", imgs)}
             />
+          </section>
+
+          {/* Size Chart Image */}
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">
+              Tabla de Tallas (OCR)
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              URL de la imagen con la tabla de medidas. Al agregar esta imagen, el sistema extraera automaticamente las medidas usando IA.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                URL de imagen
+              </label>
+              <input
+                type="url"
+                value={form.sizeChartImageUrl || ""}
+                onChange={(e) =>
+                  updateField("sizeChartImageUrl", e.target.value || null)
+                }
+                placeholder="https://ivaniabeauty.shop/cdn/shop/files/..."
+                className={inputClasses}
+              />
+            </div>
+            {form.sizeChartImageUrl && (
+              <div className="mt-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Vista previa:</p>
+                <img
+                  src={form.sizeChartImageUrl}
+                  alt="Tabla de tallas"
+                  className="max-w-full h-auto max-h-48 rounded-lg border border-gray-200 dark:border-gray-700"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              </div>
+            )}
           </section>
         </div>
 

@@ -114,6 +114,7 @@ export async function PUT(
       "isFeatured",
       "isActive",
       "sortOrder",
+      "sizeChartImageUrl",
     ];
 
     for (const field of allowedFields) {
