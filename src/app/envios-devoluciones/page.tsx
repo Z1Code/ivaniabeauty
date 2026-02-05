@@ -71,7 +71,7 @@ function SectionCard({
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, amount: 0.2 }}
-      className="rounded-2xl bg-white p-6 shadow-md shadow-rosa/5 sm:p-8"
+      className="rounded-xl bg-white p-6 shadow-md shadow-rosa/5 sm:p-8"
     >
       <div className="mb-5 flex items-center gap-4">
         <IconBadge>{icon}</IconBadge>
@@ -295,7 +295,7 @@ export default function ShippingReturnsPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
-            className="rounded-2xl bg-gradient-to-br from-rosa/5 via-white to-rosa-light/10 p-6 shadow-md shadow-rosa/5 sm:p-10"
+            className="rounded-xl bg-gradient-to-br from-rosa/5 via-white to-rosa-light/10 p-6 shadow-md shadow-rosa/5 sm:p-10"
           >
             <div className="mb-6 flex items-center gap-4">
               <IconBadge>

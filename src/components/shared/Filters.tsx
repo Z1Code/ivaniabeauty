@@ -24,13 +24,11 @@ function FilterContent({ showSort = false }: { showSort?: boolean }) {
     size,
     compression,
     color,
-    priceRange,
     sortBy,
     setCategory,
     setSize,
     setCompression,
     setColor,
-    setPriceRange,
     setSortBy,
     clearFilters,
   } = useFilters();
@@ -50,12 +48,6 @@ function FilterContent({ showSort = false }: { showSort?: boolean }) {
     { label: t("filters.compressionFirm"), value: "firme" },
   ];
 
-  const pricePresets = [
-    { label: t("filters.priceLessThan80"), value: [0, 80] as [number, number] },
-    { label: t("filters.price80to120"), value: [80, 120] as [number, number] },
-    { label: t("filters.priceMoreThan120"), value: [120, 200] as [number, number] },
-  ];
-
   const sortOptions = [
     { label: t("filters.sortFeatured"), value: "featured" },
     { label: t("filters.sortPriceAsc"), value: "price-asc" },
@@ -68,9 +60,7 @@ function FilterContent({ showSort = false }: { showSort?: boolean }) {
     category !== null ||
     size !== null ||
     compression !== null ||
-    color !== null ||
-    priceRange[0] !== 0 ||
-    priceRange[1] !== 200;
+    color !== null;
 
   return (
     <div className="space-y-0">
@@ -159,7 +149,7 @@ function FilterContent({ showSort = false }: { showSort?: boolean }) {
       </div>
 
       {/* Color */}
-      <div className="border-b border-rosa-light/30 pb-4 mb-4">
+      <div className={cn(showSort ? "border-b border-rosa-light/30 pb-4 mb-4" : "pb-2")}>
         <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
           {t("filters.colorHeading")}
         </h4>
@@ -179,44 +169,6 @@ function FilterContent({ showSort = false }: { showSort?: boolean }) {
               aria-label={`${t("filters.colorAriaLabel")} ${c}`}
             />
           ))}
-        </div>
-      </div>
-
-      {/* Price */}
-      <div className={cn(showSort ? "border-b border-rosa-light/30 pb-4 mb-4" : "pb-2")}>
-        <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
-          {t("filters.priceHeading")}
-        </h4>
-        <p className="text-xs text-gray-400 mb-2">
-          ${priceRange[0]} - ${priceRange[1]}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {pricePresets.map((preset) => (
-            <button
-              key={preset.label}
-              onClick={() => setPriceRange(preset.value)}
-              className={cn(
-                "rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 cursor-pointer",
-                priceRange[0] === preset.value[0] &&
-                  priceRange[1] === preset.value[1]
-                  ? "bg-rosa text-white shadow-md"
-                  : "bg-rosa-light/30 text-gray-700 hover:bg-rosa-light/50"
-              )}
-            >
-              {preset.label}
-            </button>
-          ))}
-          <button
-            onClick={() => setPriceRange([0, 200])}
-            className={cn(
-              "rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 cursor-pointer",
-              priceRange[0] === 0 && priceRange[1] === 200
-                ? "bg-rosa text-white shadow-md"
-                : "bg-rosa-light/30 text-gray-700 hover:bg-rosa-light/50"
-            )}
-          >
-            {t("filters.priceAll")}
-          </button>
         </div>
       </div>
 

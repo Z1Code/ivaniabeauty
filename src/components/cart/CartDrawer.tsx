@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ShoppingBag,
@@ -9,10 +10,11 @@ import {
   Minus,
   Plus,
   Trash2,
+  Check,
 } from "lucide-react";
 
 import useCart from "@/hooks/useCart";
-import { formatPrice, getColorHex } from "@/lib/utils";
+import { formatPrice, getColorHex, cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export default function CartDrawer() {
@@ -27,7 +29,24 @@ export default function CartDrawer() {
   } = useCart();
 
   const { t } = useTranslation();
+  const router = useRouter();
   const [discountCode, setDiscountCode] = useState("");
+  const [checkoutFilling, setCheckoutFilling] = useState(false);
+  const [checkoutReady, setCheckoutReady] = useState(false);
+
+  const handleCheckout = useCallback(() => {
+    if (checkoutFilling || checkoutReady) return;
+    setCheckoutFilling(true);
+    setTimeout(() => {
+      setCheckoutFilling(false);
+      setCheckoutReady(true);
+      setTimeout(() => {
+        closeCart();
+        router.push("/checkout");
+        setCheckoutReady(false);
+      }, 600);
+    }, 500);
+  }, [checkoutFilling, checkoutReady, closeCart, router]);
 
   const count = totalItems();
   const cartSubtotal = subtotal();
@@ -229,13 +248,55 @@ export default function CartDrawer() {
                 </p>
 
                 {/* Checkout Button */}
-                <Link
-                  href="/checkout"
-                  onClick={closeCart}
-                  className="block w-full py-3 bg-rosa text-white rounded-full font-semibold text-center hover:bg-rosa-dark transition-colors duration-300"
+                <motion.button
+                  onClick={handleCheckout}
+                  animate={checkoutFilling ? { scale: 0.95 } : { scale: 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  whileTap={!checkoutFilling && !checkoutReady ? { scale: 0.93 } : undefined}
+                  className={cn(
+                    "group/btn relative w-full py-3 rounded-xl text-sm font-semibold cursor-pointer overflow-hidden transition-all duration-300",
+                    checkoutReady
+                      ? "border border-emerald-400/50 bg-emerald-50"
+                      : "border border-rosa/30 bg-rosa/5 hover:border-rosa hover:shadow-md hover:shadow-rosa/15"
+                  )}
                 >
-                  {t("cart.checkoutButton")}
-                </Link>
+                  {/* Fill bar */}
+                  <motion.span
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-rosa to-rosa-dark"
+                    initial={{ width: "0%" }}
+                    animate={{ width: checkoutFilling ? "100%" : "0%" }}
+                    transition={checkoutFilling ? { duration: 0.5, ease: "easeOut" } : { duration: 0 }}
+                  />
+                  {/* Label */}
+                  <AnimatePresence mode="wait">
+                    {checkoutReady ? (
+                      <motion.span
+                        key="check"
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                        className="relative z-10 flex items-center justify-center gap-2 text-emerald-600"
+                      >
+                        <Check className="w-4 h-4" />
+                      </motion.span>
+                    ) : (
+                      <motion.span
+                        key="label"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className={cn(
+                          "relative z-10 flex items-center justify-center gap-2 transition-colors duration-300",
+                          checkoutFilling ? "text-white" : "text-rosa-dark"
+                        )}
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                        {t("cart.checkoutButton")}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
 
                 {/* Continue Shopping */}
                 <button

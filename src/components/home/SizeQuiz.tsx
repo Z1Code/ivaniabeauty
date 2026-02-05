@@ -257,7 +257,7 @@ export default function SizeQuiz() {
                             setSelections((s) => ({ ...s, area: opt.id }))
                           }
                           className={cn(
-                            "glass-rosa p-6 text-center cursor-pointer rounded-2xl transition-all duration-200",
+                            "glass-rosa p-6 text-center cursor-pointer rounded-xl transition-all duration-200",
                             selected && "ring-2 ring-rosa bg-rosa/20"
                           )}
                         >
@@ -311,7 +311,7 @@ export default function SizeQuiz() {
                             }))
                           }
                           className={cn(
-                            "glass-rosa p-6 text-center cursor-pointer rounded-2xl transition-all duration-200",
+                            "glass-rosa p-6 text-center cursor-pointer rounded-xl transition-all duration-200",
                             selected && "ring-2 ring-rosa bg-rosa/20"
                           )}
                         >
@@ -362,7 +362,7 @@ export default function SizeQuiz() {
                             setSelections((s) => ({ ...s, occasion: opt.id }))
                           }
                           className={cn(
-                            "glass-rosa p-6 text-center cursor-pointer rounded-2xl transition-all duration-200",
+                            "glass-rosa p-6 text-center cursor-pointer rounded-xl transition-all duration-200",
                             selected && "ring-2 ring-rosa bg-rosa/20"
                           )}
                         >
@@ -502,7 +502,7 @@ export default function SizeQuiz() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
-                    className="glass-rosa p-6 rounded-2xl mt-8 max-w-sm mx-auto"
+                    className="glass-rosa p-6 rounded-xl mt-8 max-w-sm mx-auto"
                   >
                     <p className="text-sm text-gray-500 mb-1">
                       {t("sizeQuiz.recommendedProductLabel")}

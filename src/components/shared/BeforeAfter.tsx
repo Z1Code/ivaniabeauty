@@ -68,7 +68,7 @@ export default function BeforeAfter() {
   return (
     <motion.div
       ref={containerRef}
-      className="relative aspect-[4/3] w-full select-none overflow-hidden rounded-2xl"
+      className="relative aspect-[4/3] w-full select-none overflow-hidden rounded-xl"
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}

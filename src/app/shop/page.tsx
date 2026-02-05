@@ -133,7 +133,6 @@ export default function ShopPage() {
     size,
     compression,
     color,
-    priceRange,
     sortBy,
     clearFilters,
   } = useFilters();
@@ -153,9 +152,6 @@ export default function ShopPage() {
     if (color) {
       results = results.filter((p) => p.colors.includes(color));
     }
-    results = results.filter(
-      (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
-    );
 
     switch (sortBy) {
       case "price-asc":
@@ -189,15 +185,13 @@ export default function ShopPage() {
     }
 
     return results;
-  }, [allProducts, category, size, compression, color, priceRange, sortBy]);
+  }, [allProducts, category, size, compression, color, sortBy]);
 
   const hasActiveFilters =
     category !== null ||
     size !== null ||
     compression !== null ||
     color !== null ||
-    priceRange[0] !== 0 ||
-    priceRange[1] !== 200 ||
     sortBy !== "featured";
 
   return (

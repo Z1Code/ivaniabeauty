@@ -265,7 +265,7 @@ function ProductDetail({ product }: { product: ProductData }) {
           transition={{ duration: 0.5 }}
         >
           {/* --- main image --- */}
-          <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-rosa-light/30 to-arena group cursor-zoom-in">
+          <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-rosa-light/30 to-arena group cursor-zoom-in">
             {product.images[selectedImageIndex] ? (
               <motion.img
                 key={selectedImageIndex}
@@ -711,7 +711,7 @@ function SizeGuideModal({ onClose }: { onClose: () => void }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative bg-white rounded-2xl p-8 max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-2xl z-10"
+        className="relative bg-white rounded-xl p-8 max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-2xl z-10"
       >
         {/* Close button */}
         <button
@@ -791,7 +791,7 @@ function Viewer360() {
       className="mt-4 overflow-hidden"
     >
       <div
-        className="relative h-64 rounded-2xl bg-gradient-to-br from-rosa-light/20 to-arena overflow-hidden cursor-grab active:cursor-grabbing select-none"
+        className="relative h-64 rounded-xl bg-gradient-to-br from-rosa-light/20 to-arena overflow-hidden cursor-grab active:cursor-grabbing select-none"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

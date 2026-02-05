@@ -83,7 +83,7 @@ function CollectionCard({ collection, index }: { collection: CollectionItem; ind
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           onMouseEnter={handleMouseEnter}
-          className="relative rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer group"
+          className="relative rounded-xl overflow-hidden aspect-[3/4] cursor-pointer group"
           style={{
             transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
             transition: isHovering ? "none" : "transform 0.5s ease-out",

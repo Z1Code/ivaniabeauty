@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import useCart from "@/hooks/useCart";
-import { formatPrice, getColorHex } from "@/lib/utils";
+import { formatPrice, getColorHex, cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 
 type ShippingMethod = "standard" | "express";
@@ -75,6 +75,7 @@ export default function CheckoutPage() {
 
   // ── Order state ──
   const [isPlacing, setIsPlacing] = useState(false);
+  const [orderFilling, setOrderFilling] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [orderSuccess, setOrderSuccess] = useState<OrderSuccess | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
@@ -143,64 +144,71 @@ export default function CheckoutPage() {
   };
 
   // ── Place order ──
-  const handlePlaceOrder = async () => {
+  const handlePlaceOrder = () => {
     setOrderError("");
 
     if (!validateForm()) return;
     if (items.length === 0) return;
+    if (orderFilling || isPlacing) return;
 
-    setIsPlacing(true);
+    // Start fill animation
+    setOrderFilling(true);
 
-    try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customer: {
-            email: email.trim(),
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            phone: phone.trim(),
-            addressLine1: addressLine1.trim(),
-            addressLine2: addressLine2.trim(),
-            city: city.trim(),
-            state: state.trim(),
-            zipCode: zip.trim(),
-            country: country.trim(),
-          },
-          items: items.map((item) => ({
-            productId: item.id,
-            productName: item.name,
-            productImage: item.image,
-            color: item.color,
-            size: item.size,
-            quantity: item.quantity,
-            unitPrice: item.price,
-          })),
-          shippingMethod,
-          paymentMethod,
-          couponCode: couponData ? couponData.code : undefined,
-        }),
-      });
+    setTimeout(async () => {
+      setOrderFilling(false);
+      setIsPlacing(true);
 
-      const data = await res.json();
+      try {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer: {
+              email: email.trim(),
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
+              phone: phone.trim(),
+              addressLine1: addressLine1.trim(),
+              addressLine2: addressLine2.trim(),
+              city: city.trim(),
+              state: state.trim(),
+              zipCode: zip.trim(),
+              country: country.trim(),
+            },
+            items: items.map((item) => ({
+              productId: item.id,
+              productName: item.name,
+              productImage: item.image,
+              color: item.color,
+              size: item.size,
+              quantity: item.quantity,
+              unitPrice: item.price,
+            })),
+            shippingMethod,
+            paymentMethod,
+            couponCode: couponData ? couponData.code : undefined,
+          }),
+        });
 
-      if (!res.ok) {
-        throw new Error(data.error || t("checkout.orderErrorGeneric"));
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || t("checkout.orderErrorGeneric"));
+        }
+
+        clearCart();
+        setOrderSuccess({
+          orderNumber: data.orderNumber,
+          email: email.trim(),
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : t("checkout.orderErrorGeneric");
+        setOrderError(message);
+      } finally {
+        setIsPlacing(false);
       }
-
-      clearCart();
-      setOrderSuccess({
-        orderNumber: data.orderNumber,
-        email: email.trim(),
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : t("checkout.orderErrorGeneric");
-      setOrderError(message);
-    } finally {
-      setIsPlacing(false);
-    }
+    }, 500);
   };
 
   const inputClasses =
@@ -217,7 +225,7 @@ export default function CheckoutPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl p-8 sm:p-12 shadow-sm border border-rosa-light/20 text-center"
+          className="bg-white rounded-xl p-8 sm:p-12 shadow-sm border border-rosa-light/20 text-center"
         >
           <motion.div
             initial={{ scale: 0 }}
@@ -284,7 +292,7 @@ export default function CheckoutPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.4 }}
-            className="mb-6 flex items-center gap-3 bg-white border border-red-200 shadow-lg rounded-2xl px-6 py-4"
+            className="mb-6 flex items-center gap-3 bg-white border border-red-200 shadow-lg rounded-xl px-6 py-4"
           >
             <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
             <span className="font-medium text-red-700 text-sm">
@@ -305,7 +313,7 @@ export default function CheckoutPage() {
         {/* LEFT - Form Sections */}
         <div className="lg:col-span-2 space-y-6">
           {/* Section 1: Contact Information */}
-          <section className="bg-white rounded-2xl p-6 shadow-sm border border-rosa-light/20">
+          <section className="bg-white rounded-xl p-6 shadow-sm border border-rosa-light/20">
             <div className="flex items-center gap-3 mb-4">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-rosa text-white text-sm font-bold">
                 1
@@ -341,7 +349,7 @@ export default function CheckoutPage() {
           </section>
 
           {/* Section 2: Shipping Address */}
-          <section className="bg-white rounded-2xl p-6 shadow-sm border border-rosa-light/20">
+          <section className="bg-white rounded-xl p-6 shadow-sm border border-rosa-light/20">
             <div className="flex items-center gap-3 mb-4">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-rosa text-white text-sm font-bold">
                 2
@@ -457,7 +465,7 @@ export default function CheckoutPage() {
           </section>
 
           {/* Section 3: Shipping Method */}
-          <section className="bg-white rounded-2xl p-6 shadow-sm border border-rosa-light/20">
+          <section className="bg-white rounded-xl p-6 shadow-sm border border-rosa-light/20">
             <div className="flex items-center gap-3 mb-4">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-rosa text-white text-sm font-bold">
                 3
@@ -524,7 +532,7 @@ export default function CheckoutPage() {
           </section>
 
           {/* Section 4: Payment Method */}
-          <section className="bg-white rounded-2xl p-6 shadow-sm border border-rosa-light/20">
+          <section className="bg-white rounded-xl p-6 shadow-sm border border-rosa-light/20">
             <div className="flex items-center gap-3 mb-4">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-rosa text-white text-sm font-bold">
                 4
@@ -636,7 +644,7 @@ export default function CheckoutPage() {
         {/* RIGHT - Order Summary */}
         <div className="lg:col-span-1">
           <div className="sticky top-24">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-rosa-light/20">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-rosa-light/20">
               <h2 className="font-serif text-lg font-semibold mb-6">
                 {t("checkout.orderSummaryHeading")}
               </h2>
@@ -812,20 +820,53 @@ export default function CheckoutPage() {
               </div>
 
               {/* Place Order Button */}
-              <button
+              <motion.button
                 onClick={handlePlaceOrder}
-                disabled={isPlacing || items.length === 0}
-                className="w-full py-4 btn-shimmer text-white rounded-full text-lg font-semibold mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-              >
-                {isPlacing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    {t("checkout.placingOrderButton")}
-                  </>
-                ) : (
-                  t("checkout.placeOrderButton")
+                disabled={isPlacing || orderFilling || items.length === 0}
+                animate={orderFilling ? { scale: 0.95 } : { scale: 1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                whileTap={!orderFilling && !isPlacing ? { scale: 0.93 } : undefined}
+                className={cn(
+                  "group/btn relative w-full py-4 rounded-xl text-lg font-semibold mt-6 cursor-pointer overflow-hidden transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed",
+                  "border border-rosa/30 bg-rosa/5 hover:border-rosa hover:shadow-md hover:shadow-rosa/15"
                 )}
-              </button>
+              >
+                {/* Fill bar */}
+                <motion.span
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-rosa to-rosa-dark"
+                  initial={{ width: "0%" }}
+                  animate={{ width: orderFilling ? "100%" : "0%" }}
+                  transition={orderFilling ? { duration: 0.5, ease: "easeOut" } : { duration: 0 }}
+                />
+                {/* Label */}
+                <AnimatePresence mode="wait">
+                  {isPlacing ? (
+                    <motion.span
+                      key="placing"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="relative z-10 flex items-center justify-center gap-3 text-rosa-dark"
+                    >
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {t("checkout.placingOrderButton")}
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="label"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className={cn(
+                        "relative z-10 flex items-center justify-center gap-2 transition-colors duration-300",
+                        orderFilling ? "text-white" : "text-rosa-dark"
+                      )}
+                    >
+                      {t("checkout.placeOrderButton")}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
 
               {/* Trust Badges */}
               <div className="grid grid-cols-3 gap-2 mt-6">

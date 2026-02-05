@@ -8,14 +8,12 @@ interface FilterState {
   compression: string | null;
   color: string | null;
   occasion: string | null;
-  priceRange: [number, number];
   sortBy: string;
   setCategory: (category: string | null) => void;
   setSize: (size: string | null) => void;
   setCompression: (compression: string | null) => void;
   setColor: (color: string | null) => void;
   setOccasion: (occasion: string | null) => void;
-  setPriceRange: (range: [number, number]) => void;
   setSortBy: (sort: string) => void;
   clearFilters: () => void;
 }
@@ -26,7 +24,6 @@ const useFilters = create<FilterState>((set) => ({
   compression: null,
   color: null,
   occasion: null,
-  priceRange: [0, 200],
   sortBy: "featured",
 
   setCategory: (category) => set({ category }),
@@ -34,7 +31,6 @@ const useFilters = create<FilterState>((set) => ({
   setCompression: (compression) => set({ compression }),
   setColor: (color) => set({ color }),
   setOccasion: (occasion) => set({ occasion }),
-  setPriceRange: (priceRange) => set({ priceRange }),
   setSortBy: (sortBy) => set({ sortBy }),
   clearFilters: () =>
     set({
@@ -43,7 +39,6 @@ const useFilters = create<FilterState>((set) => ({
       compression: null,
       color: null,
       occasion: null,
-      priceRange: [0, 200],
       sortBy: "featured",
     }),
 }));

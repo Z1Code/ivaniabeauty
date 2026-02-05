@@ -93,7 +93,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       transition={{ duration: 0.35, ease: "easeOut" }}
       className={cn("group", className)}
     >
-      <div className="rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full border border-gray-100/60">
+      <div className="rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full border border-gray-100/60">
         {/* Image Area */}
         <Link href={`/shop/${slug}`} className="block flex-shrink-0">
           <div className="relative aspect-[3/4] bg-[#f7f3ef] overflow-hidden">

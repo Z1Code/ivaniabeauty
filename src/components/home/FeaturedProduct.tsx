@@ -109,7 +109,7 @@ function Viewer360() {
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className="relative w-full aspect-square rounded-2xl bg-gradient-to-br from-rosa-light/30 via-rosa/10 to-rosa-dark/20 overflow-hidden select-none cursor-grab active:cursor-grabbing"
+        className="relative w-full aspect-square rounded-xl bg-gradient-to-br from-rosa-light/30 via-rosa/10 to-rosa-dark/20 overflow-hidden select-none cursor-grab active:cursor-grabbing"
       >
         {/* Rotating gradient disc */}
         <div
