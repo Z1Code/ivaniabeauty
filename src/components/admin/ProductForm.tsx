@@ -497,15 +497,77 @@ export default function ProductForm({
 
           {/* Size Chart Image */}
           <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100">
-              Tabla de Tallas (OCR)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">
+                Tabla de Tallas (OCR)
+              </h3>
+              {form.sizeChartImageUrl && (
+                <button
+                  type="button"
+                  onClick={() => updateField("sizeChartImageUrl", null)}
+                  className="text-xs text-red-500 hover:text-red-600 transition-colors cursor-pointer"
+                >
+                  Quitar seleccion
+                </button>
+              )}
+            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              URL de la imagen con la tabla de medidas. Al agregar esta imagen, el sistema extraera automaticamente las medidas usando IA.
+              Selecciona una imagen del producto o pega una URL externa. El sistema extraera las medidas automaticamente usando IA.
             </p>
+
+            {/* Thumbnails from product images */}
+            {form.images.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Seleccionar de imagenes del producto
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {form.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => updateField("sizeChartImageUrl", img)}
+                      className={cn(
+                        "relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-pointer",
+                        form.sizeChartImageUrl === img
+                          ? "border-rosa ring-2 ring-rosa ring-offset-2 dark:ring-offset-gray-900"
+                          : "border-gray-200 dark:border-gray-700 hover:border-rosa-light"
+                      )}
+                    >
+                      <img
+                        src={img}
+                        alt={`Imagen ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.png";
+                        }}
+                      />
+                      {form.sizeChartImageUrl === img && (
+                        <div className="absolute inset-0 bg-rosa/20 flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-full bg-rosa text-white flex items-center justify-center">
+                            ✓
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Separator */}
+            {form.images.length > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                <span className="text-xs text-gray-400 dark:text-gray-500 uppercase">o</span>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+              </div>
+            )}
+
+            {/* Manual URL input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                URL de imagen
+                URL externa
               </label>
               <input
                 type="url"
@@ -517,9 +579,11 @@ export default function ProductForm({
                 className={inputClasses}
               />
             </div>
-            {form.sizeChartImageUrl && (
+
+            {/* Preview */}
+            {form.sizeChartImageUrl && !form.images.includes(form.sizeChartImageUrl) && (
               <div className="mt-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Vista previa:</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Vista previa (URL externa):</p>
                 <img
                   src={form.sizeChartImageUrl}
                   alt="Tabla de tallas"
