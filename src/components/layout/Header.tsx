@@ -22,14 +22,15 @@ import LanguageToggle from "@/components/shared/LanguageToggle";
 const DARK_HERO_PAGES = ["/shop"];
 
 export default function Header() {
-  const [scrolled, setScrolled] = useState(() =>
-    typeof window !== "undefined" ? window.scrollY > 50 : false
-  );
+  const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { openCart, totalItems } = useCart();
   const cartCount = totalItems();
   const { t } = useTranslation();
   const pathname = usePathname();
+
+  useEffect(() => { setMounted(true); }, []);
 
   // Show white text when on a page with a dark hero and not scrolled
   const heroWhite = DARK_HERO_PAGES.includes(pathname) && !scrolled;
@@ -39,6 +40,7 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
@@ -151,7 +153,7 @@ export default function Header() {
               >
                 <ShoppingBag className="w-5 h-5" />
                 <AnimatePresence>
-                  {cartCount > 0 && (
+                  {mounted && cartCount > 0 && (
                     <motion.span
                       key="cart-badge"
                       initial={{ scale: 0 }}

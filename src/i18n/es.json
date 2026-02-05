@@ -182,7 +182,13 @@
     "filtersButton": "Filtros",
     "emptyStateHeading": "No encontramos productos",
     "emptyStateText": "Intenta ajustar los filtros para encontrar lo que buscas. Tenemos opciones perfectas esperando por ti.",
-    "clearFiltersButton": "Limpiar filtros"
+    "clearFiltersButton": "Limpiar filtros",
+    "sectionShampooFragrance": "Shampoo y Fragancias",
+    "sectionFajas": "Fajas",
+    "sectionCinturillas": "Cinturillas",
+    "sectionTopsShorts": "Tops y Shorts",
+    "outOfStock": "Agotado",
+    "quickView": "Ver detalle"
   },
   "filters": {
     "heading": "Filtros",

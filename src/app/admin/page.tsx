@@ -5,8 +5,8 @@ import DashboardClient from "./DashboardClient";
 export default async function AdminDashboard() {
   await requireAdmin();
 
-  // Fetch dashboard data from Firestore
-  const [productsSnap, ordersSnap, customersSnap, reviewsSnap] =
+  // Fetch dashboard data from Firestore - all counts + recent orders in parallel
+  const [productsSnap, ordersSnap, customersSnap, reviewsSnap, ordersCountSnap, revenueSnap] =
     await Promise.all([
       adminDb.collection("products").where("isActive", "==", true).count().get(),
       adminDb.collection("orders").orderBy("createdAt", "desc").limit(5).get(),
@@ -16,11 +16,16 @@ export default async function AdminDashboard() {
         .where("status", "==", "pending")
         .count()
         .get(),
+      // Use count() instead of fetching all docs just for the count
+      adminDb.collection("orders").count().get(),
+      // Only fetch total + status fields for revenue calculation (not full documents)
+      adminDb.collection("orders").select("total", "status").get(),
     ]);
 
   const totalProducts = productsSnap.data().count;
   const totalCustomers = customersSnap.data().count;
   const pendingReviews = reviewsSnap.data().count;
+  const totalOrders = ordersCountSnap.data().count;
 
   // Get recent orders
   const recentOrders = ordersSnap.docs.map((doc) => {
@@ -35,13 +40,10 @@ export default async function AdminDashboard() {
     };
   });
 
-  // Calculate total revenue
+  // Calculate total revenue from lightweight query (only total + status fields)
   let totalRevenue = 0;
-  let totalOrders = 0;
   try {
-    const allOrdersSnap = await adminDb.collection("orders").get();
-    totalOrders = allOrdersSnap.size;
-    allOrdersSnap.docs.forEach((doc) => {
+    revenueSnap.docs.forEach((doc) => {
       const data = doc.data();
       if (data.status !== "cancelled" && data.status !== "refunded") {
         totalRevenue += data.total || 0;

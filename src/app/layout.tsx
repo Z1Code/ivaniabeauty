@@ -1,12 +1,22 @@
 import type { Metadata } from "next";
-import { Poppins, Playfair_Display, Dancing_Script } from "next/font/google";
+import {
+  Poppins,
+  Playfair_Display,
+  Dancing_Script,
+  Cormorant_Garamond,
+  Lora,
+  Merriweather,
+  Libre_Baskerville,
+  DM_Serif_Display,
+  Spectral,
+  Josefin_Sans,
+  Raleway,
+  Outfit,
+} from "next/font/google";
 import "./globals.css";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import CartDrawer from "@/components/cart/CartDrawer";
-
-import ScrollProgress from "@/components/shared/ScrollProgress";
+import LayoutShell from "@/components/layout/LayoutShell";
 import LanguageInitializer from "@/components/shared/LanguageInitializer";
+import FontInitializer from "@/components/shared/FontInitializer";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -26,6 +36,69 @@ const dancingScript = Dancing_Script({
   subsets: ["latin"],
   weight: ["400", "700"],
   variable: "--font-dancing",
+  display: "swap",
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-cormorant",
+  display: "swap",
+});
+
+const lora = Lora({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-lora",
+  display: "swap",
+});
+
+const merriweather = Merriweather({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-merriweather",
+  display: "swap",
+});
+
+const libreBaskerville = Libre_Baskerville({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-libre",
+  display: "swap",
+});
+
+const dmSerifDisplay = DM_Serif_Display({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-dmserif",
+  display: "swap",
+});
+
+const spectral = Spectral({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-spectral",
+  display: "swap",
+});
+
+const josefinSans = Josefin_Sans({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-josefin",
+  display: "swap",
+});
+
+const raleway = Raleway({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-raleway",
+  display: "swap",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-outfit",
   display: "swap",
 });
 
@@ -58,15 +131,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${poppins.variable} ${playfair.variable} ${dancingScript.variable} font-sans antialiased`}
+        className={`${poppins.variable} ${playfair.variable} ${dancingScript.variable} ${cormorant.variable} ${lora.variable} ${merriweather.variable} ${libreBaskerville.variable} ${dmSerifDisplay.variable} ${spectral.variable} ${josefinSans.variable} ${raleway.variable} ${outfit.variable} font-sans antialiased`}
       >
 
         <LanguageInitializer />
-        <ScrollProgress />
-        <Header />
-        <main>{children}</main>
-        <Footer />
-        <CartDrawer />
+        <FontInitializer />
+        <LayoutShell>{children}</LayoutShell>
       </body>
     </html>
   );

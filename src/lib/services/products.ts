@@ -1,4 +1,4 @@
-import { adminDb } from "@/lib/firebase/admin";
+import { adminDb, isFirebaseConfigured } from "@/lib/firebase/admin";
 
 /**
  * Product type as consumed by the frontend (bilingual object structure).
@@ -76,6 +76,11 @@ function transformProduct(
  * Falls back to JSON data if Firestore is not configured.
  */
 export async function getProducts(): Promise<Product[]> {
+  if (!isFirebaseConfigured()) {
+    const productsData = (await import("@/data/products.json")).default;
+    return productsData as unknown as Product[];
+  }
+
   try {
     const snapshot = await adminDb
       .collection("products")
@@ -86,7 +91,6 @@ export async function getProducts(): Promise<Product[]> {
     return snapshot.docs.map((doc) => transformProduct(doc.id, doc.data()));
   } catch (err) {
     console.warn("Falling back to JSON products:", err);
-    // Fallback to static JSON when Firebase is not configured
     const productsData = (await import("@/data/products.json")).default;
     return productsData as unknown as Product[];
   }
@@ -99,6 +103,14 @@ export async function getProducts(): Promise<Product[]> {
 export async function getProductBySlug(
   slug: string
 ): Promise<Product | null> {
+  if (!isFirebaseConfigured()) {
+    const productsData = (await import("@/data/products.json")).default;
+    const product = (productsData as unknown as Product[]).find(
+      (p) => p.slug === slug
+    );
+    return product || null;
+  }
+
   try {
     const snapshot = await adminDb
       .collection("products")
@@ -124,6 +136,11 @@ export async function getProductBySlug(
  * Get all active collections from Firestore.
  */
 export async function getCollections() {
+  if (!isFirebaseConfigured()) {
+    const collectionsData = (await import("@/data/collections.json")).default;
+    return collectionsData;
+  }
+
   try {
     const snapshot = await adminDb
       .collection("collections")

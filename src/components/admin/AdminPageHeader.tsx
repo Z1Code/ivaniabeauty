@@ -23,7 +23,7 @@ export default function AdminPageHeader({
     <div className="mb-6">
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="flex items-center gap-1.5 text-sm text-gray-400 mb-2">
+        <nav className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 mb-2">
           {breadcrumbs.map((crumb, i) => (
             <span key={i} className="flex items-center gap-1.5">
               {i > 0 && <ChevronRight className="w-3.5 h-3.5" />}
@@ -35,7 +35,7 @@ export default function AdminPageHeader({
                   {crumb.label}
                 </Link>
               ) : (
-                <span className="text-gray-600">{crumb.label}</span>
+                <span className="text-gray-600 dark:text-gray-300">{crumb.label}</span>
               )}
             </span>
           ))}
@@ -44,7 +44,7 @@ export default function AdminPageHeader({
 
       {/* Title + Action */}
       <div className="flex items-center justify-between gap-4">
-        <h1 className="font-serif text-2xl lg:text-3xl font-bold text-gray-800">
+        <h1 className="font-serif text-2xl lg:text-3xl font-bold text-gray-800 dark:text-gray-100">
           {title}
         </h1>
         {action && <div className="flex-shrink-0">{action}</div>}

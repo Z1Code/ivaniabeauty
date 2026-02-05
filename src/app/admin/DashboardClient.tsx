@@ -75,9 +75,9 @@ export default function DashboardClient({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Orders */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-800">Pedidos Recientes</h3>
+        <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Pedidos Recientes</h3>
             <Link
               href="/admin/orders"
               className="text-sm text-rosa hover:text-rosa-dark transition-colors"
@@ -86,23 +86,23 @@ export default function DashboardClient({
             </Link>
           </div>
           {recentOrders.length > 0 ? (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-50 dark:divide-gray-800/50">
               {recentOrders.map((order) => (
                 <Link
                   key={order.id}
                   href={`/admin/orders/${order.id}`}
-                  className="flex items-center justify-between px-5 py-3.5 hover:bg-rosa-light/5 transition-colors"
+                  className="flex items-center justify-between px-5 py-3.5 hover:bg-rosa-light/5 dark:hover:bg-rosa/5 transition-colors"
                 >
                   <div>
-                    <p className="text-sm font-medium text-gray-800">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
                       {order.orderNumber}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
                       {order.customerName}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-gray-700">
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                       {formatPrice(order.total)}
                     </span>
                     <AdminBadge variant={getOrderStatusVariant(order.status)}>
@@ -113,7 +113,7 @@ export default function DashboardClient({
               ))}
             </div>
           ) : (
-            <div className="px-5 py-10 text-center text-sm text-gray-400">
+            <div className="px-5 py-10 text-center text-sm text-gray-400 dark:text-gray-500">
               No hay pedidos aun
             </div>
           )}
@@ -122,16 +122,16 @@ export default function DashboardClient({
         {/* Sidebar Cards */}
         <div className="space-y-6">
           {/* Pending Reviews */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-5 transition-colors duration-300">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
                 <Star className="w-4.5 h-4.5 text-amber-500" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-800">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                   Resenas Pendientes
                 </p>
-                <p className="text-2xl font-bold text-gray-800">
+                <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                   {stats.pendingReviews}
                 </p>
               </div>
@@ -145,12 +145,12 @@ export default function DashboardClient({
           </div>
 
           {/* Low Stock Alerts */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-5 transition-colors duration-300">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-950 flex items-center justify-center">
                 <AlertTriangle className="w-4.5 h-4.5 text-red-500" />
               </div>
-              <p className="text-sm font-semibold text-gray-800">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                 Stock Bajo
               </p>
             </div>
@@ -160,9 +160,9 @@ export default function DashboardClient({
                   <Link
                     key={product.id}
                     href={`/admin/products/${product.id}`}
-                    className="flex items-center justify-between text-sm hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition-colors"
+                    className="flex items-center justify-between text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-2 py-1.5 -mx-2 transition-colors"
                   >
-                    <span className="text-gray-700 truncate">
+                    <span className="text-gray-700 dark:text-gray-300 truncate">
                       {product.name}
                     </span>
                     <AdminBadge
@@ -176,7 +176,7 @@ export default function DashboardClient({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-400 dark:text-gray-500">
                 Todo el inventario esta bien
               </p>
             )}

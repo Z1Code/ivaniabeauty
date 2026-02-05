@@ -11,12 +11,12 @@ type BadgeVariant =
   | "rosa";
 
 const variants: Record<BadgeVariant, string> = {
-  default: "bg-gray-100 text-gray-600",
-  success: "bg-emerald-50 text-emerald-600",
-  warning: "bg-amber-50 text-amber-600",
-  danger: "bg-red-50 text-red-600",
-  info: "bg-blue-50 text-blue-600",
-  rosa: "bg-rosa-light/30 text-rosa-dark",
+  default: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+  success: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
+  warning: "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+  danger: "bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400",
+  info: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
+  rosa: "bg-rosa-light/30 text-rosa-dark dark:bg-rosa/10 dark:text-rosa",
 };
 
 interface AdminBadgeProps {

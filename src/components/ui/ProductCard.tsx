@@ -3,8 +3,8 @@
 import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Check } from "lucide-react";
-import { formatPrice, cn } from "@/lib/utils";
+import { ShoppingBag, Check, Star, Eye } from "lucide-react";
+import { formatPrice, cn, getColorHex } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getLocalizedField } from "@/lib/productHelpers";
 import useCart from "@/hooks/useCart";
@@ -24,6 +24,7 @@ export interface Product {
   colors: string[];
   category: string;
   sizes?: string[];
+  inStock?: boolean;
 }
 
 interface ProductCardProps {
@@ -32,76 +33,87 @@ interface ProductCardProps {
 }
 
 const badgeStyles: Record<string, string> = {
-  Bestseller: "bg-rosa",
-  New: "bg-turquesa",
-  Nuevo: "bg-turquesa",
-  Sale: "bg-dorado",
-  Oferta: "bg-dorado",
+  Bestseller: "bg-gradient-to-r from-rosa to-rosa-dark",
+  New: "bg-gradient-to-r from-turquesa to-emerald-500",
+  Nuevo: "bg-gradient-to-r from-turquesa to-emerald-500",
+  Sale: "bg-gradient-to-r from-amber-500 to-dorado",
+  Oferta: "bg-gradient-to-r from-amber-500 to-dorado",
 };
 
 export default function ProductCard({ product, className }: ProductCardProps) {
   const { t, language } = useTranslation();
   const addItem = useCart((s) => s.addItem);
   const openCart = useCart((s) => s.openCart);
-  const {
-    slug,
-    price,
-    originalPrice,
-    badge,
-    colors,
-  } = product;
+  const { slug, price, originalPrice, badge, colors } = product;
 
   const name = getLocalizedField(product.name, language);
   const localBadge = getLocalizedField(badge, language);
 
   const [filling, setFilling] = useState(false);
   const [added, setAdded] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
-  const handleAddToCart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (filling || added) return;
+  const isOutOfStock = product.inStock === false;
 
-    setFilling(true);
+  const discountPercent =
+    originalPrice && originalPrice > price
+      ? Math.round(((originalPrice - price) / originalPrice) * 100)
+      : null;
 
-    // After the fill animation completes, add to cart
-    setTimeout(() => {
-      addItem({
-        id: product.id,
-        name,
-        price: product.price,
-        image: product.images[0] || "",
-        color: colors[0] || "",
-        size: (product.sizes && product.sizes[0]) || "",
-        quantity: 1,
-      });
-      setFilling(false);
-      setAdded(true);
+  const handleAddToCart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (filling || added || isOutOfStock) return;
 
-      // Show checkmark briefly, then open cart
+      setFilling(true);
+
       setTimeout(() => {
-        openCart();
-        setAdded(false);
-      }, 600);
-    }, 500);
-  }, [filling, added, addItem, openCart, product, name, colors]);
+        addItem({
+          id: product.id,
+          name,
+          price: product.price,
+          image: product.images[0] || "",
+          color: colors[0] || "",
+          size: (product.sizes && product.sizes[0]) || "",
+          quantity: 1,
+        });
+        setFilling(false);
+        setAdded(true);
+
+        setTimeout(() => {
+          openCart();
+          setAdded(false);
+        }, 600);
+      }, 500);
+    },
+    [filling, added, isOutOfStock, addItem, openCart, product, name, colors]
+  );
+
+  const fullStars = Math.floor(product.rating);
+  const hasHalf = product.rating - fullStars >= 0.5;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-      className={cn("group", className)}
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className={cn("group h-full", className)}
+      aria-label={name}
     >
-      <div className="rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full border border-gray-100/60">
-        {/* Image Area */}
-        <Link href={`/shop/${slug}`} className="block flex-shrink-0">
-          <div className="relative aspect-[3/4] bg-[#f7f3ef] overflow-hidden">
+      <div className="relative rounded-2xl overflow-hidden bg-white flex flex-col h-full shadow-[0_2px_8px_rgba(180,140,100,0.10)] hover:shadow-[0_8px_30px_rgba(255,107,157,0.13)] transition-shadow duration-500 ease-out border border-[#ddd0c3]">
+        {/* ─── Image Area ─── */}
+        <Link
+          href={`/shop/${slug}`}
+          className="block flex-shrink-0 relative"
+          tabIndex={-1}
+        >
+          <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-[#faf5f0] to-[#f0e8e0]">
             {/* Badge */}
             {localBadge && (
               <span
                 className={cn(
-                  "absolute top-3 left-3 z-10 px-3 py-1 text-[11px] font-semibold text-white rounded-full tracking-wide uppercase",
+                  "absolute top-3 left-3 z-10 px-3 py-1 text-[10px] font-bold text-white rounded-full tracking-widest uppercase shadow-lg animate-[fadeSlideIn_0.3s_0.15s_both]",
                   badgeStyles[localBadge] || "bg-rosa"
                 )}
               >
@@ -109,71 +121,161 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               </span>
             )}
 
-            {/* Discount percentage */}
-            {originalPrice && originalPrice > price && (
-              <span className="absolute top-3 right-3 z-10 px-2 py-1 text-[11px] font-bold text-white bg-rosa-dark/90 rounded-full">
-                -{Math.round(((originalPrice - price) / originalPrice) * 100)}%
+            {/* Discount badge */}
+            {discountPercent && (
+              <span className="absolute top-3 right-3 z-10 px-2.5 py-1 text-[10px] font-bold text-white bg-rosa-dark/90 rounded-full shadow-md">
+                -{discountPercent}%
               </span>
+            )}
+
+            {/* Out of stock overlay */}
+            {isOutOfStock && (
+              <div className="absolute inset-0 z-10 bg-black/30 flex items-center justify-center backdrop-blur-[1px]">
+                <span className="px-4 py-1.5 bg-black/70 text-white text-[10px] font-semibold rounded-full tracking-widest uppercase">
+                  {t("shop.outOfStock") || "Agotado"}
+                </span>
+              </div>
             )}
 
             {/* Product image */}
-            {product.images[0] ? (
+            {product.images[0] && !imgError ? (
               <img
                 src={product.images[0]}
                 alt={name}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out will-change-transform group-hover:scale-[1.06]"
                 loading="lazy"
+                onError={() => setImgError(true)}
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-rosa-light/20 to-arena">
-                <ShoppingBag className="w-12 h-12 text-rosa-light/60" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <ShoppingBag className="w-10 h-10 text-rosa-light/40" />
               </div>
             )}
+
+            {/* Hover gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none" />
+
+            {/* Quick View hint (desktop only) */}
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 pointer-events-none hidden sm:flex">
+              <span className="flex items-center gap-1.5 px-4 py-2 bg-[#FFFDF9]/92 backdrop-blur-sm text-gray-800 text-[11px] font-medium rounded-full shadow-lg">
+                <Eye className="w-3 h-3" />
+                {t("shop.quickView") || "Ver detalle"}
+              </span>
+            </div>
           </div>
         </Link>
 
-        {/* Info + Cart Button */}
-        <div className="p-4 flex flex-col flex-1">
-          <Link href={`/shop/${slug}`} className="block flex-1 mb-3">
-            <h3 className="font-serif text-sm font-semibold text-gray-800 leading-snug line-clamp-2 group-hover:text-rosa-dark transition-colors">
+        {/* ─── Card Body ─── */}
+        <div className="p-3.5 sm:p-4 flex flex-col flex-1 gap-1.5">
+          {/* Rating */}
+          {product.rating > 0 && (
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-px">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={cn(
+                      "w-3 h-3",
+                      i < fullStars
+                        ? "fill-amber-400 text-amber-400"
+                        : i === fullStars && hasHalf
+                          ? "fill-amber-400/50 text-amber-400"
+                          : "fill-gray-200 text-gray-200"
+                    )}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] text-gray-400 font-medium">
+                ({product.reviewCount})
+              </span>
+            </div>
+          )}
+
+          {/* Product name */}
+          <Link href={`/shop/${slug}`} className="block flex-1">
+            <h3 className="font-serif text-sm sm:text-base font-semibold text-gray-800 leading-snug line-clamp-2 group-hover:text-rosa-dark transition-colors duration-300">
               {name}
             </h3>
-            <div className="flex items-baseline gap-2 mt-1.5">
-              <span className="text-base font-bold text-gray-900">
-                {formatPrice(price)}
-              </span>
-              {originalPrice && originalPrice > price && (
-                <span className="text-xs text-gray-400 line-through">
-                  {formatPrice(originalPrice)}
+          </Link>
+
+          {/* Color swatches preview */}
+          {colors.length > 0 && (
+            <div className="flex items-center gap-1.5 pt-0.5">
+              {colors.slice(0, 4).map((color) => (
+                <span
+                  key={color}
+                  className="w-3.5 h-3.5 rounded-full border border-gray-200/80 shadow-[0_0_0_0.5px_rgba(0,0,0,0.08)]"
+                  style={{ backgroundColor: getColorHex(color) }}
+                  title={color}
+                />
+              ))}
+              {colors.length > 4 && (
+                <span className="text-[10px] text-gray-400 font-medium ml-0.5">
+                  +{colors.length - 4}
                 </span>
               )}
             </div>
-          </Link>
+          )}
 
-          {/* Add to Cart - Horizontal fill on press */}
+          {/* Price */}
+          <div className="flex items-baseline gap-2 mt-auto pt-1">
+            <span className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">
+              {formatPrice(price)}
+            </span>
+            {originalPrice && originalPrice > price && (
+              <span className="text-[11px] text-gray-400 line-through decoration-gray-300">
+                {formatPrice(originalPrice)}
+              </span>
+            )}
+          </div>
+
+          {/* ─── Add to Cart - Fill bar animation (preserved) ─── */}
           <motion.button
             onClick={handleAddToCart}
-            animate={filling ? { scale: 0.95 } : { scale: 1 }}
+            disabled={isOutOfStock}
+            animate={filling ? { scale: 0.96 } : { scale: 1 }}
             transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            whileTap={!filling && !added ? { scale: 0.93 } : undefined}
+            whileTap={
+              !filling && !added && !isOutOfStock
+                ? { scale: 0.93 }
+                : undefined
+            }
             className={cn(
-              "group/btn relative w-full py-2.5 rounded-xl text-sm font-medium cursor-pointer overflow-hidden transition-all duration-300",
-              added
-                ? "border border-emerald-400/50 bg-emerald-50"
-                : "border border-rosa/30 bg-rosa/5 hover:border-rosa hover:shadow-md hover:shadow-rosa/15"
+              "group/btn relative w-full py-2.5 sm:py-3 rounded-xl text-sm font-medium cursor-pointer overflow-hidden transition-all duration-300 min-h-[44px] mt-1",
+              isOutOfStock
+                ? "border border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
+                : added
+                  ? "border border-emerald-400/50 bg-emerald-50"
+                  : "border border-rosa/30 bg-rosa/5 hover:border-rosa hover:shadow-md hover:shadow-rosa/10"
             )}
+            aria-label={
+              isOutOfStock
+                ? t("shop.outOfStock") || "Agotado"
+                : t("productDetail.addToCart")
+            }
           >
             {/* Fill bar - sweeps left to right on click */}
             <motion.span
               className="absolute inset-y-0 left-0 bg-gradient-to-r from-rosa to-rosa-dark"
               initial={{ width: "0%" }}
               animate={{ width: filling ? "100%" : "0%" }}
-              transition={filling ? { duration: 0.5, ease: "easeOut" } : { duration: 0 }}
+              transition={
+                filling
+                  ? { duration: 0.5, ease: "easeOut" }
+                  : { duration: 0 }
+              }
             />
 
             {/* Label */}
             <AnimatePresence mode="wait">
-              {added ? (
+              {isOutOfStock ? (
+                <motion.span
+                  key="oos"
+                  className="relative z-10 flex items-center justify-center gap-2 text-gray-400 text-xs"
+                >
+                  {t("shop.outOfStock") || "Agotado"}
+                </motion.span>
+              ) : added ? (
                 <motion.span
                   key="check"
                   initial={{ opacity: 0, scale: 0.5 }}
@@ -192,7 +294,9 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                   exit={{ opacity: 0 }}
                   className={cn(
                     "relative z-10 flex items-center justify-center gap-2 transition-colors duration-300",
-                    filling ? "text-white" : "text-rosa-dark group-hover/btn:text-rosa-dark"
+                    filling
+                      ? "text-white"
+                      : "text-rosa-dark group-hover/btn:text-rosa-dark"
                   )}
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
@@ -203,6 +307,6 @@ export default function ProductCard({ product, className }: ProductCardProps) {
           </motion.button>
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   );
 }

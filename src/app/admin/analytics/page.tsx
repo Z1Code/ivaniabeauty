@@ -64,90 +64,15 @@ export default function AnalyticsPage() {
   useEffect(() => {
     async function fetchAnalytics() {
       try {
-        // Fetch all data sources in parallel
-        const [productsRes, customersRes, ordersRes] = await Promise.all([
-          fetch("/api/admin/products"),
-          fetch("/api/admin/customers"),
-          fetch("/api/admin/orders?limit=200"),
-        ]);
+        // Single API call - all calculations done server-side
+        const res = await fetch("/api/admin/analytics");
+        if (!res.ok) throw new Error("Failed to fetch analytics");
 
-        let products: Array<Record<string, unknown>> = [];
-        if (productsRes.ok) products = await productsRes.json();
-
-        let customers: Array<Record<string, unknown>> = [];
-        if (customersRes.ok) customers = await customersRes.json();
-
-        interface OrderRecord {
-          id: string;
-          orderNumber: string;
-          customerName: string;
-          total: number;
-          status: string;
-          createdAt: string;
-        }
-        let orders: OrderRecord[] = [];
-        if (ordersRes.ok) orders = await ordersRes.json();
-
-        const activeProducts = products.filter(
-          (p) => p.isActive === true
-        ).length;
-
-        // Top products by review count (as proxy for popularity)
-        const sortedProducts = [...products]
-          .filter((p) => p.isActive)
-          .sort(
-            (a, b) =>
-              ((b.reviewCount as number) || 0) -
-              ((a.reviewCount as number) || 0)
-          )
-          .slice(0, 5)
-          .map((p) => ({
-            id: p.id as string,
-            name: (p.nameEs as string) || (p.nameEn as string) || "---",
-            revenue: (p.price as number) || 0,
-            orders: (p.reviewCount as number) || 0,
-          }));
-
-        setTopProducts(sortedProducts);
-
-        // Calculate stats from real orders
-        let totalRevenue = 0;
-        orders.forEach((o) => {
-          if (o.status !== "cancelled" && o.status !== "refunded") {
-            totalRevenue += o.total || 0;
-          }
-        });
-
-        setStats({
-          totalOrders: orders.length,
-          totalRevenue,
-          activeProducts,
-          totalCustomers: customers.length,
-        });
-
-        // Recent orders (first 10)
-        setRecentOrders(
-          orders.slice(0, 10).map((o) => ({
-            id: o.id,
-            orderNumber: o.orderNumber,
-            customerName: o.customerName,
-            total: o.total,
-            status: o.status,
-            createdAt: o.createdAt,
-          }))
-        );
-
-        // Status breakdown
-        const statusCounts: Record<string, number> = {};
-        orders.forEach((o) => {
-          statusCounts[o.status] = (statusCounts[o.status] || 0) + 1;
-        });
-        setStatusBreakdown(
-          Object.entries(statusCounts).map(([status, count]) => ({
-            status,
-            count,
-          }))
-        );
+        const data = await res.json();
+        setStats(data.stats);
+        setRecentOrders(data.recentOrders);
+        setTopProducts(data.topProducts);
+        setStatusBreakdown(data.statusBreakdown);
       } catch (error) {
         console.error("Error fetching analytics:", error);
       } finally {
@@ -181,8 +106,8 @@ export default function AnalyticsPage() {
       header: "Pedido",
       render: (o: RecentOrder) => (
         <div>
-          <p className="font-semibold text-gray-800">{o.orderNumber}</p>
-          <p className="text-xs text-gray-400">
+          <p className="font-semibold text-gray-800 dark:text-gray-100">{o.orderNumber}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
             {new Date(o.createdAt).toLocaleDateString("es")}
           </p>
         </div>
@@ -192,7 +117,7 @@ export default function AnalyticsPage() {
       key: "customer",
       header: "Cliente",
       render: (o: RecentOrder) => (
-        <span className="text-gray-700">{o.customerName}</span>
+        <span className="text-gray-700 dark:text-gray-300">{o.customerName}</span>
       ),
     },
     {
@@ -249,9 +174,9 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Recent Orders */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-rosa" />
               Pedidos Recientes
             </h3>
@@ -275,8 +200,8 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <div className="px-5 py-10 text-center">
-              <ShoppingCart className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">
+              <ShoppingCart className="w-10 h-10 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">
                 Los pedidos recientes aparecen aqui.
               </p>
               <Link
@@ -290,30 +215,30 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Top Products */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
               <Package className="w-5 h-5 text-rosa" />
               Top Productos
             </h3>
           </div>
 
           {topProducts.length > 0 ? (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-50 dark:divide-gray-800/50">
               {topProducts.map((product, index) => (
                 <Link
                   key={product.id}
                   href={`/admin/products/${product.id}`}
-                  className="flex items-center gap-3 px-5 py-3.5 hover:bg-rosa-light/5 transition-colors"
+                  className="flex items-center gap-3 px-5 py-3.5 hover:bg-rosa-light/5 dark:hover:bg-rosa/5 transition-colors"
                 >
-                  <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
+                  <span className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-500">
                     {index + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
                       {product.name}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
                       {formatPrice(product.revenue)} / producto
                     </p>
                   </div>
@@ -325,8 +250,8 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <div className="px-5 py-10 text-center">
-              <Package className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">Sin datos de productos</p>
+              <Package className="w-10 h-10 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">Sin datos de productos</p>
             </div>
           )}
         </div>
@@ -335,8 +260,8 @@ export default function AnalyticsPage() {
       {/* Order Status Breakdown & Charts Placeholder */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Order Status Breakdown */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-4">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300 p-6">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2 mb-4">
             <BarChart3 className="w-5 h-5 text-rosa" />
             Desglose por Estado
           </h3>
@@ -355,11 +280,11 @@ export default function AnalyticsPage() {
                       <AdminBadge variant={getOrderStatusVariant(item.status)}>
                         {getOrderStatusLabel(item.status)}
                       </AdminBadge>
-                      <span className="text-sm font-medium text-gray-600">
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                         {item.count}
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-rosa rounded-full transition-all"
                         style={{ width: `${pct}%` }}
@@ -371,8 +296,8 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <div className="text-center py-6">
-              <BarChart3 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">
+              <BarChart3 className="w-10 h-10 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">
                 El desglose de estados se mostrara cuando haya pedidos.
               </p>
             </div>
@@ -380,63 +305,63 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-4">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300 p-6">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2 mb-4">
             <Ticket className="w-5 h-5 text-rosa" />
             Resumen Rapido
           </h3>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-green-50">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-green-50 dark:bg-green-950 transition-colors duration-300">
               <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-medium text-green-700">
+                <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">
                   Ticket Promedio
                 </span>
               </div>
-              <span className="text-sm font-bold text-green-700">
+              <span className="text-sm font-bold text-green-700 dark:text-green-400">
                 {stats.totalOrders > 0
                   ? formatPrice(stats.totalRevenue / stats.totalOrders)
                   : "$0.00"}
               </span>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50 dark:bg-blue-950 transition-colors duration-300">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-700">
+                <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
                   Pedidos / Cliente
                 </span>
               </div>
-              <span className="text-sm font-bold text-blue-700">
+              <span className="text-sm font-bold text-blue-700 dark:text-blue-400">
                 {stats.totalCustomers > 0
                   ? (stats.totalOrders / stats.totalCustomers).toFixed(1)
                   : "0"}
               </span>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50 dark:bg-purple-950 transition-colors duration-300">
               <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium text-purple-700">
+                <Package className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span className="text-sm font-medium text-purple-700 dark:text-purple-400">
                   Revenue / Producto
                 </span>
               </div>
-              <span className="text-sm font-bold text-purple-700">
+              <span className="text-sm font-bold text-purple-700 dark:text-purple-400">
                 {stats.activeProducts > 0
                   ? formatPrice(stats.totalRevenue / stats.activeProducts)
                   : "$0.00"}
               </span>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl bg-rosa-light/20">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-rosa-light/20 dark:bg-rosa/10 transition-colors duration-300">
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-rosa" />
-                <span className="text-sm font-medium text-rosa-dark">
+                <TrendingUp className="w-4 h-4 text-rosa dark:text-rosa-light" />
+                <span className="text-sm font-medium text-rosa-dark dark:text-rosa-light">
                   Tasa de Conversion
                 </span>
               </div>
-              <span className="text-sm font-bold text-rosa-dark">
+              <span className="text-sm font-bold text-rosa-dark dark:text-rosa-light">
                 {statusBreakdown.length > 0
                   ? (() => {
                       const delivered =

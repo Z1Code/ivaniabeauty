@@ -20,27 +20,16 @@ const colorOptions = ["cocoa", "negro", "beige", "brown", "rosado", "pink"];
 function FilterContent({ showSort = false }: { showSort?: boolean }) {
   const { t } = useTranslation();
   const {
-    category,
     size,
     compression,
     color,
     sortBy,
-    setCategory,
     setSize,
     setCompression,
     setColor,
     setSortBy,
     clearFilters,
   } = useFilters();
-
-  const categories = [
-    { label: t("filters.categoryAll"), value: null },
-    { label: t("filters.categoryFajas"), value: "fajas" },
-    { label: t("filters.categoryCinturillas"), value: "cinturillas" },
-    { label: t("filters.categoryTops"), value: "tops" },
-    { label: t("filters.categoryShorts"), value: "shorts" },
-    { label: t("filters.categoryCuidado"), value: "cuidado" },
-  ];
 
   const compressions = [
     { label: t("filters.compressionSoft"), value: "suave" },
@@ -57,37 +46,13 @@ function FilterContent({ showSort = false }: { showSort?: boolean }) {
   ];
 
   const hasActiveFilters =
-    category !== null ||
     size !== null ||
     compression !== null ||
     color !== null;
 
   return (
     <div className="space-y-0">
-      {/* Category */}
-      <div className="border-b border-rosa-light/30 pb-4 mb-3">
-        <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
-          {t("filters.categoryHeading")}
-        </h4>
-        <div className="flex flex-wrap gap-2">
-          {categories.map((cat) => (
-            <button
-              key={cat.label}
-              onClick={() => setCategory(cat.value)}
-              className={cn(
-                "rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 cursor-pointer",
-                category === cat.value
-                  ? "bg-rosa text-white shadow-md"
-                  : "bg-rosa-light/30 text-gray-700 hover:bg-rosa-light/50"
-              )}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Clear Filters - right below category */}
+      {/* Clear Filters */}
       {hasActiveFilters && (
         <div className="pb-4 mb-3 border-b border-rosa-light/30">
           <button

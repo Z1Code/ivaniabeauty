@@ -1018,7 +1018,7 @@
     "materials": "Crema reductora con ingredientes termogenicos.",
     "care": "Mantener en lugar fresco y seco.",
     "images": [
-      "https://ivaniabeauty.shop/cdn/shop/files/18F3F04A-75CE-4537-B4D4-0AF363BDC4F7.jpg?v=1733972974"
+      "/products/hot-slim-cream-crema-reductora.JPG"
     ],
     "rating": 4.3,
     "reviewCount": 22,
@@ -1054,13 +1054,11 @@
     "materials": "Aceite de romero y menta con ingredientes naturales.",
     "care": "Almacenar en lugar fresco y seco.",
     "images": [
-      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_184820.jpg?v=1723773007",
-      "https://ivaniabeauty.shop/cdn/shop/files/IMG_0523.jpg?v=1723772988",
-      "https://ivaniabeauty.shop/cdn/shop/files/IMG_1409_8ffd8f3b-bc49-49d7-ac4a-420bbba02f0e.jpg?v=1723773008"
+      "/products/mascarilla-hair-mask-rosemary-mint.jpg"
     ],
     "rating": 4.5,
     "reviewCount": 31,
-    "inStock": false
+    "inStock": true
   },
   {
     "id": "rosemary-mint-scalp-scrub",
@@ -1092,8 +1090,7 @@
     "materials": "Exfoliante a base de romero y menta.",
     "care": "Almacenar en lugar fresco y seco.",
     "images": [
-      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_184710_1.jpg?v=1723774401",
-      "https://ivaniabeauty.shop/cdn/shop/files/IMG_1409_20402662-ccb4-4a50-a7c8-536357422cd5.jpg?v=1723774401"
+      "/products/rosemary-mint-scalp-scrub.jpg"
     ],
     "rating": 4.4,
     "reviewCount": 18,
@@ -1129,9 +1126,7 @@
     "materials": "Aceite natural de romero y menta.",
     "care": "Almacenar en lugar fresco y seco.",
     "images": [
-      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_184737.jpg?v=1723773650",
-      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_185626.jpg?v=1723773650",
-      "https://ivaniabeauty.shop/cdn/shop/files/photo-output.jpg?v=1723773783"
+      "/products/rosemary-mint-oil-longer-hair.jpg"
     ],
     "rating": 4.6,
     "reviewCount": 35,
@@ -1167,9 +1162,8 @@
     "materials": "Romero, menta y aceites naturales.",
     "care": "Almacenar en lugar fresco y seco.",
     "images": [
-      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_184636.jpg?v=1723771483",
-      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_184912.jpg?v=1723771483",
-      "https://ivaniabeauty.shop/cdn/shop/files/IMG_1409.jpg?v=1723771483"
+      "/products/shampoo-y-acondicionador-rosemary-mint.jpg",
+      "/products/Photoroom_20240812_184636.webp"
     ],
     "rating": 4.7,
     "reviewCount": 47,

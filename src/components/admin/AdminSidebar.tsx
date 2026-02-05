@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 interface AdminSidebarProps {
   mobileOpen: boolean;
   onCloseMobile: () => void;
+  themeGradient?: string;
 }
 
 const NAV_ITEMS = [
@@ -140,14 +141,19 @@ function SidebarContent({
   );
 }
 
+const DEFAULT_GRADIENT = "bg-gradient-to-b from-[#8B5A6B] to-[#6B3F50]";
+
 export default function AdminSidebar({
   mobileOpen,
   onCloseMobile,
+  themeGradient,
 }: AdminSidebarProps) {
+  const gradient = themeGradient || DEFAULT_GRADIENT;
+
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-[260px] flex-shrink-0 bg-gradient-to-b from-rosa-dark to-[#b5164a] flex-col h-screen sticky top-0">
+      <aside className={`hidden lg:flex w-[260px] flex-shrink-0 ${gradient} flex-col h-screen sticky top-0 transition-colors duration-500`}>
         <SidebarContent />
       </aside>
 
@@ -167,7 +173,7 @@ export default function AdminSidebar({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 left-0 bottom-0 w-[280px] bg-gradient-to-b from-rosa-dark to-[#b5164a] z-50 lg:hidden flex flex-col"
+              className={`fixed top-0 left-0 bottom-0 w-[280px] ${gradient} z-50 lg:hidden flex flex-col`}
             >
               <SidebarContent onCloseMobile={onCloseMobile} />
             </motion.aside>

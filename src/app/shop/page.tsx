@@ -2,11 +2,13 @@
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { SlidersHorizontal, PackageOpen, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { SlidersHorizontal, ChevronDown } from "lucide-react";
 import useFilters from "@/hooks/useFilters";
-import ProductCard from "@/components/ui/ProductCard";
 import Filters from "@/components/shared/Filters";
+import SectionChips from "@/components/shop/SectionChips";
+import ProductSection from "@/components/shop/ProductSection";
+import { SECTIONS } from "@/app/shop/sections";
 import { useTranslation } from "@/hooks/useTranslation";
 import { cn } from "@/lib/utils";
 
@@ -109,6 +111,22 @@ export default function ShopPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeSections, setActiveSections] = useState<Set<string>>(
+    () => new Set(SECTIONS.map((s) => s.id))
+  );
+
+  const toggleSection = useCallback((id: string) => {
+    setActiveSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        // Don't allow deactivating the last one
+        if (next.size > 1) next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -129,20 +147,15 @@ export default function ShopPage() {
   }, [fetchProducts]);
 
   const {
-    category,
     size,
     compression,
     color,
     sortBy,
-    clearFilters,
   } = useFilters();
 
   const filteredProducts = useMemo(() => {
     let results = [...allProducts];
 
-    if (category) {
-      results = results.filter((p) => p.category === category);
-    }
     if (size) {
       results = results.filter((p) => p.sizes.includes(size));
     }
@@ -185,14 +198,25 @@ export default function ShopPage() {
     }
 
     return results;
-  }, [allProducts, category, size, compression, color, sortBy]);
+  }, [allProducts, size, compression, color, sortBy]);
 
   const hasActiveFilters =
-    category !== null ||
     size !== null ||
     compression !== null ||
     color !== null ||
     sortBy !== "featured";
+
+  /* Partition filtered products by active sections */
+  const sectionedProducts = useMemo(() => {
+    return SECTIONS
+      .filter((section) => activeSections.has(section.id))
+      .map((section) => ({
+        section,
+        products: filteredProducts.filter((p) =>
+          section.categories.includes(p.category)
+        ),
+      }));
+  }, [filteredProducts, activeSections]);
 
   return (
     <main className="min-h-screen bg-perla">
@@ -236,96 +260,49 @@ export default function ShopPage() {
 
           {/* Main Content */}
           <div className="flex-1 min-w-0">
-            {/* Top Bar */}
-            <div className="flex justify-between items-center mb-8">
-              <motion.p
-                key={filteredProducts.length}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-sm text-gray-500"
-              >
-                <span className="font-semibold text-gray-800">
-                  {filteredProducts.length}
-                </span>{" "}
-                {filteredProducts.length === 1
-                  ? t("shop.productFound")
-                  : t("shop.productsFound")}
-              </motion.p>
-
-              <div className="flex items-center gap-3">
-                {/* Sort dropdown - desktop only */}
-                <div className="hidden lg:block">
-                  <SortDropdown />
+            {/* Top Bar: Section Chips + Sort/Filter */}
+            <div className="sticky top-16 z-20 bg-perla/95 backdrop-blur-sm -mx-4 px-4 py-4 mb-4">
+              <div className="flex justify-between items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <SectionChips sections={SECTIONS} activeSections={activeSections} onToggle={toggleSection} />
                 </div>
 
-                {/* Mobile Filter Button */}
-                <button
-                  onClick={() => setIsFilterOpen(true)}
-                  className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-xl bg-white shadow-sm border border-gray-200 text-sm font-medium text-gray-700 hover:border-rosa/40 transition-colors cursor-pointer"
-                >
-                  <SlidersHorizontal className="w-4 h-4 text-rosa" />
-                  {t("shop.filtersButton")}
-                  {hasActiveFilters && (
-                    <span className="w-2 h-2 rounded-full bg-rosa" />
-                  )}
-                </button>
+                <div className="flex items-center gap-3 shrink-0">
+                  {/* Sort dropdown - desktop only */}
+                  <div className="hidden lg:block">
+                    <SortDropdown />
+                  </div>
+
+                  {/* Mobile Filter Button */}
+                  <button
+                    onClick={() => setIsFilterOpen(true)}
+                    className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-xl bg-white shadow-sm border border-gray-200 text-sm font-medium text-gray-700 hover:border-rosa/40 transition-colors cursor-pointer"
+                  >
+                    <SlidersHorizontal className="w-4 h-4 text-rosa" />
+                    {t("shop.filtersButton")}
+                    {hasActiveFilters && (
+                      <span className="w-2 h-2 rounded-full bg-rosa" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Product Grid */}
+            {/* Sections */}
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <div className="w-8 h-8 border-2 border-rosa border-t-transparent rounded-full animate-spin" />
               </div>
-            ) : filteredProducts.length > 0 ? (
-              <LayoutGroup>
-                <motion.div
-                  layout
-                  className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
-                >
-                  <AnimatePresence mode="popLayout">
-                    {filteredProducts.map((product) => (
-                      <motion.div
-                        key={product.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{
-                          opacity: { duration: 0.25 },
-                          layout: { type: "spring", stiffness: 300, damping: 30 },
-                        }}
-                      >
-                        <ProductCard product={product} />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </motion.div>
-              </LayoutGroup>
             ) : (
-              /* Empty State */
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col items-center justify-center py-20 text-center"
-              >
-                <div className="w-20 h-20 rounded-full bg-rosa-light/30 flex items-center justify-center mb-6">
-                  <PackageOpen className="w-10 h-10 text-rosa" />
-                </div>
-                <h3 className="font-serif text-2xl text-gray-800 mb-2">
-                  {t("shop.emptyStateHeading")}
-                </h3>
-                <p className="text-gray-500 text-sm max-w-md mb-6">
-                  {t("shop.emptyStateText")}
-                </p>
-                <button
-                  onClick={clearFilters}
-                  className="px-6 py-3 rounded-full bg-rosa text-white font-semibold text-sm hover:bg-rosa-dark transition-colors cursor-pointer shadow-md hover:shadow-lg"
-                >
-                  {t("shop.clearFiltersButton")}
-                </button>
-              </motion.div>
+              <div className="space-y-6">
+                {sectionedProducts.map(({ section, products }) => (
+                  <ProductSection
+                    key={section.id}
+                    section={section}
+                    products={products}
+                  />
+                ))}
+              </div>
             )}
           </div>
         </div>

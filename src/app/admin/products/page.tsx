@@ -65,14 +65,27 @@ export default function AdminProductsPage() {
       header: "Producto",
       render: (p: ProductRow) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-rosa-light/30 to-arena flex-shrink-0 flex items-center justify-center">
-            <Package className="w-4 h-4 text-rosa/40" />
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-rosa-light/30 to-arena dark:from-gray-800 dark:to-gray-900 flex-shrink-0 flex items-center justify-center overflow-hidden">
+            {p.images[0] ? (
+              <img
+                src={p.images[0]}
+                alt={p.nameEs}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-rosa/40"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" x2="21" y1="6" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
+                }}
+              />
+            ) : (
+              <Package className="w-4 h-4 text-rosa/40" />
+            )}
           </div>
           <div>
-            <p className="font-medium text-gray-800 line-clamp-1">
+            <p className="font-medium text-gray-800 dark:text-gray-100 line-clamp-1">
               {p.nameEs}
             </p>
-            <p className="text-xs text-gray-400 line-clamp-1">{p.nameEn}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{p.nameEn}</p>
           </div>
         </div>
       ),
@@ -82,11 +95,11 @@ export default function AdminProductsPage() {
       header: "Precio",
       render: (p: ProductRow) => (
         <div>
-          <p className="font-semibold text-gray-800">
+          <p className="font-semibold text-gray-800 dark:text-gray-100">
             {formatPrice(p.price)}
           </p>
           {p.originalPrice && (
-            <p className="text-xs text-gray-400 line-through">
+            <p className="text-xs text-gray-400 dark:text-gray-500 line-through">
               {formatPrice(p.originalPrice)}
             </p>
           )}
@@ -158,13 +171,13 @@ export default function AdminProductsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar productos..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
           />
         </div>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-rosa/30 cursor-pointer"
+          className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-rosa/30 cursor-pointer"
         >
           <option value="">Todas las categorias</option>
           {Object.entries(CATEGORIES).map(([value, label]) => (
@@ -177,9 +190,9 @@ export default function AdminProductsPage() {
 
       {/* Table */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center transition-colors duration-300">
           <div className="w-8 h-8 border-2 border-rosa border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-400">Cargando productos...</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">Cargando productos...</p>
         </div>
       ) : (
         <AdminTable

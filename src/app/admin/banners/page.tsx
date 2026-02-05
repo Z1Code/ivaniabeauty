@@ -104,6 +104,7 @@ export default function BannersPage() {
               src={b.imageUrl}
               alt={b.titleEs || "Banner"}
               className="w-full h-full object-cover"
+              loading="lazy"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
               }}

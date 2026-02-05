@@ -276,6 +276,9 @@ function ProductDetail({ product }: { product: ProductData }) {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
                 whileHover={{ scale: 1.08 }}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
               />
             ) : (
               <motion.div
@@ -313,6 +316,9 @@ function ProductDetail({ product }: { product: ProductData }) {
                   alt={`${localName} - ${i + 1}`}
                   className="w-full h-full object-cover"
                   loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
                 />
               </button>
             ))}

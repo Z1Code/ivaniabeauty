@@ -75,7 +75,7 @@ function slugify(text: string): string {
 }
 
 const inputClasses =
-  "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all";
+  "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all";
 
 export default function ProductForm({
   initialData,
@@ -251,7 +251,7 @@ export default function ProductForm({
                 type="button"
                 onClick={handleDelete}
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-950 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
                 Eliminar
@@ -274,7 +274,7 @@ export default function ProductForm({
       />
 
       {error && (
-        <div className="mb-6 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
+        <div className="mb-6 p-3 rounded-xl bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
           {error}
         </div>
       )}
@@ -283,8 +283,8 @@ export default function ProductForm({
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Basic Info */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-            <h3 className="font-semibold text-gray-800">
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">
               Informacion Basica
             </h3>
             <AdminBilingualInput
@@ -298,7 +298,7 @@ export default function ProductForm({
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Slug <span className="text-rosa">*</span>
                 </label>
                 <input
@@ -310,7 +310,7 @@ export default function ProductForm({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   SKU
                 </label>
                 <input
@@ -325,11 +325,11 @@ export default function ProductForm({
           </section>
 
           {/* Pricing */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-            <h3 className="font-semibold text-gray-800">Precios</h3>
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Precios</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Precio (USD) <span className="text-rosa">*</span>
                 </label>
                 <input
@@ -343,7 +343,7 @@ export default function ProductForm({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Precio original (tachado)
                 </label>
                 <input
@@ -371,8 +371,8 @@ export default function ProductForm({
           </section>
 
           {/* Description */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-            <h3 className="font-semibold text-gray-800">Descripcion</h3>
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Descripcion</h3>
             <AdminBilingualInput
               label="Descripcion corta"
               valueEn={form.shortDescriptionEn}
@@ -396,9 +396,9 @@ export default function ProductForm({
           </section>
 
           {/* Features */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-800">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">
                 Caracteristicas
               </h3>
               <button
@@ -414,7 +414,7 @@ export default function ProductForm({
               <div key={index} className="flex gap-3 items-start">
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-100 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
                       ES
                     </span>
                     <input
@@ -428,7 +428,7 @@ export default function ProductForm({
                     />
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-100 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
                       EN
                     </span>
                     <input
@@ -446,7 +446,7 @@ export default function ProductForm({
                   <button
                     type="button"
                     onClick={() => removeFeature(index)}
-                    className="mt-6 p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                    className="mt-6 p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -456,12 +456,12 @@ export default function ProductForm({
           </section>
 
           {/* Materials & Care */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-            <h3 className="font-semibold text-gray-800">
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">
               Materiales y Cuidado
             </h3>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Materiales
               </label>
               <textarea
@@ -472,7 +472,7 @@ export default function ProductForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Instrucciones de cuidado
               </label>
               <textarea
@@ -485,7 +485,7 @@ export default function ProductForm({
           </section>
 
           {/* Images */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-5">
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 transition-colors duration-300">
             <AdminImageUpload
               images={form.images}
               onImagesChange={(imgs) => updateField("images", imgs)}
@@ -496,12 +496,12 @@ export default function ProductForm({
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Categorization */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-            <h3 className="font-semibold text-gray-800">
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">
               Categorizacion
             </h3>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Categoria
               </label>
               <select
@@ -517,7 +517,7 @@ export default function ProductForm({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Ocasion
               </label>
               <select
@@ -533,7 +533,7 @@ export default function ProductForm({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Compresion
               </label>
               <select
@@ -559,8 +559,8 @@ export default function ProductForm({
           </section>
 
           {/* Colors */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
-            <h3 className="font-semibold text-gray-800">Colores</h3>
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-3 transition-colors duration-300">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Colores</h3>
             <div className="flex flex-wrap gap-2.5">
               {ALL_COLORS.map((color) => (
                 <button
@@ -570,8 +570,8 @@ export default function ProductForm({
                   className={cn(
                     "w-9 h-9 rounded-full border-2 transition-all cursor-pointer",
                     form.colors.includes(color)
-                      ? "ring-2 ring-rosa ring-offset-2 border-rosa scale-110"
-                      : "border-gray-200 hover:scale-110"
+                      ? "ring-2 ring-rosa ring-offset-2 dark:ring-offset-gray-900 border-rosa scale-110"
+                      : "border-gray-200 dark:border-gray-700 hover:scale-110"
                   )}
                   style={{ backgroundColor: getColorHex(color) }}
                   title={color}
@@ -579,15 +579,15 @@ export default function ProductForm({
               ))}
             </div>
             {form.colors.length > 0 && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 Seleccionados: {form.colors.join(", ")}
               </p>
             )}
           </section>
 
           {/* Sizes */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
-            <h3 className="font-semibold text-gray-800">Tallas</h3>
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-3 transition-colors duration-300">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Tallas</h3>
             <div className="grid grid-cols-4 gap-2">
               {ALL_SIZES.map((size) => (
                 <button
@@ -598,7 +598,7 @@ export default function ProductForm({
                     "py-2 rounded-lg text-sm font-medium transition-all cursor-pointer text-center",
                     form.sizes.includes(size)
                       ? "bg-rosa text-white ring-2 ring-rosa shadow-sm"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                   )}
                 >
                   {size}
@@ -608,10 +608,10 @@ export default function ProductForm({
           </section>
 
           {/* Inventory */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-            <h3 className="font-semibold text-gray-800">Inventario</h3>
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Inventario</h3>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Stock
               </label>
               <input
@@ -625,7 +625,7 @@ export default function ProductForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Umbral stock bajo
               </label>
               <input
@@ -645,13 +645,13 @@ export default function ProductForm({
                 onChange={(e) => updateField("inStock", e.target.checked)}
                 className="w-4 h-4 rounded border-gray-300 text-rosa focus:ring-rosa"
               />
-              <span className="text-sm text-gray-700">En stock</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">En stock</span>
             </label>
           </section>
 
           {/* Display Options */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-            <h3 className="font-semibold text-gray-800">
+          <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">
               Opciones de display
             </h3>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -661,7 +661,7 @@ export default function ProductForm({
                 onChange={(e) => updateField("isActive", e.target.checked)}
                 className="w-4 h-4 rounded border-gray-300 text-rosa focus:ring-rosa"
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-gray-700 dark:text-gray-300">
                 Producto activo (visible en tienda)
               </span>
             </label>
@@ -674,12 +674,12 @@ export default function ProductForm({
                 }
                 className="w-4 h-4 rounded border-gray-300 text-rosa focus:ring-rosa"
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-gray-700 dark:text-gray-300">
                 Producto destacado
               </span>
             </label>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Orden
               </label>
               <input

@@ -26,18 +26,18 @@ export default function AdminCard({
   return (
     <div
       className={cn(
-        "bg-white rounded-2xl p-5 shadow-sm border border-gray-100",
+        "bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300",
         className
       )}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-2xl lg:text-3xl font-bold text-gray-800 mt-1">
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+          <p className="text-2xl lg:text-3xl font-bold text-gray-800 dark:text-gray-100 mt-1">
             {value}
           </p>
           {subtitle && (
-            <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{subtitle}</p>
           )}
           {trend && (
             <div className="flex items-center gap-1 mt-2">
@@ -50,11 +50,11 @@ export default function AdminCard({
                 {trend.value >= 0 ? "+" : ""}
                 {trend.value}%
               </span>
-              <span className="text-xs text-gray-400">{trend.label}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">{trend.label}</span>
             </div>
           )}
         </div>
-        <div className="w-11 h-11 rounded-xl bg-rosa-light/30 flex items-center justify-center flex-shrink-0">
+        <div className="w-11 h-11 rounded-xl bg-rosa-light/30 dark:bg-rosa/10 flex items-center justify-center flex-shrink-0">
           <Icon className="w-5 h-5 text-rosa" />
         </div>
       </div>

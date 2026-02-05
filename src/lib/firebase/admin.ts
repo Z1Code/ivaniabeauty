@@ -35,7 +35,10 @@ function initFirebaseAdmin() {
         "\n"
       ),
     };
-    app = initializeApp({ credential: cert(serviceAccount) });
+    app = initializeApp({
+      credential: cert(serviceAccount),
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    });
   } else {
     // Firebase not configured - initialize with minimal config for build time
     app = initializeApp({ projectId: "placeholder" });
