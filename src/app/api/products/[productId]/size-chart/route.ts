@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { adminDb, isFirebaseConfigured } from "@/lib/firebase/admin";
+import { getAdminSession } from "@/lib/firebase/auth-helpers";
 import type { SizeChartMeasurement, SizeChartDoc } from "@/lib/firebase/types";
 
 // Lazy initialization to avoid errors during build when API key is not set
@@ -175,6 +176,109 @@ export async function GET(
     console.error("Size chart extraction error:", error);
     return NextResponse.json(
       { error: "Internal server error", measurements: null },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT: Update/correct measurements (admin only)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ productId: string }> }
+) {
+  const admin = await getAdminSession();
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { productId } = await params;
+    const body = await request.json();
+    const { measurements } = body;
+
+    if (!measurements || !Array.isArray(measurements)) {
+      return NextResponse.json(
+        { error: "Measurements array is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!isFirebaseConfigured()) {
+      return NextResponse.json(
+        { error: "Firebase not configured" },
+        { status: 503 }
+      );
+    }
+
+    // Get product to find sizeChartImageUrl
+    const productRef = adminDb.collection("products").doc(productId);
+    const productDoc = await productRef.get();
+
+    if (!productDoc.exists) {
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
+    }
+
+    const productData = productDoc.data();
+    const sizeChartImageUrl = productData?.sizeChartImageUrl || "";
+
+    // Update cache with corrected measurements
+    const cacheRef = adminDb.collection("sizeCharts").doc(productId);
+    const sizeChartDoc: SizeChartDoc = {
+      productId,
+      measurements,
+      extractedAt: new Date(),
+      sourceImageUrl: sizeChartImageUrl,
+    };
+
+    await cacheRef.set(sizeChartDoc);
+
+    return NextResponse.json({
+      success: true,
+      measurements,
+    });
+  } catch (error) {
+    console.error("Error updating size chart:", error);
+    return NextResponse.json(
+      { error: "Failed to update size chart" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE: Clear cache to force re-extraction (admin only)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ productId: string }> }
+) {
+  const admin = await getAdminSession();
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { productId } = await params;
+
+    if (!isFirebaseConfigured()) {
+      return NextResponse.json(
+        { error: "Firebase not configured" },
+        { status: 503 }
+      );
+    }
+
+    const cacheRef = adminDb.collection("sizeCharts").doc(productId);
+    await cacheRef.delete();
+
+    return NextResponse.json({
+      success: true,
+      message: "Cache cleared. Next request will re-extract from image.",
+    });
+  } catch (error) {
+    console.error("Error clearing size chart cache:", error);
+    return NextResponse.json(
+      { error: "Failed to clear cache" },
       { status: 500 }
     );
   }

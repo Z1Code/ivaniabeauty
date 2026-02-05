@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, Trash2, Plus, X } from "lucide-react";
+import { Save, Loader2, Trash2, Plus, X, Eye, RefreshCw, Pencil } from "lucide-react";
 import AdminPageHeader from "./AdminPageHeader";
 import AdminBilingualInput from "./AdminBilingualInput";
 import AdminImageUpload from "./AdminImageUpload";
@@ -85,6 +85,18 @@ export default function ProductForm({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // Size chart OCR states
+  const [showMeasurements, setShowMeasurements] = useState(false);
+  const [measurements, setMeasurements] = useState<Array<{
+    size: string;
+    waist_cm: string | null;
+    hip_cm: string | null;
+    bust_cm: string | null;
+    length_cm: string | null;
+  }> | null>(null);
+  const [loadingMeasurements, setLoadingMeasurements] = useState(false);
+  const [savingMeasurements, setSavingMeasurements] = useState(false);
 
   const [form, setForm] = useState<ProductFormData>({
     nameEn: initialData?.nameEn || "",
@@ -170,6 +182,80 @@ export default function ProductForm({
       ...prev,
       [key]: prev[key].map((f, i) => (i === index ? value : f)),
     }));
+  }
+
+  // Fetch measurements from OCR API
+  async function fetchMeasurements() {
+    if (!initialData?.id) return;
+    setLoadingMeasurements(true);
+    try {
+      const res = await fetch(`/api/products/${initialData.id}/size-chart`);
+      const data = await res.json();
+      if (res.ok && data.measurements) {
+        setMeasurements(data.measurements);
+        setShowMeasurements(true);
+      } else {
+        setError(data.error || "No se pudieron extraer las medidas");
+      }
+    } catch {
+      setError("Error al obtener las medidas");
+    } finally {
+      setLoadingMeasurements(false);
+    }
+  }
+
+  // Save corrected measurements
+  async function saveMeasurements() {
+    if (!initialData?.id || !measurements) return;
+    setSavingMeasurements(true);
+    try {
+      const res = await fetch(`/api/products/${initialData.id}/size-chart`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ measurements }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Error al guardar");
+      }
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al guardar medidas");
+    } finally {
+      setSavingMeasurements(false);
+    }
+  }
+
+  // Clear cache to re-extract
+  async function clearMeasurementsCache() {
+    if (!initialData?.id) return;
+    if (!confirm("Limpiar cache y volver a extraer?")) return;
+    setLoadingMeasurements(true);
+    try {
+      await fetch(`/api/products/${initialData.id}/size-chart`, {
+        method: "DELETE",
+      });
+      setMeasurements(null);
+      // Re-fetch
+      await fetchMeasurements();
+    } catch {
+      setError("Error al limpiar cache");
+      setLoadingMeasurements(false);
+    }
+  }
+
+  // Update a measurement field
+  function updateMeasurement(
+    index: number,
+    field: "size" | "waist_cm" | "hip_cm" | "bust_cm" | "length_cm",
+    value: string
+  ) {
+    if (!measurements) return;
+    setMeasurements(
+      measurements.map((m, i) =>
+        i === index ? { ...m, [field]: value || null } : m
+      )
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -594,7 +680,133 @@ export default function ProductForm({
                 />
               </div>
             )}
+
+            {/* Extract/View Measurements Button */}
+            {isEditing && form.sizeChartImageUrl && (
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={fetchMeasurements}
+                    disabled={loadingMeasurements}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rosa/10 text-rosa hover:bg-rosa/20 transition-colors text-sm font-medium cursor-pointer disabled:opacity-50"
+                  >
+                    {loadingMeasurements ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                    {measurements ? "Ver medidas" : "Extraer medidas (OCR)"}
+                  </button>
+                  {measurements && (
+                    <button
+                      type="button"
+                      onClick={clearMeasurementsCache}
+                      disabled={loadingMeasurements}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm cursor-pointer disabled:opacity-50"
+                      title="Re-extraer medidas"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
+
+          {/* Measurements Editor */}
+          {showMeasurements && measurements && (
+            <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                  <Pencil className="w-4 h-4" />
+                  Editar Medidas Extraidas
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowMeasurements(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Side by side: Image and Table */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Image for comparison */}
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Imagen original:</p>
+                  <img
+                    src={form.sizeChartImageUrl || ""}
+                    alt="Tabla de tallas original"
+                    className="w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700"
+                  />
+                </div>
+
+                {/* Editable table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-700">
+                        <th className="py-2 px-1 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Talla</th>
+                        <th className="py-2 px-1 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Cintura</th>
+                        <th className="py-2 px-1 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Cadera</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {measurements.map((m, idx) => (
+                        <tr key={idx} className="border-b border-gray-100 dark:border-gray-800">
+                          <td className="py-1.5 px-1">
+                            <input
+                              type="text"
+                              value={m.size || ""}
+                              onChange={(e) => updateMeasurement(idx, "size", e.target.value)}
+                              className="w-full px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                            />
+                          </td>
+                          <td className="py-1.5 px-1">
+                            <input
+                              type="text"
+                              value={m.waist_cm || ""}
+                              onChange={(e) => updateMeasurement(idx, "waist_cm", e.target.value)}
+                              placeholder="ej: 58-62"
+                              className="w-full px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                            />
+                          </td>
+                          <td className="py-1.5 px-1">
+                            <input
+                              type="text"
+                              value={m.hip_cm || ""}
+                              onChange={(e) => updateMeasurement(idx, "hip_cm", e.target.value)}
+                              placeholder="ej: 84-88"
+                              className="w-full px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Save button */}
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={saveMeasurements}
+                  disabled={savingMeasurements}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors text-sm font-medium cursor-pointer disabled:opacity-50"
+                >
+                  {savingMeasurements ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Guardar correcciones
+                </button>
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Sidebar */}
