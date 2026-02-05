@@ -12,12 +12,12 @@ export function formatPrice(price: number, language: string = "es"): string {
 
 export function getColorHex(color: string): string {
   const colors: Record<string, string> = {
-    nude: "#E8C4A0",
+    cocoa: "#6B4226",
     negro: "#1A1A1A",
-    rosa: "#FF6B9D",
-    champagne: "#F7E7CE",
-    coral: "#FF7F7F",
-    turquesa: "#40E0D0",
+    beige: "#F5DEB3",
+    brown: "#8B4513",
+    rosado: "#FFB6C1",
+    pink: "#FFB6C1",
   };
   return colors[color] || "#CCCCCC";
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -17,12 +18,19 @@ import useCart from "@/hooks/useCart";
 import { useTranslation } from "@/hooks/useTranslation";
 import LanguageToggle from "@/components/shared/LanguageToggle";
 
+// Pages with dark/colored hero banners where header text should be white
+const DARK_HERO_PAGES = ["/shop"];
+
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { openCart, totalItems } = useCart();
   const cartCount = totalItems();
   const { t } = useTranslation();
+  const pathname = usePathname();
+
+  // Show white text when on a page with a dark hero and not scrolled
+  const heroWhite = DARK_HERO_PAGES.includes(pathname) && !scrolled;
 
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 50);
@@ -67,10 +75,14 @@ export default function Header() {
                 alt={SITE_NAME}
                 width={36}
                 height={36}
-                className="w-8 h-8 md:w-9 md:h-9 object-contain"
+                className={`w-8 h-8 md:w-9 md:h-9 object-contain transition-all duration-500 ${
+                  heroWhite ? "brightness-0 invert" : ""
+                }`}
                 priority
               />
-              <span className="font-serif text-xl md:text-2xl font-semibold text-rosa tracking-wide">
+              <span className={`font-serif text-xl md:text-2xl font-semibold tracking-wide transition-colors duration-500 ${
+                heroWhite ? "text-white" : "text-rosa"
+              }`}>
                 {SITE_NAME}
               </span>
             </Link>
@@ -81,10 +93,16 @@ export default function Header() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="relative text-sm font-medium text-foreground/80 hover:text-rosa-dark transition-colors duration-300 group"
+                    className={`relative text-sm font-medium transition-colors duration-500 group ${
+                      heroWhite
+                        ? "text-white/90 hover:text-white"
+                        : "text-foreground/80 hover:text-rosa-dark"
+                    }`}
                   >
                     {t(link.labelKey)}
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-rosa rounded-full transition-all duration-300 group-hover:w-full" />
+                    <span className={`absolute -bottom-1 left-0 w-0 h-0.5 rounded-full transition-all duration-300 group-hover:w-full ${
+                      heroWhite ? "bg-white" : "bg-rosa"
+                    }`} />
                   </Link>
                 </li>
               ))}
@@ -98,7 +116,11 @@ export default function Header() {
               {/* Search */}
               <button
                 aria-label={t("header.search")}
-                className="relative p-2 rounded-full text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40 transition-colors duration-300"
+                className={`relative p-2 rounded-full transition-colors duration-500 ${
+                  heroWhite
+                    ? "text-white/80 hover:text-white hover:bg-white/20"
+                    : "text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40"
+                }`}
               >
                 <Search className="w-5 h-5" />
               </button>
@@ -107,7 +129,11 @@ export default function Header() {
               <Link
                 href="/wishlist"
                 aria-label={t("header.wishlist")}
-                className="relative p-2 rounded-full text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40 transition-colors duration-300"
+                className={`relative p-2 rounded-full transition-colors duration-500 ${
+                  heroWhite
+                    ? "text-white/80 hover:text-white hover:bg-white/20"
+                    : "text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40"
+                }`}
               >
                 <Heart className="w-5 h-5" />
               </Link>
@@ -116,7 +142,11 @@ export default function Header() {
               <button
                 onClick={openCart}
                 aria-label={t("header.cart")}
-                className="relative p-2 rounded-full text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40 transition-colors duration-300"
+                className={`relative p-2 rounded-full transition-colors duration-500 ${
+                  heroWhite
+                    ? "text-white/80 hover:text-white hover:bg-white/20"
+                    : "text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40"
+                }`}
               >
                 <ShoppingBag className="w-5 h-5" />
                 <AnimatePresence>
@@ -138,7 +168,11 @@ export default function Header() {
               <button
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label={t("header.openMenu")}
-                className="lg:hidden p-2 rounded-full text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40 transition-colors duration-300"
+                className={`lg:hidden p-2 rounded-full transition-colors duration-500 ${
+                  heroWhite
+                    ? "text-white/80 hover:text-white hover:bg-white/20"
+                    : "text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40"
+                }`}
               >
                 <Menu className="w-6 h-6" />
               </button>

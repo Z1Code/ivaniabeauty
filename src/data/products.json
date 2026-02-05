@@ -1,292 +1,1178 @@
 [
   {
-    "id": "faja-playa-001",
+    "id": "faja-ivania-reloj-de-arena",
     "name": {
-      "en": "Invisible Bikini Shaper",
-      "es": "Faja Bikini Invisible"
+      "en": "Hourglass Shaper Ivania",
+      "es": "Faja Extra Reloj de Arena / Ivania"
     },
-    "slug": "faja-bikini-invisible",
-    "price": 89.99,
-    "originalPrice": 119.99,
-    "category": "playa",
-    "colors": ["nude", "negro", "rosa"],
-    "sizes": ["XS", "S", "M", "L", "XL", "2XL"],
-    "compression": "media",
-    "occasion": "playa",
-    "badge": {
-      "en": "Bestseller",
-      "es": "Bestseller"
-    },
-    "description": {
-      "en": "Perfect for wearing your favorite bikini with total confidence. Ultra-lightweight and breathable fabric that adapts to your silhouette without showing lines.",
-      "es": "Perfecta para lucir tu bikini favorito con total confianza. Tela ultraligera y transpirable que se adapta a tu silueta sin marcar."
-    },
-    "shortDescription": {
-      "en": "Shape your silhouette under your bikini without anyone noticing.",
-      "es": "Moldea tu silueta bajo el bikini sin que nadie lo note."
-    },
-    "features": {
-      "en": ["Invisible under bikini", "Quick dry", "UV protection", "Flat seams"],
-      "es": ["Invisible bajo el bikini", "Secado rapido", "Proteccion UV", "Costuras planas"]
-    },
-    "materials": "85% Nylon, 15% Spandex. Tela con tecnologia de secado rapido y proteccion UV50+.",
-    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
-    "images": ["/images/products/playa-1.jpg", "/images/products/playa-2.jpg", "/images/products/playa-3.jpg", "/images/products/playa-4.jpg"],
-    "rating": 4.8,
-    "reviewCount": 234,
-    "inStock": true
-  },
-  {
-    "id": "faja-diaria-002",
-    "name": {
-      "en": "Daily Waist Shaper",
-      "es": "Faja Cinturilla Diaria"
-    },
-    "slug": "faja-cinturilla-diaria",
-    "price": 69.99,
-    "originalPrice": null,
-    "category": "diario",
-    "colors": ["nude", "negro"],
-    "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
-    "compression": "suave",
-    "occasion": "diario",
-    "badge": {
-      "en": "New",
-      "es": "Nuevo"
-    },
-    "description": {
-      "en": "The perfect companion for your everyday life. Light compression that shapes without discomfort, ideal for wearing under any outfit.",
-      "es": "La compañera perfecta para tu dia a dia. Comprension suave que moldea sin incomodar, ideal para usar bajo cualquier outfit."
-    },
-    "shortDescription": {
-      "en": "Daily comfort with soft, natural shaping.",
-      "es": "Comodidad diaria con moldeo suave y natural."
-    },
-    "features": {
-      "en": ["Ultra comfortable", "Breathable fabric", "No visible seams", "High waist"],
-      "es": ["Ultra comoda", "Tela transpirable", "Sin costuras visibles", "Cintura alta"]
-    },
-    "materials": "80% Nylon, 20% Elastano. Tela antibacterial con tecnologia Dry-Fit.",
-    "care": "Lavado a maquina en ciclo delicado. Secar a la sombra.",
-    "images": ["/images/products/diaria-1.jpg", "/images/products/diaria-2.jpg", "/images/products/diaria-3.jpg", "/images/products/diaria-4.jpg"],
-    "rating": 4.6,
-    "reviewCount": 189,
-    "inStock": true
-  },
-  {
-    "id": "faja-evento-003",
-    "name": {
-      "en": "Gala Sculpt Shaper",
-      "es": "Faja Gala Sculpt"
-    },
-    "slug": "faja-gala-sculpt",
+    "slug": "faja-extra-reloj-de-arena-ivania",
     "price": 129.99,
-    "originalPrice": 159.99,
-    "category": "eventos",
-    "colors": ["nude", "negro", "champagne"],
-    "sizes": ["XS", "S", "M", "L", "XL", "2XL"],
+    "originalPrice": 160.00,
+    "category": "fajas",
+    "colors": ["cocoa", "negro"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL"],
     "compression": "firme",
-    "occasion": "evento",
-    "badge": {
-      "en": "Sale",
-      "es": "Oferta"
-    },
+    "occasion": "diario",
+    "badge": { "en": "Bestseller", "es": "Bestseller" },
     "description": {
-      "en": "Designed for those special moments. Firm compression that sculpts your silhouette to look spectacular with gala dresses, weddings, and parties.",
-      "es": "Diseñada para esos momentos especiales. Compresion firme que esculpe tu silueta para lucir espectacular con vestidos de gala, bodas y fiestas."
+      "en": "Hourglass shaper with 9 steel boning rods for maximum waist definition. Features natural butt lift, upper and lower abdominal compression, and maximum back coverage. Ideal for daily wear, post-surgical, and postpartum use.",
+      "es": "Faja reloj de arena con 9 varillas de acero para maxima definicion de cintura. Realce natural de gluteos, compresion de abdomen alto y bajo, y maximo cubrimiento de espalda. Ideal para uso diario, post quirurgico y post parto."
     },
     "shortDescription": {
-      "en": "Sculpt your figure for every special occasion.",
-      "es": "Esculpe tu figura para cada ocasion especial."
+      "en": "Premium hourglass shaper with 9 steel boning rods for ultimate waist definition.",
+      "es": "Faja premium reloj de arena con 9 varillas de acero para maxima definicion de cintura."
     },
     "features": {
-      "en": ["Firm compression", "Butt lift effect", "Invisible closure", "Cotton lining"],
-      "es": ["Compresion firme", "Efecto push-up gluteos", "Cierre invisible", "Forro de algodon"]
+      "en": ["9 steel boning rods", "Natural butt lift", "Upper & lower ab compression", "Maximum back coverage", "3-level front hooks"],
+      "es": ["9 varillas de acero", "Realce natural de gluteos", "Compresion abdomen alto y bajo", "Maximo cubrimiento de espalda", "3 niveles de broches frontales"]
     },
-    "materials": "75% Nylon, 25% Spandex. Forro interior 100% algodon organico.",
-    "care": "Lavar a mano con agua fria. Secar en plano. No planchar.",
-    "images": ["/images/products/evento-1.jpg", "/images/products/evento-2.jpg", "/images/products/evento-3.jpg", "/images/products/evento-4.jpg"],
+    "materials": "Powernet exterior, licra interna fria y antialergica.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/A9D4C22E-9DE5-44F7-86A7-682822CE74F8.jpg?v=1733882502",
+      "https://ivaniabeauty.shop/cdn/shop/files/D9533448-0C97-4B17-8117-3DB102064A52.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/9898BF8F-1F3B-414E-ADB5-DD013C87D613.png"
+    ],
     "rating": 4.9,
-    "reviewCount": 312,
+    "reviewCount": 127,
     "inStock": true
   },
   {
-    "id": "faja-postparto-004",
+    "id": "faja-full-body-cuerpo-completo",
     "name": {
-      "en": "Recovery Mama Shaper",
-      "es": "Faja Recovery Mama"
+      "en": "Full Body Hourglass Shaper",
+      "es": "Faja Full Body / Cuerpo Completo"
     },
-    "slug": "faja-recovery-mama",
-    "price": 99.99,
-    "originalPrice": null,
-    "category": "postparto",
-    "colors": ["nude", "negro", "rosa"],
-    "sizes": ["S", "M", "L", "XL", "2XL", "3XL", "4XL"],
-    "compression": "media",
+    "slug": "faja-full-body-cuerpo-completo",
+    "price": 129.99,
+    "originalPrice": 170.00,
+    "category": "fajas",
+    "colors": ["cocoa", "negro"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "4XL"],
+    "compression": "firme",
     "occasion": "diario",
-    "badge": null,
+    "badge": { "en": "Sale", "es": "Oferta" },
     "description": {
-      "en": "Support your postpartum recovery with comfort and care. Designed with maternal health experts to provide the right amount of compression you need.",
-      "es": "Acompaña tu recuperacion postparto con soporte y comodidad. Diseñada con expertos en salud maternal para brindarte la compresion justa que necesitas."
+      "en": "Hourglass shaper with waist, abdomen, back and leg control. Natural buttock enhancement ideal for daily wear, post-surgical and postpartum use. Comfortable cold and hypoallergenic internal lycra.",
+      "es": "Faja reloj de arena, con control de cintura, abdomen, espalda y piernas, realce natural de gluteos ideal para uso diario, post quirurgico y post parto, comoda licra interna fria y antialergica."
     },
     "shortDescription": {
-      "en": "Postpartum support designed with maternal health experts.",
-      "es": "Soporte postparto diseñado con expertos en salud maternal."
+      "en": "Full body shaper with complete waist, abdomen, back and leg control.",
+      "es": "Faja de cuerpo completo con control de cintura, abdomen, espalda y piernas."
     },
     "features": {
-      "en": ["Abdominal support", "Progressive adjustment", "Nursing opening", "Hypoallergenic fabric"],
-      "es": ["Soporte abdominal", "Ajuste progresivo", "Apertura para lactancia", "Tela hipoalergenica"]
+      "en": ["Full body coverage", "Waist & abdomen control", "Back support", "Leg compression", "Hypoallergenic lycra"],
+      "es": ["Cobertura de cuerpo completo", "Control de cintura y abdomen", "Soporte de espalda", "Compresion de piernas", "Licra antialergica"]
     },
-    "materials": "90% Algodon organico, 10% Elastano. Certificada dermatologicamente.",
-    "care": "Lavado a maquina en ciclo delicado. Se puede usar secadora a baja temperatura.",
-    "images": ["/images/products/postparto-1.jpg", "/images/products/postparto-2.jpg", "/images/products/postparto-3.jpg", "/images/products/postparto-4.jpg"],
+    "materials": "Powernet exterior, licra interna fria y antialergica.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/766F1068-928D-4BBA-8EFB-44ED6581FB6C.jpg?v=1734224659",
+      "https://ivaniabeauty.shop/cdn/shop/files/3C5BD519-82D5-43A5-B34E-07908C78E98D.jpg?v=1734224659",
+      "https://ivaniabeauty.shop/cdn/shop/files/24063FFB-CC10-41D9-9C0A-7B032479164B.jpg?v=1734224659"
+    ],
+    "rating": 4.8,
+    "reviewCount": 89,
+    "inStock": true
+  },
+  {
+    "id": "faja-guitarra-sexy-barby",
+    "name": {
+      "en": "Guitar Sexy Shaper Barby",
+      "es": "Faja Guitarra Sexy Barby"
+    },
+    "slug": "faja-guitarra-sexy-barby",
+    "price": 129.99,
+    "originalPrice": 160.00,
+    "category": "fajas",
+    "colors": ["pink"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Shaper with waist control, flattens upper and lower abdomen, shapes figure, maximum back coverage, corrects posture. Features 3-level hook fastening system.",
+      "es": "Faja con control de cintura, aplana el abdomen bajo y alto, moldea figura, maximo cubrimiento de espalda, corrige postura. Viene con 3 niveles de broches."
+    },
+    "shortDescription": {
+      "en": "Guitar-shaped shaper with posture correction and 3-level hooks.",
+      "es": "Faja guitarra con correccion de postura y 3 niveles de broches."
+    },
+    "features": {
+      "en": ["Waist control", "Flattens upper & lower abdomen", "Maximum back coverage", "Posture correction", "3-level hook system"],
+      "es": ["Control de cintura", "Aplana abdomen alto y bajo", "Maximo cubrimiento de espalda", "Corrige postura", "3 niveles de broches"]
+    },
+    "materials": "Powernet de alta compresion.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/72EC5A82-9F36-4918-816F-114F80047A55.jpg?v=1733877972",
+      "https://ivaniabeauty.shop/cdn/shop/files/20E71104-B16E-49AC-99E5-6C89441AA583.jpg?v=1733877973"
+    ],
     "rating": 4.7,
+    "reviewCount": 64,
+    "inStock": true
+  },
+  {
+    "id": "faja-luisiana-reloj-de-arena",
+    "name": {
+      "en": "Louisiana Hourglass Shaper",
+      "es": "Faja Luisiana / Reloj de Arena"
+    },
+    "slug": "faja-luisiana-reloj-de-arena",
+    "price": 129.99,
+    "originalPrice": 160.00,
+    "category": "fajas",
+    "colors": ["cocoa"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Invisible hourglass butt-lifting shaper with high compression, waist control, flattens upper and lower abdomen. Maximum back coverage and posture correction. Front zipper and intimate area closure.",
+      "es": "Faja reloj de arena levanta cola invisible de alta compresion con control de cintura, aplana abdomen alto y bajo. Maximo cubrimiento de espalda y corrige postura. Viene con cremallera frontal y en la parte intima."
+    },
+    "shortDescription": {
+      "en": "Invisible hourglass shaper with front zipper and butt lift.",
+      "es": "Faja reloj de arena invisible con cremallera frontal y levanta cola."
+    },
+    "features": {
+      "en": ["High compression", "Invisible butt lift", "Front zipper", "Posture correction", "Maximum back coverage"],
+      "es": ["Alta compresion", "Levanta cola invisible", "Cremallera frontal", "Correccion de postura", "Maximo cubrimiento de espalda"]
+    },
+    "materials": "Powernet de alta compresion.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/77E6C5C2-8012-4474-8A5C-BF0C2A7E8F4B.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/45E59BCA-178D-497A-AA8C-8046D85D8D5F.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/20DA67AB-7EB2-4B20-8B5E-9D2DD664B9F8.jpg"
+    ],
+    "rating": 4.8,
+    "reviewCount": 73,
+    "inStock": true
+  },
+  {
+    "id": "faja-pescador-invisible-angel",
+    "name": {
+      "en": "Knee-Length Invisible Shaper Angel",
+      "es": "Faja Pescador Invisible / Angel"
+    },
+    "slug": "faja-pescador-invisible-angel",
+    "price": 129.99,
+    "originalPrice": 160.00,
+    "category": "fajas",
+    "colors": ["negro", "cocoa"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Knee-length shaper that molds and enhances glutes while defining your figure. Compresses upper and lower abdomen. Ideal for daily wear, postpartum, and post-surgical use.",
+      "es": "Faja pescador hasta la rodilla moldea y realza gluteos haciendo una definicion a tu figura. Comprime abdomen bajo y alto. Ideal para uso diario, post parto y post quirurgica."
+    },
+    "shortDescription": {
+      "en": "Knee-length shaper with butt lift and abdominal compression.",
+      "es": "Faja pescador con levanta cola y compresion abdominal."
+    },
+    "features": {
+      "en": ["Knee-length coverage", "Glute enhancement", "Dual abdominal compression", "Daily & post-surgical wear", "Figure definition"],
+      "es": ["Cobertura hasta la rodilla", "Realce de gluteos", "Compresion abdominal dual", "Uso diario y post quirurgico", "Definicion de figura"]
+    },
+    "materials": "Powernet de alta compresion.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/6D1BDEDF-43FC-41CE-8496-14D39A8BFC16.jpg?v=1735781342",
+      "https://ivaniabeauty.shop/cdn/shop/files/CC93E9A8-7AF7-4C1C-A81C-178502E83FA5.jpg?v=1735781343",
+      "https://ivaniabeauty.shop/cdn/shop/files/4806BE36-F7E1-4CF5-A616-E58B80043F6D.jpg?v=1735781343",
+      "https://ivaniabeauty.shop/cdn/shop/files/583DB92E-AD13-4221-8052-AFEAF398B4FD.jpg?v=1735781343"
+    ],
+    "rating": 4.7,
+    "reviewCount": 58,
+    "inStock": true
+  },
+  {
+    "id": "faja-pierna-larga",
+    "name": {
+      "en": "Long Leg Butt Lift Shaper",
+      "es": "Faja Pierna Larga"
+    },
+    "slug": "faja-pierna-larga",
+    "price": 129.99,
+    "originalPrice": 160.00,
+    "category": "fajas",
+    "colors": ["cocoa"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Long leg butt-lifting shaper with waist control and pre-molded bra. Flattens upper and lower abdomen with high back coverage. Corrects posture and features intimate area closure.",
+      "es": "Faja pierna larga levantacola con control de cintura y brasier prehormado, aplana abdomen alto y bajo con alto cubrimiento de espalda, corrige postura y viene con cierre en la parte intima."
+    },
+    "shortDescription": {
+      "en": "Long leg shaper with built-in bra and posture correction.",
+      "es": "Faja pierna larga con brasier integrado y correccion de postura."
+    },
+    "features": {
+      "en": ["Long leg coverage", "Pre-molded bra", "Butt lift design", "Posture correction", "Intimate closure"],
+      "es": ["Cobertura pierna larga", "Brasier prehormado", "Diseno levanta cola", "Correccion de postura", "Cierre intimo"]
+    },
+    "materials": "Powernet exterior con licra interna.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/B4517627-C89E-4A35-8938-17029A581FCA.jpg?v=1746852891",
+      "https://ivaniabeauty.shop/cdn/shop/files/E7FF5ED7-E42C-494F-A20A-120F18DBCDC5.jpg?v=1746852891",
+      "https://ivaniabeauty.shop/cdn/shop/files/2490F07A-9679-4D83-8842-C081FDF0EE24.png?v=1742618194"
+    ],
+    "rating": 4.6,
+    "reviewCount": 45,
+    "inStock": true
+  },
+  {
+    "id": "faja-post-quirurgica",
+    "name": {
+      "en": "Post-Surgical Recovery Shaper",
+      "es": "Faja Post Quirurgica"
+    },
+    "slug": "faja-post-quirurgica",
+    "price": 129.99,
+    "originalPrice": 160.00,
+    "category": "fajas",
+    "colors": ["beige", "negro", "cocoa"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "4XL", "5XL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "High compression shaper ideal for lipo 360, buttock and hip augmentation, post-surgical aesthetic procedures, postpartum recovery, daily wear, and posture correction. Features internal bands for gluteal enhancement.",
+      "es": "Faja de compresion alta ideal para lipo 360, aumento de gluteos y cadera, para cirugias estetica postoperatorio, postparto, uso diario y corrector de postura. Tiene bandas internas para realzar gluteos."
+    },
+    "shortDescription": {
+      "en": "High compression post-surgical shaper with internal butt-lift bands.",
+      "es": "Faja post quirurgica de alta compresion con bandas internas levanta gluteos."
+    },
+    "features": {
+      "en": ["High compression", "Internal butt-lift bands", "Post-surgical recovery", "Posture correction", "9 sizes available"],
+      "es": ["Alta compresion", "Bandas internas levanta gluteos", "Recuperacion post quirurgica", "Correccion de postura", "9 tallas disponibles"]
+    },
+    "materials": "Powernet de alta compresion con bandas internas.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/IMG_0088.jpg?v=1718485864",
+      "https://ivaniabeauty.shop/cdn/shop/files/IMG_9984.jpg?v=1718485158"
+    ],
+    "rating": 4.9,
     "reviewCount": 156,
     "inStock": true
   },
   {
-    "id": "faja-deportiva-005",
+    "id": "faja-reductora-tira-sobre-puesta",
     "name": {
-      "en": "Sport Active Shaper",
-      "es": "Faja Sport Active"
+      "en": "Overlay Reducing Shaper",
+      "es": "Faja Reductora / Tira Sobre Puesta"
     },
-    "slug": "faja-sport-active",
-    "price": 79.99,
-    "originalPrice": 99.99,
-    "category": "diario",
-    "colors": ["negro", "rosa", "turquesa"],
-    "sizes": ["XS", "S", "M", "L", "XL", "2XL"],
+    "slug": "faja-reductora-tira-sobre-puesta",
+    "price": 129.99,
+    "originalPrice": 160.00,
+    "category": "fajas",
+    "colors": ["negro", "cocoa", "beige"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "4XL", "5XL"],
     "compression": "firme",
-    "occasion": "deporte",
-    "badge": {
-      "en": "Bestseller",
-      "es": "Bestseller"
-    },
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
     "description": {
-      "en": "Maximize your workouts with extra support. Firm compression that activates thermogenesis while you train, ideal for gym, yoga, and running.",
-      "es": "Maximiza tus entrenamientos con soporte extra. Compresion firme que activa la termogenesis mientras entrenas, ideal para gym, yoga y running."
+      "en": "High compression shaper ideal for lipo 360, buttock and hip augmentation, post-surgical aesthetic procedures, postpartum, daily wear and posture correction. Internal bands for gluteal enhancement.",
+      "es": "Faja de compresion alta ideal para lipo 360, aumento de gluteos y cadera, para cirugias estetica postoperatorio, postparto, uso diario y corrector de postura. Tiene bandas internas para realzar gluteos."
     },
     "shortDescription": {
-      "en": "Power up your workouts with thermal support.",
-      "es": "Potencia tus entrenamientos con soporte termico."
+      "en": "Overlay strap high compression shaper for all purposes.",
+      "es": "Faja reductora de tira sobre puesta para todo proposito."
     },
     "features": {
-      "en": ["Sauna effect", "Lumbar support", "Anti-sweat fabric", "Non-slip bands"],
-      "es": ["Efecto sauna", "Soporte lumbar", "Tela anti-sudor", "Bandas antideslizantes"]
+      "en": ["High compression", "Overlay strap design", "Internal butt-lift bands", "Post-surgical suitable", "Posture correction"],
+      "es": ["Alta compresion", "Diseno tira sobre puesta", "Bandas internas levanta gluteos", "Apta post quirurgica", "Correccion de postura"]
     },
-    "materials": "70% Neopreno, 20% Nylon, 10% Spandex. Interior de malla transpirable.",
-    "care": "Lavar a mano despues de cada uso. Secar al aire libre.",
-    "images": ["/images/products/sport-1.jpg", "/images/products/sport-2.jpg", "/images/products/sport-3.jpg", "/images/products/sport-4.jpg"],
-    "rating": 4.5,
-    "reviewCount": 278,
+    "materials": "Powernet de alta compresion con bandas internas.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/34F8D16B-99F5-43F8-9F09-9FFCADA3C977.jpg?v=1733878064",
+      "https://ivaniabeauty.shop/cdn/shop/files/F116715C-90E6-4252-A4B0-1DE9414F9A31.jpg?v=1733878064",
+      "https://ivaniabeauty.shop/cdn/shop/files/FF26C402-9FEB-4151-ABD6-B3938A91B214.jpg?v=1733878064"
+    ],
+    "rating": 4.7,
+    "reviewCount": 82,
     "inStock": true
   },
   {
-    "id": "faja-playa-006",
+    "id": "faja-reloj-de-arena",
     "name": {
-      "en": "Summer Glow Body",
-      "es": "Body Summer Glow"
+      "en": "Hourglass High Definition Shaper",
+      "es": "Faja Reloj de Arena"
     },
-    "slug": "body-summer-glow",
-    "price": 109.99,
-    "originalPrice": null,
-    "category": "playa",
-    "colors": ["nude", "coral", "turquesa"],
-    "sizes": ["XS", "S", "M", "L", "XL"],
-    "compression": "suave",
-    "occasion": "playa",
-    "badge": {
-      "en": "New",
-      "es": "Nuevo"
-    },
-    "description": {
-      "en": "The perfect body for summer. Gently shapes while you look incredible at the beach or pool. Fabric with a subtle shimmer that enhances your tanned skin.",
-      "es": "El body perfecto para el verano. Moldea suavemente mientras luces increible en la playa o la piscina. Tela con brillo sutil que realza tu piel bronceada."
-    },
-    "shortDescription": {
-      "en": "Shine this summer with natural and elegant shaping.",
-      "es": "Brilla este verano con un moldeo natural y elegante."
-    },
-    "features": {
-      "en": ["Subtle shimmer", "Adjustable straps", "Chlorine resistant", "Ultra quick dry"],
-      "es": ["Brillo sutil", "Tirantes ajustables", "Resistente al cloro", "Secado ultra rapido"]
-    },
-    "materials": "82% Poliamida, 18% Elastano. Acabado con microparticulas luminosas.",
-    "care": "Enjuagar con agua dulce despues del uso en piscina/mar. Lavar a mano.",
-    "images": ["/images/products/summer-1.jpg", "/images/products/summer-2.jpg", "/images/products/summer-3.jpg", "/images/products/summer-4.jpg"],
-    "rating": 4.8,
-    "reviewCount": 98,
-    "inStock": true
-  },
-  {
-    "id": "faja-cintura-007",
-    "name": {
-      "en": "Deluxe Waist Trainer",
-      "es": "Waist Trainer Deluxe"
-    },
-    "slug": "waist-trainer-deluxe",
-    "price": 119.99,
-    "originalPrice": 149.99,
-    "category": "diario",
-    "colors": ["negro", "nude", "rosa"],
+    "slug": "faja-reloj-de-arena",
+    "price": 129.99,
+    "originalPrice": 160.00,
+    "category": "fajas",
+    "colors": ["cocoa", "negro"],
     "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
     "compression": "firme",
     "occasion": "diario",
-    "badge": {
-      "en": "Sale",
-      "es": "Oferta"
-    },
+    "badge": { "en": "Sale", "es": "Oferta" },
     "description": {
-      "en": "Our best-selling waist trainer. Triple row of hooks for a perfect fit, flex steel bones that shape without discomfort. Visible results from the first use.",
-      "es": "Nuestro waist trainer mas vendido. Triple hilera de ganchos para ajuste perfecto, varillas de acero flex que moldean sin incomodar. Resultados visibles desde el primer uso."
+      "en": "High definition body shaper to mold and enhance glutes. Suitable for post-surgical recovery stages 2-3, or body definition without surgery. Compresses upper and lower abdomen.",
+      "es": "Faja de alta definicion para moldear y realzar los gluteos. Una faja para etapa 2 y 3 de cirugia. Si no tienes cirugia es una faja que te ayudara a una definicion en tu cuerpo y comprimir el abdomen alto y bajo."
     },
     "shortDescription": {
-      "en": "Triple adjustment to shape your waist with precision.",
-      "es": "Triple ajuste para moldear tu cintura con precision."
+      "en": "High definition hourglass shaper for post-surgical stages 2-3.",
+      "es": "Faja reloj de arena de alta definicion para etapas 2 y 3 post quirurgicas."
     },
     "features": {
-      "en": ["Triple row of hooks", "Flex steel bones", "Hourglass effect", "Cotton interior"],
-      "es": ["Triple hilera de ganchos", "Varillas flex de acero", "Efecto reloj de arena", "Interior de algodon"]
+      "en": ["High definition molding", "Glute enhancement", "Post-surgical stages 2-3", "Abdominal compression", "Body definition"],
+      "es": ["Moldeo de alta definicion", "Realce de gluteos", "Etapas 2-3 post quirurgicas", "Compresion abdominal", "Definicion corporal"]
     },
-    "materials": "Exterior: 100% Latex natural. Interior: 100% Algodon. Varillas de acero inoxidable.",
-    "care": "Limpiar con paño humedo. No lavar a maquina. Guardar en plano.",
-    "images": ["/images/products/waist-1.jpg", "/images/products/waist-2.jpg", "/images/products/waist-3.jpg", "/images/products/waist-4.jpg"],
-    "rating": 4.7,
-    "reviewCount": 445,
+    "materials": "Powernet de alta compresion.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/5059AE7A-FD3C-4790-9F57-A67E12FF3C7B.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/D9533448-0C97-4B17-8117-3DB102064A52.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/9898BF8F-1F3B-414E-ADB5-DD013C87D613.png"
+    ],
+    "rating": 4.8,
+    "reviewCount": 91,
     "inStock": true
   },
   {
-    "id": "faja-body-008",
+    "id": "faja-short-3-niveles",
     "name": {
-      "en": "Full Body Elegance",
-      "es": "Full Body Elegance"
+      "en": "Hourglass Short Shaper / 3-Level",
+      "es": "Faja Short / 3 Niveles de Ajuste"
     },
-    "slug": "full-body-elegance",
-    "price": 149.99,
-    "originalPrice": null,
-    "category": "eventos",
-    "colors": ["nude", "negro"],
-    "sizes": ["S", "M", "L", "XL", "2XL"],
-    "compression": "media",
-    "occasion": "evento",
-    "badge": null,
+    "slug": "faja-short-3-niveles-de-ajuste",
+    "price": 129.99,
+    "originalPrice": 160.00,
+    "category": "fajas",
+    "colors": ["cocoa", "negro"],
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
     "description": {
-      "en": "Full coverage from bust to knee. Shapes, smooths, and sculpts your entire silhouette uniformly. Perfect under fitted dresses and elegant outfits.",
-      "es": "Cobertura completa de busto a rodilla. Moldea, suaviza y esculpe toda tu silueta de forma uniforme. Perfecta bajo vestidos ajustados y outfits elegantes."
+      "en": "Invisible hourglass butt-lifting shaper with high compression and waist control. Flattens upper and lower abdomen. Maximum back coverage and posture correction. 3-level front adjustment and intimate closure.",
+      "es": "Faja reloj de arena levantacola invisible de alta compresion con control de cintura, aplana abdomen alto y bajo. Maximo cubrimiento de espalda y corrige postura. Viene con 3 niveles de ajuste frontales y cierre en la parte intima."
     },
     "shortDescription": {
-      "en": "Full-body shaping for a flawless silhouette.",
-      "es": "Moldeo integral para una silueta impecable."
+      "en": "Hourglass short shaper with 3 adjustment levels.",
+      "es": "Faja short reloj de arena con 3 niveles de ajuste."
     },
     "features": {
-      "en": ["Full coverage", "Uniform shaping", "Detachable straps", "Open crotch"],
-      "es": ["Cobertura completa", "Moldeo uniforme", "Tirantes desmontables", "Entrepierna abierta"]
+      "en": ["3-level front adjustment", "High compression", "Butt lift", "Posture correction", "Intimate closure"],
+      "es": ["3 niveles de ajuste frontal", "Alta compresion", "Levanta cola", "Correccion de postura", "Cierre intimo"]
     },
-    "materials": "78% Nylon, 22% Spandex. Zona del busto con copa preformada.",
-    "care": "Lavar a mano con jabon neutro. No retorcer. Secar a la sombra.",
-    "images": ["/images/products/body-1.jpg", "/images/products/body-2.jpg", "/images/products/body-3.jpg", "/images/products/body-4.jpg"],
+    "materials": "Powernet de alta compresion.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/9395BAB3-8CD3-4700-8C04-D115A2D0927F.jpg?v=1739085399",
+      "https://ivaniabeauty.shop/cdn/shop/files/315535A1-83AD-4915-90A2-15327068503B.jpg?v=1739085399"
+    ],
     "rating": 4.6,
-    "reviewCount": 167,
+    "reviewCount": 37,
     "inStock": true
+  },
+  {
+    "id": "faja-strapless-paris",
+    "name": {
+      "en": "Strapless Shaper Paris",
+      "es": "Faja Strapless / Paris"
+    },
+    "slug": "faja-strapless-paris",
+    "price": 69.99,
+    "originalPrice": 150.00,
+    "category": "fajas",
+    "colors": ["brown", "negro"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+    "compression": "media",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Strapless invisible glute shaper with 3 adjustable compression levels for lower and upper abdomen. Features a wide 10cm waistband for comfortable fit.",
+      "es": "Faja strapless invisible de los gluteos con 3 niveles de ajuste para presion del vientre bajo y alto. 10 cm en su pretina ancha."
+    },
+    "shortDescription": {
+      "en": "Strapless shaper with 3 compression levels and wide waistband.",
+      "es": "Faja strapless con 3 niveles de compresion y pretina ancha."
+    },
+    "features": {
+      "en": ["Strapless design", "3 compression levels", "Wide 10cm waistband", "Invisible under clothes", "Upper & lower ab control"],
+      "es": ["Diseno strapless", "3 niveles de compresion", "Pretina ancha de 10cm", "Invisible bajo la ropa", "Control abdomen alto y bajo"]
+    },
+    "materials": "Powernet de media compresion.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/43BBEA71-2CBC-4B3C-AFA2-5DA183CD06E7.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/FE499E1A-2F17-442C-B4DC-3660A2A165D4.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/4B389958-0B5C-4E64-B6F1-D2EEA311230B.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/34F6B6E9-2E6A-4522-8ABD-98CCF4A627F2.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/3B46393C-0B46-4988-94C5-C866963D8DA0.jpg"
+    ],
+    "rating": 4.5,
+    "reviewCount": 42,
+    "inStock": true
+  },
+  {
+    "id": "faja-strapless-invisible",
+    "name": {
+      "en": "Strapless Invisible Shaper",
+      "es": "Faja Strapless Invisible"
+    },
+    "slug": "faja-strapless-invisible",
+    "price": 129.99,
+    "originalPrice": 150.00,
+    "category": "fajas",
+    "colors": ["cocoa", "negro", "beige"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Strapless invisible glute shaper with natural butt lift. Compresses upper and lower abdomen, shapes figure. Suitable for daily wear and post-surgical use. Compatible with all clothing types.",
+      "es": "Faja strapless invisible de los gluteos, levanta cola de forma natural, comprime vientre bajo y alto, moldea tu figura, faja para uso diario y postquirurgico. Ideal para todo tipo de ropa."
+    },
+    "shortDescription": {
+      "en": "Strapless invisible shaper with natural butt lift for all outfits.",
+      "es": "Faja strapless invisible con levanta cola natural para toda ocasion."
+    },
+    "features": {
+      "en": ["Strapless & invisible", "Natural butt lift", "Abdominal compression", "All clothing compatible", "Post-surgical suitable"],
+      "es": ["Strapless e invisible", "Levanta cola natural", "Compresion abdominal", "Compatible con toda ropa", "Apta post quirurgica"]
+    },
+    "materials": "Powernet de alta compresion.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/BBF94338-E032-4A49-9C34-3C54D2AF91FD.jpg?v=1737341620",
+      "https://ivaniabeauty.shop/cdn/shop/files/513DA8A5-0DE9-47F1-A45C-B985D0CC0F06.jpg?v=1737341620",
+      "https://ivaniabeauty.shop/cdn/shop/files/997517C2-37FD-4F18-BC45-2F713587EAA1.jpg?v=1737341620"
+    ],
+    "rating": 4.7,
+    "reviewCount": 68,
+    "inStock": true
+  },
+  {
+    "id": "faja-suiza-invisible",
+    "name": {
+      "en": "Swiss Invisible Shaper",
+      "es": "Faja Suiza Invisible"
+    },
+    "slug": "faja-suiza-invisible",
+    "price": 129.99,
+    "originalPrice": 160.00,
+    "category": "fajas",
+    "colors": ["brown"],
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Short butt-lifting shaper with waist control and pre-molded bra. Flattens upper and lower abdomen with high back coverage. Corrects posture and features intimate area closure.",
+      "es": "Faja short levantacola con control de cintura y brasier prehormado, aplana abdomen alto y bajo con alto cubrimiento de espalda, corrige postura y viene con cierre en la parte intima."
+    },
+    "shortDescription": {
+      "en": "Swiss invisible shaper with built-in bra and posture correction.",
+      "es": "Faja suiza invisible con brasier integrado y correccion de postura."
+    },
+    "features": {
+      "en": ["Pre-molded bra", "Butt lift", "Waist control", "High back coverage", "Posture correction"],
+      "es": ["Brasier prehormado", "Levanta cola", "Control de cintura", "Alto cubrimiento de espalda", "Correccion de postura"]
+    },
+    "materials": "Powernet exterior con licra interna.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/D492EC9B-0BD7-4887-A67B-303AD26777CD.jpg?v=1744304723",
+      "https://ivaniabeauty.shop/cdn/shop/files/CC009EFB-4B40-4FC1-848F-1116DC1B9138.jpg?v=1744304722",
+      "https://ivaniabeauty.shop/cdn/shop/files/0E0D1496-E8B3-42A7-9AFD-7B79BC364E4D.jpg?v=1744304796",
+      "https://ivaniabeauty.shop/cdn/shop/files/2490F07A-9679-4D83-8842-C081FDF0EE24.png?v=1742618194"
+    ],
+    "rating": 4.6,
+    "reviewCount": 53,
+    "inStock": true
+  },
+  {
+    "id": "faja-ultra-invisible-mariana",
+    "name": {
+      "en": "Ultra Invisible Shaper Mariana",
+      "es": "Faja Ultra Invisible / Mariana"
+    },
+    "slug": "faja-ultra-invisible-mariana",
+    "price": 59.99,
+    "originalPrice": 120.00,
+    "category": "fajas",
+    "colors": ["brown"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL"],
+    "compression": "media",
+    "occasion": "diario",
+    "badge": { "en": "50% Off", "es": "50% Desc." },
+    "description": {
+      "en": "Ultra invisible medium compression shaper ideal for daily use and postpartum recovery. Shapes your body and enhances glutes with a discreet, seamless fit.",
+      "es": "Faja ultra invisible media presion ideal para el uso diario y post parto. Moldea tu cuerpo y realza gluteos."
+    },
+    "shortDescription": {
+      "en": "Ultra invisible medium compression shaper for daily & postpartum.",
+      "es": "Faja ultra invisible media presion para uso diario y post parto."
+    },
+    "features": {
+      "en": ["Ultra invisible", "Medium compression", "Body shaping", "Glute enhancement", "Postpartum suitable"],
+      "es": ["Ultra invisible", "Media presion", "Moldeado corporal", "Realce de gluteos", "Apta post parto"]
+    },
+    "materials": "Tela de compresion media, ultra suave.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/7D97B128-ED6E-41A6-A458-3F0259096019.jpg?v=1735867778",
+      "https://ivaniabeauty.shop/cdn/shop/files/9257A8A5-A597-407E-8A20-64D4D6B75DBE.jpg?v=1735867778"
+    ],
+    "rating": 4.5,
+    "reviewCount": 34,
+    "inStock": true
+  },
+  {
+    "id": "faja-comfort-pierna-larga-laura",
+    "name": {
+      "en": "Comfort Long Leg Shaper Laura",
+      "es": "Faja Comfort Pierna Larga / Laura"
+    },
+    "slug": "faja-comfort-pierna-larga-laura",
+    "price": 129.99,
+    "originalPrice": 160.00,
+    "category": "fajas",
+    "colors": ["cocoa"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL"],
+    "compression": "media",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Very comfortable long leg shaper for daily use and postpartum. Features powernet fabric in the abdominal area for shaping and definition. Enhances glutes with ultra-invisible design.",
+      "es": "Una faja muy comoda para uso diario, postpartum una faja con tela powernet en el interior del abdomen moldea define y realza gluteos. La faja es ultra invisible en el area de gluteos."
+    },
+    "shortDescription": {
+      "en": "Comfortable long leg shaper with powernet abdominal panel.",
+      "es": "Faja comoda pierna larga con panel abdominal powernet."
+    },
+    "features": {
+      "en": ["Extra comfortable", "Powernet abdominal panel", "Long leg coverage", "Invisible glute design", "Postpartum suitable"],
+      "es": ["Extra comoda", "Panel abdominal powernet", "Cobertura pierna larga", "Diseno gluteo invisible", "Apta post parto"]
+    },
+    "materials": "Powernet interior en abdomen, tela exterior suave.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/50E72B84-032F-4012-A37B-9F317A233D57.jpg?v=1733877846",
+      "https://ivaniabeauty.shop/cdn/shop/files/02FA8423-5CE0-4D6F-85EE-E263818574A5.jpg?v=1733877846"
+    ],
+    "rating": 4.7,
+    "reviewCount": 48,
+    "inStock": true
+  },
+  {
+    "id": "chaleco-extremo-luisa",
+    "name": {
+      "en": "Extreme Vest Luisa",
+      "es": "Chaleco Extremo / Luisa"
+    },
+    "slug": "chaleco-extremo-luisa",
+    "price": 125.99,
+    "originalPrice": 160.00,
+    "category": "cinturillas",
+    "colors": ["negro"],
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Extreme shaping vest with 17 underwire rods for maximum waist definition and back support. Ideal for daily wear and post-surgical recovery.",
+      "es": "Chaleco extremo con 17 varillas para maxima definicion de cintura y soporte de espalda. Ideal para uso diario y recuperacion post quirurgica."
+    },
+    "shortDescription": {
+      "en": "Extreme vest with 17 underwire rods for maximum definition.",
+      "es": "Chaleco extremo con 17 varillas para maxima definicion."
+    },
+    "features": {
+      "en": ["17 underwire rods", "Maximum waist definition", "Full back support", "Daily & post-surgical", "Adjustable fit"],
+      "es": ["17 varillas", "Maxima definicion de cintura", "Soporte completo de espalda", "Uso diario y post quirurgico", "Ajuste regulable"]
+    },
+    "materials": "Powernet de alta compresion con varillas de acero.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/A2437B88-46CF-4D6B-AC7B-3BDD6379AF98.jpg?v=1733877556",
+      "https://ivaniabeauty.shop/cdn/shop/files/CA84C18D-8B29-423B-AC3A-9BE252E0D8D9.jpg?v=1733877150",
+      "https://ivaniabeauty.shop/cdn/shop/files/0B12B6D5-4503-4C95-8C78-62F9228936B5.jpg?v=1733877150"
+    ],
+    "rating": 4.8,
+    "reviewCount": 76,
+    "inStock": true
+  },
+  {
+    "id": "cinturilla-extrema-luciana",
+    "name": {
+      "en": "Extreme Waist Cincher Luciana",
+      "es": "Cinturilla Extrema / Luciana"
+    },
+    "slug": "cinturilla-extrema-luciana",
+    "price": 70.00,
+    "originalPrice": 120.00,
+    "category": "cinturillas",
+    "colors": ["cocoa"],
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Extreme hourglass waist cincher that shapes and defines your waistline with powerful compression.",
+      "es": "Cinturilla extrema reloj de arena, moldea y define tu cintura con esta cinturilla."
+    },
+    "shortDescription": {
+      "en": "Extreme hourglass waist cincher for maximum waist definition.",
+      "es": "Cinturilla extrema reloj de arena para maxima definicion de cintura."
+    },
+    "features": {
+      "en": ["Hourglass shape", "Extreme compression", "Waist definition", "Comfortable wear", "Adjustable fit"],
+      "es": ["Forma reloj de arena", "Compresion extrema", "Definicion de cintura", "Uso comodo", "Ajuste regulable"]
+    },
+    "materials": "Powernet de alta compresion.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/D9C29CE0-B3C7-4508-A51A-5EAD86862D2D.jpg?v=1733877150",
+      "https://ivaniabeauty.shop/cdn/shop/files/CA84C18D-8B29-423B-AC3A-9BE252E0D8D9.jpg?v=1733877150",
+      "https://ivaniabeauty.shop/cdn/shop/files/0B12B6D5-4503-4C95-8C78-62F9228936B5.jpg?v=1733877150"
+    ],
+    "rating": 4.6,
+    "reviewCount": 39,
+    "inStock": true
+  },
+  {
+    "id": "cinturilla-faja-qatar",
+    "name": {
+      "en": "Waist Cincher Shaper Qatar",
+      "es": "Cinturilla Faja / Qatar"
+    },
+    "slug": "cinturilla-faja-qatar",
+    "price": 55.00,
+    "originalPrice": 120.00,
+    "category": "cinturillas",
+    "colors": ["pink", "negro"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Molding waist cincher that compresses upper and lower abdomen. Front and back rods with 3 internal adjustment levels for customized fit.",
+      "es": "Cinturilla moldeadora, comprime vientre bajo y alto, varillas al frente y detras con 3 niveles de ajuste por dentro."
+    },
+    "shortDescription": {
+      "en": "Waist cincher with 3-level internal adjustment and support rods.",
+      "es": "Cinturilla con 3 niveles de ajuste interno y varillas de soporte."
+    },
+    "features": {
+      "en": ["3 internal adjustment levels", "Front & back rods", "Upper & lower ab compression", "Molding design", "Customizable fit"],
+      "es": ["3 niveles de ajuste interno", "Varillas al frente y detras", "Compresion abdomen alto y bajo", "Diseno moldeador", "Ajuste personalizable"]
+    },
+    "materials": "Powernet con varillas de soporte.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/347A8789-6A03-45E8-9719-BB0C424CA0D0.jpg?v=1733880087",
+      "https://ivaniabeauty.shop/cdn/shop/files/2EC17B31-9560-4DA8-A7D2-5A8D716C9B46.jpg?v=1733880087",
+      "https://ivaniabeauty.shop/cdn/shop/files/468D4986-10F3-421E-ABB6-A0A6E18B7C92.jpg?v=1733880087",
+      "https://ivaniabeauty.shop/cdn/shop/files/2AE7F2AD-FE16-4C71-9D93-2E1468235323.jpg?v=1733880088"
+    ],
+    "rating": 4.5,
+    "reviewCount": 51,
+    "inStock": true
+  },
+  {
+    "id": "body-strapless-seamless",
+    "name": {
+      "en": "Strapless Seamless Body",
+      "es": "Body Strapless Seamless"
+    },
+    "slug": "body-strapless-seamless",
+    "price": 45.00,
+    "originalPrice": null,
+    "category": "tops",
+    "colors": ["brown"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL"],
+    "compression": "media",
+    "occasion": "diario",
+    "badge": null,
+    "description": {
+      "en": "Ultra invisible medium compression body with lower and upper belly control that molds your body and enhances glutes. Seamless strapless design.",
+      "es": "Faja ultra invisible media presion, tiene control de vientre bajo y alto moldea tu cuerpo y realza gluteos."
+    },
+    "shortDescription": {
+      "en": "Ultra invisible seamless body with medium compression.",
+      "es": "Body ultra invisible sin costuras con media presion."
+    },
+    "features": {
+      "en": ["Seamless construction", "Strapless design", "Medium compression", "Lower & upper belly control", "Glute enhancement"],
+      "es": ["Construccion sin costuras", "Diseno strapless", "Media presion", "Control vientre bajo y alto", "Realce de gluteos"]
+    },
+    "materials": "Tela seamless de compresion media.",
+    "care": "Lavar a mano con agua fria. No usar secadora.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/D8FDECF4-1ADE-48A7-8F86-E4067985A5C9.jpg?v=1735780347",
+      "https://ivaniabeauty.shop/cdn/shop/files/034573E9-84C9-4682-9C05-CBFB0A517193.jpg?v=1735780346"
+    ],
+    "rating": 4.4,
+    "reviewCount": 28,
+    "inStock": true
+  },
+  {
+    "id": "brasier-tres-niveles",
+    "name": {
+      "en": "3-Level Powernet Bra",
+      "es": "Brasier Tres Niveles"
+    },
+    "slug": "brasier-tres-niveles",
+    "price": 45.00,
+    "originalPrice": 89.99,
+    "category": "tops",
+    "colors": ["negro", "cocoa"],
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "compression": "media",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Powernet bra for daily and post-surgical use. Pre-molded cup for enhanced bust coverage with natural shaping. Features 3-level front clasps for adjustable support.",
+      "es": "Brasier Powernet para uso diario y postquirurgico. Copa prehormada que permite un mayor cubrimiento del busto y da un redondeo natural. Viene con 3 niveles de broches frontales."
+    },
+    "shortDescription": {
+      "en": "Powernet bra with pre-molded cup and 3-level front clasps.",
+      "es": "Brasier powernet con copa prehormada y 3 niveles de broches."
+    },
+    "features": {
+      "en": ["Pre-molded cup", "3-level front clasps", "Natural bust shaping", "Daily & post-surgical", "Powernet fabric"],
+      "es": ["Copa prehormada", "3 niveles de broches frontales", "Redondeo natural del busto", "Uso diario y post quirurgico", "Tela powernet"]
+    },
+    "materials": "Powernet con copa prehormada.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/4B08732B-8197-471A-A22D-B7FA022F538B.jpg?v=1746852339",
+      "https://ivaniabeauty.shop/cdn/shop/files/AB1B3176-D0EE-4379-8870-3788F9F2C969.jpg?v=1746852339",
+      "https://ivaniabeauty.shop/cdn/shop/files/19F3CEC3-60CB-4572-9D06-C727C739072B.jpg?v=1746852339",
+      "https://ivaniabeauty.shop/cdn/shop/files/36436627-30DB-4F46-AEBB-AD71D8A46839.jpg?v=1746852339",
+      "https://ivaniabeauty.shop/cdn/shop/files/2490F07A-9679-4D83-8842-C081FDF0EE24.png?v=1742618194"
+    ],
+    "rating": 4.6,
+    "reviewCount": 55,
+    "inStock": true
+  },
+  {
+    "id": "brassier-con-mangas-beauty",
+    "name": {
+      "en": "Arm Shaping Bra Beauty",
+      "es": "Brassier con Mangas / Beauty"
+    },
+    "slug": "brassier-con-mangas-beauty",
+    "price": 45.00,
+    "originalPrice": null,
+    "category": "tops",
+    "colors": ["cocoa", "negro"],
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
+    "compression": "media",
+    "occasion": "diario",
+    "badge": null,
+    "description": {
+      "en": "Bra with sleeves for arm shaping. Naturally molds the bust and provides back support. Ideal for daily wear or post-surgical use.",
+      "es": "Brasier con mangas para moldear brazos, moldea el busto de forma natural y tiene soporte en la espalda. Ideal para el uso diario o post quirurgico."
+    },
+    "shortDescription": {
+      "en": "Arm-shaping bra with natural bust molding and back support.",
+      "es": "Brasier con mangas que moldea brazos, busto y soporte de espalda."
+    },
+    "features": {
+      "en": ["Arm shaping sleeves", "Natural bust molding", "Back support", "Daily & post-surgical", "Multiple sizes"],
+      "es": ["Mangas moldeadoras de brazos", "Moldeo natural del busto", "Soporte de espalda", "Uso diario y post quirurgico", "Multiples tallas"]
+    },
+    "materials": "Tela de compresion media con mangas.",
+    "care": "Lavar a mano con agua fria. No usar secadora.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/9E21D2DB-042A-4889-B0C9-471D7EB508C8.jpg?v=1734224289",
+      "https://ivaniabeauty.shop/cdn/shop/files/EFCC92F8-09A8-4FAB-A171-BB35B46D8238.jpg?v=1734224290"
+    ],
+    "rating": 4.5,
+    "reviewCount": 33,
+    "inStock": true
+  },
+  {
+    "id": "combo-seamless",
+    "name": {
+      "en": "Seamless 3-Piece Combo",
+      "es": "Combo Seamless (3 Piezas)"
+    },
+    "slug": "combo-seamless",
+    "price": 85.00,
+    "originalPrice": 120.00,
+    "category": "tops",
+    "colors": ["beige", "negro"],
+    "sizes": ["XS/S", "M", "L", "XL"],
+    "compression": "media",
+    "occasion": "diario",
+    "badge": { "en": "Combo", "es": "Combo" },
+    "description": {
+      "en": "Three-piece combo includes full body, strapless body, and short. Seamless technology with maximum control to redefine your body instantly. Multiple compression levels with maximum control in problem areas and light compression on glutes and bust. Ideal for daily and postpartum use.",
+      "es": "Combo de tres piezas incluye full body, body strapless y un short corto. Body seamless de tecnologia sin costura con maximo control para redefinir partes de tu cuerpo instantaneamente. Diversos niveles de compresion con maximo control en areas problematicas y compresion leve sobre gluteos y busto. Ideal para uso diario y post parto."
+    },
+    "shortDescription": {
+      "en": "3-piece seamless combo: full body + strapless body + short.",
+      "es": "Combo 3 piezas seamless: full body + body strapless + short."
+    },
+    "features": {
+      "en": ["3 pieces included", "Seamless technology", "Multiple compression levels", "Maximum control", "Daily & postpartum"],
+      "es": ["3 piezas incluidas", "Tecnologia sin costura", "Diversos niveles de compresion", "Maximo control", "Uso diario y post parto"]
+    },
+    "materials": "Tela seamless sin costura.",
+    "care": "Lavar a mano con agua fria. No usar secadora.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/1F590DA7-C663-409C-976D-7BA38F4F7F9B.jpg?v=1737486595",
+      "https://ivaniabeauty.shop/cdn/shop/files/BCBCD82B-4601-4325-9DC4-7B9D82D8AF1A.jpg?v=1737486595",
+      "https://ivaniabeauty.shop/cdn/shop/files/968F4BF6-4B42-42D2-96D5-76C274AFAC35.jpg?v=1737486595"
+    ],
+    "rating": 4.8,
+    "reviewCount": 62,
+    "inStock": true
+  },
+  {
+    "id": "short-boxer-panty-arizona",
+    "name": {
+      "en": "Boxer Panty Short Arizona",
+      "es": "Short Boxer Panty / Arizona"
+    },
+    "slug": "short-boxer-panty-arizona",
+    "price": 44.00,
+    "originalPrice": 89.99,
+    "category": "shorts",
+    "colors": ["cocoa"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL"],
+    "compression": "media",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Ultra invisible short with medium compression to shape waist, hips, and define glute area. Ideal under fitted clothing as it's completely undetectable.",
+      "es": "Short corto ultra invisible de media presion para moldear cintura caderas y definir el area de los gluteos. Ideal para ponertelo con ropa pegada ya que esta pieza no se nota en la ropa."
+    },
+    "shortDescription": {
+      "en": "Ultra invisible short for shaping waist, hips, and glutes.",
+      "es": "Short ultra invisible para moldear cintura, caderas y gluteos."
+    },
+    "features": {
+      "en": ["Ultra invisible", "Medium compression", "Waist & hip shaping", "Glute definition", "Invisible under clothing"],
+      "es": ["Ultra invisible", "Media presion", "Moldea cintura y caderas", "Definicion de gluteos", "Invisible bajo la ropa"]
+    },
+    "materials": "Tela de compresion media, ultra suave.",
+    "care": "Lavar a mano con agua fria. No usar secadora.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/9D5060B3-00FC-48E1-922B-3B01169757AC.jpg?v=1746853428",
+      "https://ivaniabeauty.shop/cdn/shop/files/64B3E210-4529-4E58-8E2F-F7736CCB8C43.jpg?v=1746853428",
+      "https://ivaniabeauty.shop/cdn/shop/files/2490F07A-9679-4D83-8842-C081FDF0EE24.png?v=1742618194"
+    ],
+    "rating": 4.5,
+    "reviewCount": 41,
+    "inStock": true
+  },
+  {
+    "id": "short-faja-invisible",
+    "name": {
+      "en": "Invisible Shaping Short",
+      "es": "Short Faja Invisible"
+    },
+    "slug": "short-faja-invisible",
+    "price": 55.00,
+    "originalPrice": 120.00,
+    "category": "shorts",
+    "colors": ["negro", "beige", "cocoa", "rosado"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL"],
+    "compression": "firme",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Seamless lift-enhancing powernet short with high and low abdominal control. Designed for dress wear with gluteal enhancement. Silicone-banded legs and waist to prevent rolling. 3 front adjustment levels for daily use, post-surgical, and postpartum.",
+      "es": "Short powernet levanta cola sin costura, con control de abdomen alto y bajo. Especial para usar con vestidos, ideal para el realce de gluteos, banda siliconada en las piernas y cintura para evitar que se enrolle. Viene con 3 niveles de ajuste frontales ideal para uso diario, post quirurgico y post parto."
+    },
+    "shortDescription": {
+      "en": "Powernet butt-lift short with 3 adjustment levels and silicone bands.",
+      "es": "Short powernet levanta cola con 3 niveles de ajuste y bandas siliconadas."
+    },
+    "features": {
+      "en": ["Seamless construction", "Butt lift design", "Silicone-banded edges", "3-level front adjustment", "9 sizes available"],
+      "es": ["Construccion sin costura", "Diseno levanta cola", "Bandas siliconadas", "3 niveles de ajuste frontal", "9 tallas disponibles"]
+    },
+    "materials": "Powernet sin costura con bandas siliconadas.",
+    "care": "Lavar a mano con agua fria. No usar secadora. No usar blanqueador.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/71bb1f2c-922c-49bb-b2fa-d3b34d23dc05_4a7ff7b8-aacb-4ba0-8647-af4aaefa9bd2.jpg?v=1716348806",
+      "https://ivaniabeauty.shop/cdn/shop/files/cb143054-cf31-4bc0-bdb9-c34a7e1b0e7a_a40f2ad6-5261-4b1e-859b-33d3d9be768a.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/IMG_8940_40cb1a57-b462-43b5-b1a6-2cbfdea1400d.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/IMG_8941_d796594a-23fe-46ea-b3aa-d59163002271.jpg",
+      "https://ivaniabeauty.shop/cdn/shop/files/IMG_9984.jpg"
+    ],
+    "rating": 4.7,
+    "reviewCount": 87,
+    "inStock": true
+  },
+  {
+    "id": "short-panty-salma",
+    "name": {
+      "en": "Shaping Panty Short Salma",
+      "es": "Short Panty / Salma"
+    },
+    "slug": "short-panty-salma",
+    "price": 45.00,
+    "originalPrice": null,
+    "category": "shorts",
+    "colors": ["cocoa", "negro"],
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
+    "compression": "media",
+    "occasion": "diario",
+    "badge": null,
+    "description": {
+      "en": "Shaping panty short that molds your waist, compresses lower belly, and shapes your glutes for a natural silhouette.",
+      "es": "Short panty moldea tu cintura, comprime vientre bajo y moldea tus gluteos."
+    },
+    "shortDescription": {
+      "en": "Shaping panty short for waist, belly, and glute contouring.",
+      "es": "Short panty para moldear cintura, vientre y gluteos."
+    },
+    "features": {
+      "en": ["Waist shaping", "Lower belly compression", "Glute molding", "Comfortable fit", "Daily wear"],
+      "es": ["Moldea cintura", "Compresion vientre bajo", "Moldea gluteos", "Ajuste comodo", "Uso diario"]
+    },
+    "materials": "Tela de compresion media.",
+    "care": "Lavar a mano con agua fria. No usar secadora.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/C618002D-F4FA-47A4-A1D4-94E8C2ED4697.jpg?v=1733879570",
+      "https://ivaniabeauty.shop/cdn/shop/files/6B370F2B-09EC-4A32-8C27-A3CE2D780C7C.jpg?v=1733879570"
+    ],
+    "rating": 4.4,
+    "reviewCount": 29,
+    "inStock": true
+  },
+  {
+    "id": "short-push-up-invisible-sofia",
+    "name": {
+      "en": "Push Up Invisible Short Sofia",
+      "es": "Short Push Up Invisible / Sofia"
+    },
+    "slug": "short-push-up-invisible-sofia",
+    "price": 55.00,
+    "originalPrice": 110.00,
+    "category": "shorts",
+    "colors": ["cocoa", "negro"],
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
+    "compression": "media",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Push up invisible short that enhances glutes naturally. Medium compression for waist and abdominal control. Completely invisible under clothing.",
+      "es": "Short push up invisible que realza gluteos naturalmente. Media compresion para control de cintura y abdomen. Completamente invisible bajo la ropa."
+    },
+    "shortDescription": {
+      "en": "Push up invisible short for natural glute enhancement.",
+      "es": "Short push up invisible para realce natural de gluteos."
+    },
+    "features": {
+      "en": ["Push up effect", "Invisible design", "Medium compression", "Waist control", "Natural glute lift"],
+      "es": ["Efecto push up", "Diseno invisible", "Media compresion", "Control de cintura", "Levanta gluteos natural"]
+    },
+    "materials": "Tela de compresion media, ultra suave.",
+    "care": "Lavar a mano con agua fria. No usar secadora.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/4DECF7C0-C17C-432B-ABF5-F35D4B2FF840.jpg?v=1733878350",
+      "https://ivaniabeauty.shop/cdn/shop/files/CA84C18D-8B29-423B-AC3A-9BE252E0D8D9.jpg?v=1733877150",
+      "https://ivaniabeauty.shop/cdn/shop/files/0B12B6D5-4503-4C95-8C78-62F9228936B5.jpg?v=1733877150"
+    ],
+    "rating": 4.6,
+    "reviewCount": 44,
+    "inStock": true
+  },
+  {
+    "id": "hot-slim-cream",
+    "name": {
+      "en": "Hot Slim Reducing Cream",
+      "es": "Hot Slim Cream / Crema Reductora"
+    },
+    "slug": "hot-slim-cream-crema-reductora",
+    "price": 9.99,
+    "originalPrice": 15.99,
+    "category": "cuidado",
+    "colors": [],
+    "sizes": [],
+    "compression": "",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "After shower, apply a liberal amount to your desired area. Massage gently, allow the skin to absorb it. You'll feel the heat after 15 minutes. Twice a day, with continuous use for 2 to 3 months for best results.",
+      "es": "Despues de la ducha, aplicar generosamente en el area deseada. Masajear suavemente, permitir que la piel absorba. Sentiras el calor despues de 15 minutos. Dos veces al dia, con uso continuo de 2 a 3 meses para mejores resultados."
+    },
+    "shortDescription": {
+      "en": "Warming reducing cream for targeted body contouring.",
+      "es": "Crema reductora con efecto calor para moldear el cuerpo."
+    },
+    "features": {
+      "en": ["Warming formula", "Targeted application", "2-3 month program", "Gentle massage method", "Twice daily use"],
+      "es": ["Formula con efecto calor", "Aplicacion focalizada", "Programa de 2-3 meses", "Metodo de masaje suave", "Uso dos veces al dia"]
+    },
+    "materials": "Crema reductora con ingredientes termogenicos.",
+    "care": "Mantener en lugar fresco y seco.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/18F3F04A-75CE-4537-B4D4-0AF363BDC4F7.jpg?v=1733972974"
+    ],
+    "rating": 4.3,
+    "reviewCount": 22,
+    "inStock": true
+  },
+  {
+    "id": "mascarilla-hair-mask-rosemary-mint",
+    "name": {
+      "en": "Hair Mask Rosemary & Mint",
+      "es": "Mascarilla Hair Mask / Rosemary & Mint"
+    },
+    "slug": "mascarilla-hair-mask-rosemary-mint",
+    "price": 15.99,
+    "originalPrice": 25.99,
+    "category": "cuidado",
+    "colors": [],
+    "sizes": [],
+    "compression": "",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Rosemary oil hair mask that hydrates and repairs damaged hair. Strengthens roots, reduces hair loss, stimulates growth, reduces dandruff and scalp irritation. Suitable for all hair types, recommended for weekly use.",
+      "es": "Mascarilla capilar de aceite de romero que hidrata y repara el cabello danado. Fortalece raices, reduce caida del cabello, estimula el crecimiento, reduce caspa e irritacion del cuero cabelludo. Apta para todo tipo de cabello, uso semanal recomendado."
+    },
+    "shortDescription": {
+      "en": "Rosemary & mint hair mask for hydration and repair.",
+      "es": "Mascarilla capilar de romero y menta para hidratacion y reparacion."
+    },
+    "features": {
+      "en": ["Rosemary oil formula", "Hydrates & repairs", "Reduces hair loss", "Stimulates growth", "All hair types"],
+      "es": ["Formula de aceite de romero", "Hidrata y repara", "Reduce caida del cabello", "Estimula el crecimiento", "Todo tipo de cabello"]
+    },
+    "materials": "Aceite de romero y menta con ingredientes naturales.",
+    "care": "Almacenar en lugar fresco y seco.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_184820.jpg?v=1723773007",
+      "https://ivaniabeauty.shop/cdn/shop/files/IMG_0523.jpg?v=1723772988",
+      "https://ivaniabeauty.shop/cdn/shop/files/IMG_1409_8ffd8f3b-bc49-49d7-ac4a-420bbba02f0e.jpg?v=1723773008"
+    ],
+    "rating": 4.5,
+    "reviewCount": 31,
+    "inStock": false
+  },
+  {
+    "id": "rosemary-mint-scalp-scrub",
+    "name": {
+      "en": "Rosemary & Mint Scalp Scrub",
+      "es": "Rosemary & Mint Scalp Scrub"
+    },
+    "slug": "rosemary-mint-scalp-scrub",
+    "price": 15.99,
+    "originalPrice": 25.99,
+    "category": "cuidado",
+    "colors": [],
+    "sizes": [],
+    "compression": "",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Rosemary-based scalp exfoliating scrub that eliminates dead scalp cells and promotes healthy hair growth. Reduces dandruff, strengthens roots, stimulates growth, and improves blood circulation. For all hair types, use 1-2 times weekly.",
+      "es": "Scrub de exfoliacion capilar a base de romero que elimina celulas muertas del cuero cabelludo y promueve el crecimiento saludable del cabello. Reduce caspa, fortalece raices, estimula crecimiento y mejora la circulacion. Para todo tipo de cabello, usar 1-2 veces por semana."
+    },
+    "shortDescription": {
+      "en": "Rosemary scalp scrub for exfoliation and hair growth.",
+      "es": "Scrub capilar de romero para exfoliacion y crecimiento."
+    },
+    "features": {
+      "en": ["Scalp exfoliation", "Rosemary formula", "Anti-dandruff", "Hair growth", "All hair types"],
+      "es": ["Exfoliacion capilar", "Formula de romero", "Anti-caspa", "Crecimiento del cabello", "Todo tipo de cabello"]
+    },
+    "materials": "Exfoliante a base de romero y menta.",
+    "care": "Almacenar en lugar fresco y seco.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_184710_1.jpg?v=1723774401",
+      "https://ivaniabeauty.shop/cdn/shop/files/IMG_1409_20402662-ccb4-4a50-a7c8-536357422cd5.jpg?v=1723774401"
+    ],
+    "rating": 4.4,
+    "reviewCount": 18,
+    "inStock": true
+  },
+  {
+    "id": "rosemary-mint-oil-longer-hair",
+    "name": {
+      "en": "Rosemary Mint Oil for Longer Hair",
+      "es": "Rosemary Mint Oil / Cabello Largo"
+    },
+    "slug": "rosemary-mint-oil-longer-hair",
+    "price": 15.99,
+    "originalPrice": 25.99,
+    "category": "cuidado",
+    "colors": [],
+    "sizes": [],
+    "compression": "",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Natural rosemary oil that stimulates hair growth and strengthens roots. Applied directly to scalp with gentle massage to enhance blood circulation. Also strengthens nails and skin. Free from chemicals and safe for regular use.",
+      "es": "Aceite natural de romero que estimula el crecimiento del cabello y fortalece las raices. Se aplica directamente en el cuero cabelludo con masaje suave para mejorar la circulacion. Tambien fortalece unas y piel. Libre de quimicos y seguro para uso regular."
+    },
+    "shortDescription": {
+      "en": "Natural rosemary oil for hair growth and root strengthening.",
+      "es": "Aceite natural de romero para crecimiento y fortalecimiento capilar."
+    },
+    "features": {
+      "en": ["Natural formula", "Stimulates growth", "Strengthens roots", "Multi-use (hair, nails, skin)", "Chemical-free"],
+      "es": ["Formula natural", "Estimula el crecimiento", "Fortalece raices", "Multi-uso (cabello, unas, piel)", "Libre de quimicos"]
+    },
+    "materials": "Aceite natural de romero y menta.",
+    "care": "Almacenar en lugar fresco y seco.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_184737.jpg?v=1723773650",
+      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_185626.jpg?v=1723773650",
+      "https://ivaniabeauty.shop/cdn/shop/files/photo-output.jpg?v=1723773783"
+    ],
+    "rating": 4.6,
+    "reviewCount": 35,
+    "inStock": true
+  },
+  {
+    "id": "shampoo-acondicionador-rosemary-mint",
+    "name": {
+      "en": "Shampoo & Conditioner Rosemary & Mint",
+      "es": "Shampoo y Acondicionador / Rosemary & Mint"
+    },
+    "slug": "shampoo-y-acondicionador-rosemary-mint",
+    "price": 24.99,
+    "originalPrice": 45.99,
+    "category": "cuidado",
+    "colors": [],
+    "sizes": [],
+    "compression": "",
+    "occasion": "diario",
+    "badge": { "en": "Sale", "es": "Oferta" },
+    "description": {
+      "en": "Discover radiant, healthy hair with our hair care set. Hydrating shampoo and repairing conditioner formulated with rosemary, mint, and natural oils to nourish and protect hair from roots to tips.",
+      "es": "Descubre un cabello radiante y saludable con nuestro set de cuidado capilar. Shampoo hidratante y acondicionador reparador formulado con romero, menta y aceites naturales para nutrir y proteger el cabello de raiz a puntas."
+    },
+    "shortDescription": {
+      "en": "Rosemary & mint shampoo and conditioner set for healthy hair.",
+      "es": "Set de shampoo y acondicionador de romero y menta para cabello saludable."
+    },
+    "features": {
+      "en": ["Shampoo + conditioner set", "Rosemary & mint formula", "Natural oils", "Root to tip care", "All hair types"],
+      "es": ["Set shampoo + acondicionador", "Formula de romero y menta", "Aceites naturales", "Cuidado de raiz a puntas", "Todo tipo de cabello"]
+    },
+    "materials": "Romero, menta y aceites naturales.",
+    "care": "Almacenar en lugar fresco y seco.",
+    "images": [
+      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_184636.jpg?v=1723771483",
+      "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_184912.jpg?v=1723771483",
+      "https://ivaniabeauty.shop/cdn/shop/files/IMG_1409.jpg?v=1723771483"
+    ],
+    "rating": 4.7,
+    "reviewCount": 47,
+    "inStock": false
   }
 ]

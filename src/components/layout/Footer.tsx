@@ -44,10 +44,10 @@ export default function Footer() {
 
   const shopLinks = [
     { label: t("footer.shopAllShapewear"), href: "/shop" },
-    { label: t("footer.shopBeachPool"), href: "/shop?category=playa-piscina" },
-    { label: t("footer.shopEveryday"), href: "/shop?category=dia-a-dia" },
-    { label: t("footer.shopEvents"), href: "/shop?category=eventos" },
-    { label: t("footer.shopPostPartum"), href: "/shop?category=post-parto" },
+    { label: t("footer.shopFajas"), href: "/shop?category=fajas" },
+    { label: t("footer.shopShorts"), href: "/shop?category=shorts" },
+    { label: t("footer.shopTops"), href: "/shop?category=tops" },
+    { label: t("footer.shopCuidado"), href: "/shop?category=cuidado" },
   ];
 
   const infoLinks = [

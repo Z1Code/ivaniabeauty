@@ -10,13 +10,14 @@ import { useTranslation } from "@/hooks/useTranslation";
 interface FiltersProps {
   isOpen: boolean;
   onClose: () => void;
+  mobileOnly?: boolean;
 }
 
 const sizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"];
 
-const colorOptions = ["nude", "negro", "rosa", "champagne", "coral", "turquesa"];
+const colorOptions = ["cocoa", "negro", "beige", "brown", "rosado", "pink"];
 
-function FilterContent() {
+function FilterContent({ showSort = false }: { showSort?: boolean }) {
   const { t } = useTranslation();
   const {
     category,
@@ -36,10 +37,11 @@ function FilterContent() {
 
   const categories = [
     { label: t("filters.categoryAll"), value: null },
-    { label: t("filters.categoryBeach"), value: "playa" },
-    { label: t("filters.categoryDaily"), value: "diario" },
-    { label: t("filters.categoryEvents"), value: "eventos" },
-    { label: t("filters.categoryPostPartum"), value: "postparto" },
+    { label: t("filters.categoryFajas"), value: "fajas" },
+    { label: t("filters.categoryCinturillas"), value: "cinturillas" },
+    { label: t("filters.categoryTops"), value: "tops" },
+    { label: t("filters.categoryShorts"), value: "shorts" },
+    { label: t("filters.categoryCuidado"), value: "cuidado" },
   ];
 
   const compressions = [
@@ -62,10 +64,18 @@ function FilterContent() {
     { label: t("filters.sortNewest"), value: "newest" },
   ];
 
+  const hasActiveFilters =
+    category !== null ||
+    size !== null ||
+    compression !== null ||
+    color !== null ||
+    priceRange[0] !== 0 ||
+    priceRange[1] !== 200;
+
   return (
     <div className="space-y-0">
-      {/* Categoria */}
-      <div className="border-b border-rosa-light/30 pb-4 mb-4">
+      {/* Category */}
+      <div className="border-b border-rosa-light/30 pb-4 mb-3">
         <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
           {t("filters.categoryHeading")}
         </h4>
@@ -87,7 +97,20 @@ function FilterContent() {
         </div>
       </div>
 
-      {/* Talla */}
+      {/* Clear Filters - right below category */}
+      {hasActiveFilters && (
+        <div className="pb-4 mb-3 border-b border-rosa-light/30">
+          <button
+            onClick={clearFilters}
+            className="text-rosa text-sm font-medium hover:text-rosa-dark transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <X className="w-3.5 h-3.5" />
+            {t("filters.clearFilters")}
+          </button>
+        </div>
+      )}
+
+      {/* Size */}
       <div className="border-b border-rosa-light/30 pb-4 mb-4">
         <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
           {t("filters.sizeHeading")}
@@ -110,7 +133,7 @@ function FilterContent() {
         </div>
       </div>
 
-      {/* Compresion */}
+      {/* Compression */}
       <div className="border-b border-rosa-light/30 pb-4 mb-4">
         <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
           {t("filters.compressionHeading")}
@@ -159,8 +182,8 @@ function FilterContent() {
         </div>
       </div>
 
-      {/* Precio */}
-      <div className="border-b border-rosa-light/30 pb-4 mb-4">
+      {/* Price */}
+      <div className={cn(showSort ? "border-b border-rosa-light/30 pb-4 mb-4" : "pb-2")}>
         <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
           {t("filters.priceHeading")}
         </h4>
@@ -197,55 +220,49 @@ function FilterContent() {
         </div>
       </div>
 
-      {/* Ordenar por */}
-      <div className="border-b border-rosa-light/30 pb-4 mb-4">
-        <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
-          {t("filters.sortHeading")}
-        </h4>
-        <div className="flex flex-col gap-1.5">
-          {sortOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setSortBy(opt.value)}
-              className={cn(
-                "text-left rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 cursor-pointer",
-                sortBy === opt.value
-                  ? "bg-rosa text-white"
-                  : "text-gray-700 hover:bg-rosa-light/30"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
+      {/* Sort by - only shown in mobile filter sheet */}
+      {showSort && (
+        <div className="pb-2">
+          <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500 mb-3">
+            {t("filters.sortHeading")}
+          </h4>
+          <div className="flex flex-col gap-1.5">
+            {sortOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSortBy(opt.value)}
+                className={cn(
+                  "text-left rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 cursor-pointer",
+                  sortBy === opt.value
+                    ? "bg-rosa text-white"
+                    : "text-gray-700 hover:bg-rosa-light/30"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* Limpiar Filtros */}
-      <div className="pt-2">
-        <button
-          onClick={clearFilters}
-          className="text-rosa underline text-sm font-medium hover:text-rosa-dark transition-colors cursor-pointer"
-        >
-          {t("filters.clearFilters")}
-        </button>
-      </div>
+      )}
     </div>
   );
 }
 
-export default function Filters({ isOpen, onClose }: FiltersProps) {
+export default function Filters({ isOpen, onClose, mobileOnly = false }: FiltersProps) {
   const { t } = useTranslation();
   return (
     <>
       {/* Desktop Sidebar - always visible on lg+ */}
-      <aside className="hidden lg:block">
-        <div className="sticky top-24">
-          <h3 className="font-serif text-lg font-semibold text-gray-800 mb-6">
-            {t("filters.heading")}
-          </h3>
-          <FilterContent />
-        </div>
-      </aside>
+      {!mobileOnly && (
+        <aside className="hidden lg:block">
+          <div className="sticky top-24">
+            <h3 className="font-serif text-lg font-semibold text-gray-800 mb-6">
+              {t("filters.heading")}
+            </h3>
+            <FilterContent showSort={false} />
+          </div>
+        </aside>
+      )}
 
       {/* Mobile Bottom Sheet Modal */}
       <AnimatePresence>
@@ -288,7 +305,7 @@ export default function Filters({ isOpen, onClose }: FiltersProps) {
                 {t("filters.heading")}
               </h3>
 
-              <FilterContent />
+              <FilterContent showSort />
 
               {/* Apply button for mobile */}
               <div className="mt-6 pt-4 border-t border-rosa-light/30">

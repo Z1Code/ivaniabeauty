@@ -266,27 +266,24 @@ function ProductDetail({ product }: { product: ProductData }) {
         >
           {/* --- main image --- */}
           <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-rosa-light/30 to-arena group cursor-zoom-in">
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-br from-rosa-light/40 to-arena"
-              style={{
-                backgroundImage: `linear-gradient(135deg, ${
-                  THUMB_GRADIENTS[selectedImageIndex]
-                    ? ""
-                    : ""
-                }rgba(255,184,208,0.35), rgba(255,245,230,1))`,
-              }}
-              whileHover={{ scale: 1.08 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-            />
-            {/* selected gradient overlay for variety */}
-            <motion.div
-              key={selectedImageIndex}
-              className={`absolute inset-0 bg-gradient-to-br ${THUMB_GRADIENTS[selectedImageIndex] ?? THUMB_GRADIENTS[0]}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              whileHover={{ scale: 1.08 }}
-            />
+            {product.images[selectedImageIndex] ? (
+              <motion.img
+                key={selectedImageIndex}
+                src={product.images[selectedImageIndex]}
+                alt={`${localName} - ${selectedImageIndex + 1}`}
+                className="absolute inset-0 w-full h-full object-cover"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                whileHover={{ scale: 1.08 }}
+              />
+            ) : (
+              <motion.div
+                className={`absolute inset-0 bg-gradient-to-br ${THUMB_GRADIENTS[0]}`}
+                whileHover={{ scale: 1.08 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              />
+            )}
 
             {/* Badge */}
             {product.badge && (
@@ -300,17 +297,24 @@ function ProductDetail({ product }: { product: ProductData }) {
 
           {/* --- thumbnails --- */}
           <div className="flex gap-3 mt-4">
-            {Array.from({ length: 4 }).map((_, i) => (
+            {product.images.map((img, i) => (
               <button
                 key={i}
                 onClick={() => setSelectedImageIndex(i)}
-                className={`flex-1 aspect-square rounded-lg overflow-hidden bg-gradient-to-br ${THUMB_GRADIENTS[i]} transition-all cursor-pointer ${
+                className={`flex-1 aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-rosa-light/30 to-arena transition-all cursor-pointer ${
                   selectedImageIndex === i
                     ? "ring-2 ring-rosa ring-offset-2"
                     : "opacity-70 hover:opacity-100"
                 }`}
                 aria-label={`${t("productDetail.imageAriaLabel")} ${i + 1}`}
-              />
+              >
+                <img
+                  src={img}
+                  alt={`${localName} - ${i + 1}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </button>
             ))}
           </div>
 

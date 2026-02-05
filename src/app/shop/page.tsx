@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { SlidersHorizontal, PackageOpen } from "lucide-react";
-import productsData from "@/data/products.json";
+import { SlidersHorizontal, PackageOpen, ChevronDown } from "lucide-react";
 import useFilters from "@/hooks/useFilters";
 import ProductCard from "@/components/ui/ProductCard";
 import Filters from "@/components/shared/Filters";
 import { useTranslation } from "@/hooks/useTranslation";
+import { cn } from "@/lib/utils";
 
 type BilingualString = { en: string; es: string };
 type BilingualArray = { en: string[]; es: string[] };
@@ -34,11 +34,99 @@ interface Product {
   inStock: boolean;
 }
 
-const allProducts = productsData as Product[];
+function SortDropdown() {
+  const { t } = useTranslation();
+  const { sortBy, setSortBy } = useFilters();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const sortOptions = [
+    { label: t("filters.sortFeatured"), value: "featured" },
+    { label: t("filters.sortPriceAsc"), value: "price-asc" },
+    { label: t("filters.sortPriceDesc"), value: "price-desc" },
+    { label: t("filters.sortTopRated"), value: "rating" },
+    { label: t("filters.sortNewest"), value: "newest" },
+  ];
+
+  const currentLabel = sortOptions.find((o) => o.value === sortBy)?.label || sortOptions[0].label;
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:border-rosa/40 transition-colors cursor-pointer shadow-sm"
+      >
+        <span className="text-gray-400 text-xs uppercase tracking-wide">{t("filters.sortHeading")}:</span>
+        <span className="text-gray-800">{currentLabel}</span>
+        <ChevronDown className={cn("w-4 h-4 text-gray-400 transition-transform duration-200", isOpen && "rotate-180")} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-30"
+          >
+            {sortOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  setSortBy(opt.value);
+                  setIsOpen(false);
+                }}
+                className={cn(
+                  "w-full text-left px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer",
+                  sortBy === opt.value
+                    ? "bg-rosa/10 text-rosa-dark"
+                    : "text-gray-700 hover:bg-gray-50"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export default function ShopPage() {
   const { t } = useTranslation();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/products");
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const data: Product[] = await res.json();
+      setAllProducts(data);
+    } catch {
+      const fallback = await import("@/data/products.json");
+      setAllProducts(fallback.default as Product[]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const {
     category,
@@ -53,32 +141,22 @@ export default function ShopPage() {
   const filteredProducts = useMemo(() => {
     let results = [...allProducts];
 
-    // Filter by category
     if (category) {
       results = results.filter((p) => p.category === category);
     }
-
-    // Filter by size
     if (size) {
       results = results.filter((p) => p.sizes.includes(size));
     }
-
-    // Filter by compression
     if (compression) {
       results = results.filter((p) => p.compression === compression);
     }
-
-    // Filter by color
     if (color) {
       results = results.filter((p) => p.colors.includes(color));
     }
-
-    // Filter by price range
     results = results.filter(
       (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
     );
 
-    // Sort
     switch (sortBy) {
       case "price-asc":
         results.sort((a, b) => a.price - b.price);
@@ -111,7 +189,7 @@ export default function ShopPage() {
     }
 
     return results;
-  }, [category, size, compression, color, priceRange, sortBy]);
+  }, [allProducts, category, size, compression, color, priceRange, sortBy]);
 
   const hasActiveFilters =
     category !== null ||
@@ -126,7 +204,6 @@ export default function ShopPage() {
     <main className="min-h-screen bg-perla">
       {/* Hero Banner */}
       <section className="pt-20 pb-10 bg-gradient-to-r from-rosa to-rosa-dark flex items-center justify-center relative overflow-hidden">
-        {/* Decorative blurred circles */}
         <div className="absolute -top-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-10 -right-10 w-56 h-56 bg-white/10 rounded-full blur-3xl" />
 
@@ -146,10 +223,7 @@ export default function ShopPage() {
             className="mt-3 text-white/70 text-sm flex items-center justify-center gap-2"
             aria-label="Breadcrumb"
           >
-            <Link
-              href="/"
-              className="hover:text-white transition-colors"
-            >
+            <Link href="/" className="hover:text-white transition-colors">
               {t("shop.breadcrumbHome")}
             </Link>
             <span>/</span>
@@ -169,7 +243,7 @@ export default function ShopPage() {
           {/* Main Content */}
           <div className="flex-1 min-w-0">
             {/* Top Bar */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-8">
               <motion.p
                 key={filteredProducts.length}
                 initial={{ opacity: 0, x: -10 }}
@@ -184,36 +258,47 @@ export default function ShopPage() {
                   : t("shop.productsFound")}
               </motion.p>
 
-              {/* Mobile Filter Button */}
-              <button
-                onClick={() => setIsFilterOpen(true)}
-                className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-rosa-light/40 text-sm font-medium text-gray-700 hover:border-rosa transition-colors cursor-pointer"
-              >
-                <SlidersHorizontal className="w-4 h-4 text-rosa" />
-                {t("shop.filtersButton")}
-                {hasActiveFilters && (
-                  <span className="w-2 h-2 rounded-full bg-rosa" />
-                )}
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Sort dropdown - desktop only */}
+                <div className="hidden lg:block">
+                  <SortDropdown />
+                </div>
+
+                {/* Mobile Filter Button */}
+                <button
+                  onClick={() => setIsFilterOpen(true)}
+                  className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-xl bg-white shadow-sm border border-gray-200 text-sm font-medium text-gray-700 hover:border-rosa/40 transition-colors cursor-pointer"
+                >
+                  <SlidersHorizontal className="w-4 h-4 text-rosa" />
+                  {t("shop.filtersButton")}
+                  {hasActiveFilters && (
+                    <span className="w-2 h-2 rounded-full bg-rosa" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Product Grid */}
-            {filteredProducts.length > 0 ? (
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-8 h-8 border-2 border-rosa border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <LayoutGroup>
                 <motion.div
                   layout
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                  className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
                 >
                   <AnimatePresence mode="popLayout">
                     {filteredProducts.map((product) => (
                       <motion.div
                         key={product.id}
                         layout
-                        initial={{ opacity: 0, scale: 0.9 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
                         transition={{
-                          opacity: { duration: 0.3 },
+                          opacity: { duration: 0.25 },
                           layout: { type: "spring", stiffness: 300, damping: 30 },
                         }}
                       >
@@ -253,7 +338,7 @@ export default function ShopPage() {
       </div>
 
       {/* Mobile Filter Modal */}
-      <Filters isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} />
+      <Filters isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} mobileOnly />
     </main>
   );
 }

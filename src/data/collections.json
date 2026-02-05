@@ -1,34 +1,42 @@
 [
   {
-    "id": "playa",
-    "name": "Playa & Piscina",
-    "slug": "playa",
-    "description": "Fajas diseñadas para lucir increible bajo tu bikini favorito. Resistentes al agua y de secado rapido.",
-    "image": "/images/collections/playa.jpg",
-    "productCount": 2
+    "id": "fajas",
+    "name": "Fajas",
+    "slug": "fajas",
+    "description": "Fajas de alta compresion para moldear tu silueta. Uso diario, post quirurgico y post parto.",
+    "image": "https://ivaniabeauty.shop/cdn/shop/files/A9D4C22E-9DE5-44F7-86A7-682822CE74F8.jpg?v=1733882502",
+    "productCount": 15
   },
   {
-    "id": "diario",
-    "name": "Dia a Dia",
-    "slug": "diario",
-    "description": "Comodidad y soporte para tu rutina diaria. Invisibles bajo cualquier outfit.",
-    "image": "/images/collections/diario.jpg",
+    "id": "cinturillas",
+    "name": "Cinturillas & Chalecos",
+    "slug": "cinturillas",
+    "description": "Cinturillas y chalecos para definir tu cintura con soporte extremo y compresion dirigida.",
+    "image": "https://ivaniabeauty.shop/cdn/shop/files/D9C29CE0-B3C7-4508-A51A-5EAD86862D2D.jpg?v=1733877150",
     "productCount": 3
   },
   {
-    "id": "eventos",
-    "name": "Eventos Especiales",
-    "slug": "eventos",
-    "description": "Esculpe tu silueta para bodas, fiestas y galas. Compresion premium para momentos unicos.",
-    "image": "/images/collections/eventos.jpg",
-    "productCount": 2
+    "id": "tops",
+    "name": "Tops & Brassieres",
+    "slug": "tops",
+    "description": "Brassieres y bodies con tecnologia de compresion para moldear busto, brazos y espalda.",
+    "image": "https://ivaniabeauty.shop/cdn/shop/files/4B08732B-8197-471A-A22D-B7FA022F538B.jpg?v=1746852339",
+    "productCount": 4
   },
   {
-    "id": "postparto",
-    "name": "Post-Parto",
-    "slug": "postparto",
-    "description": "Acompaña tu recuperacion con fajas diseñadas por expertos. Soporte y comodidad maternal.",
-    "image": "/images/collections/postparto.jpg",
-    "productCount": 1
+    "id": "shorts",
+    "name": "Shorts",
+    "slug": "shorts",
+    "description": "Shorts moldeadores que realzan gluteos y controlan abdomen de forma invisible.",
+    "image": "https://ivaniabeauty.shop/cdn/shop/files/4DECF7C0-C17C-432B-ABF5-F35D4B2FF840.jpg?v=1733878350",
+    "productCount": 4
+  },
+  {
+    "id": "cuidado",
+    "name": "Cuidado Personal",
+    "slug": "cuidado",
+    "description": "Productos de cuidado capilar y corporal con ingredientes naturales de romero y menta.",
+    "image": "https://ivaniabeauty.shop/cdn/shop/files/Photoroom_20240812_184636.jpg?v=1723771483",
+    "productCount": 5
   }
 ]
