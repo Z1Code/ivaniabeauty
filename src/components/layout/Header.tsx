@@ -22,7 +22,9 @@ import LanguageToggle from "@/components/shared/LanguageToggle";
 const DARK_HERO_PAGES = ["/shop"];
 
 export default function Header() {
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(() =>
+    typeof window !== "undefined" ? window.scrollY > 50 : false
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { openCart, totalItems } = useCart();
   const cartCount = totalItems();
@@ -38,7 +40,6 @@ export default function Header() {
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 

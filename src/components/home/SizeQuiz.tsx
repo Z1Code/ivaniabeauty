@@ -119,6 +119,17 @@ export default function SizeQuiz() {
   const totalSteps = 4;
   const showResult = currentStep === 4;
 
+  // Pre-compute random values for confetti to avoid Math.random() during render
+  const [confettiRandom] = useState(() =>
+    Array.from({ length: 20 }, () => ({
+      left: Math.random() * 100,
+      x: (Math.random() - 0.5) * 100,
+      rotate: Math.random() * 720,
+      duration: 2 + Math.random() * 2,
+      delay: Math.random() * 1.5,
+    }))
+  );
+
   const computedSize = calculateSize(
     parseFloat(measurements.cintura) || 84,
     parseFloat(measurements.cadera) || 96
@@ -450,12 +461,12 @@ export default function SizeQuiz() {
                 >
                   {/* Confetti */}
                   <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    {Array.from({ length: 20 }).map((_, i) => (
+                    {confettiRandom.map((rand, i) => (
                       <motion.div
                         key={i}
                         className="absolute w-3 h-3 rounded-sm"
                         style={{
-                          left: `${Math.random() * 100}%`,
+                          left: `${rand.left}%`,
                           backgroundColor:
                             confettiColors[i % confettiColors.length],
                         }}
@@ -467,13 +478,13 @@ export default function SizeQuiz() {
                         }}
                         animate={{
                           y: 500,
-                          x: (Math.random() - 0.5) * 100,
-                          rotate: Math.random() * 720,
+                          x: rand.x,
+                          rotate: rand.rotate,
                           opacity: 0,
                         }}
                         transition={{
-                          duration: 2 + Math.random() * 2,
-                          delay: Math.random() * 1.5,
+                          duration: rand.duration,
+                          delay: rand.delay,
                           ease: "easeIn",
                         }}
                       />
