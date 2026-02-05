@@ -32,12 +32,39 @@ interface ProductCardProps {
   className?: string;
 }
 
-const badgeStyles: Record<string, string> = {
-  Bestseller: "bg-gradient-to-r from-rosa to-rosa-dark",
-  New: "bg-gradient-to-r from-turquesa to-emerald-500",
-  Nuevo: "bg-gradient-to-r from-turquesa to-emerald-500",
-  Sale: "bg-gradient-to-r from-amber-500 to-dorado",
-  Oferta: "bg-gradient-to-r from-amber-500 to-dorado",
+// Elegant badge styles: neutral background with strong colored border
+const badgeStyles: Record<string, { border: string; text: string; bg: string }> = {
+  Bestseller: {
+    border: "border-rosa",
+    text: "text-rosa-dark",
+    bg: "bg-white/90",
+  },
+  New: {
+    border: "border-turquesa",
+    text: "text-turquesa",
+    bg: "bg-white/90",
+  },
+  Nuevo: {
+    border: "border-turquesa",
+    text: "text-turquesa",
+    bg: "bg-white/90",
+  },
+  Sale: {
+    border: "border-amber-500",
+    text: "text-amber-600",
+    bg: "bg-white/90",
+  },
+  Oferta: {
+    border: "border-amber-500",
+    text: "text-amber-600",
+    bg: "bg-white/90",
+  },
+};
+
+const defaultBadgeStyle = {
+  border: "border-rosa",
+  text: "text-rosa-dark",
+  bg: "bg-white/90",
 };
 
 export default function ProductCard({ product, className }: ProductCardProps) {
@@ -109,21 +136,25 @@ export default function ProductCard({ product, className }: ProductCardProps) {
           tabIndex={-1}
         >
           <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-[#faf5f0] to-[#f0e8e0]">
-            {/* Badge */}
+            {/* Badge - elegant style with neutral bg and strong border */}
             {localBadge && (
               <span
                 className={cn(
-                  "absolute top-3 left-3 z-10 px-3 py-1 text-[10px] font-bold text-white rounded-full tracking-widest uppercase shadow-lg animate-[fadeSlideIn_0.3s_0.15s_both]",
-                  badgeStyles[localBadge] || "bg-rosa"
+                  "absolute top-3 left-3 z-10 px-3 py-1.5 text-[10px] font-semibold rounded-xl tracking-wide uppercase",
+                  "border-2 backdrop-blur-sm shadow-sm",
+                  "transition-all duration-300 hover:shadow-md hover:scale-105",
+                  (badgeStyles[localBadge] || defaultBadgeStyle).bg,
+                  (badgeStyles[localBadge] || defaultBadgeStyle).border,
+                  (badgeStyles[localBadge] || defaultBadgeStyle).text
                 )}
               >
                 {localBadge}
               </span>
             )}
 
-            {/* Discount badge */}
+            {/* Discount badge - matching elegant style */}
             {discountPercent && (
-              <span className="absolute top-3 right-3 z-10 px-2.5 py-1 text-[10px] font-bold text-white bg-rosa-dark/90 rounded-full shadow-md">
+              <span className="absolute top-3 right-3 z-10 px-2.5 py-1.5 text-[10px] font-semibold text-rosa-dark bg-white/90 backdrop-blur-sm border-2 border-rosa rounded-xl shadow-sm transition-all duration-300 hover:shadow-md hover:scale-105">
                 -{discountPercent}%
               </span>
             )}
