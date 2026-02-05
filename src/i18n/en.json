@@ -254,6 +254,8 @@
     "howToMeasureHip": "Measure around the widest part of your hips, going over the glutes.",
     "howToMeasureTip": "Use a flexible measuring tape and keep it snug but not tight.",
     "sizeGuideClose": "Got it",
+    "sizeChartLoading": "Analyzing size chart...",
+    "sizeChartError": "Could not load size chart",
     "closeAriaLabel": "Close",
     "quickViewAriaLabel": "Quick view"
   },

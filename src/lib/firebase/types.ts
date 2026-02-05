@@ -34,6 +34,7 @@ export interface ProductDoc {
   materials: string;
   care: string;
   images: string[];
+  sizeChartImageUrl: string | null;
   rating: number;
   reviewCount: number;
   inStock: boolean;
@@ -203,4 +204,19 @@ export interface AnalyticsEventDoc {
   sessionId: string | null;
   userAgent: string | null;
   createdAt: Date;
+}
+
+export interface SizeChartMeasurement {
+  size: string;
+  waist_cm: string | null;
+  hip_cm: string | null;
+  bust_cm: string | null;
+  length_cm: string | null;
+}
+
+export interface SizeChartDoc {
+  productId: string;
+  measurements: SizeChartMeasurement[];
+  extractedAt: Date;
+  sourceImageUrl: string;
 }

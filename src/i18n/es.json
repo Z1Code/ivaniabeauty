@@ -254,6 +254,8 @@
     "howToMeasureHip": "Mide alrededor de la parte mas ancha de tus caderas, pasando por los gluteos.",
     "howToMeasureTip": "Usa una cinta metrica flexible y manten la cinta ajustada pero sin apretar.",
     "sizeGuideClose": "Entendido",
+    "sizeChartLoading": "Analizando tabla de tallas...",
+    "sizeChartError": "No se pudo cargar la guia de tallas",
     "closeAriaLabel": "Cerrar",
     "quickViewAriaLabel": "Vista rapida"
   },

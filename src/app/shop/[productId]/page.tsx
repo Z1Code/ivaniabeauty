@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,6 +16,7 @@ import {
   CheckCircle,
   X,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 
 import productsData from "@/data/products.json";
@@ -23,8 +24,10 @@ import useCart from "@/hooks/useCart";
 import { formatPrice, getColorHex } from "@/lib/utils";
 import { SIZE_CHART } from "@/lib/constants";
 import ProductCard from "@/components/ui/ProductCard";
+import UnitToggle, { type Unit } from "@/components/ui/UnitToggle";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getLocalizedField } from "@/lib/productHelpers";
+import type { SizeChartMeasurement } from "@/lib/firebase/types";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -54,6 +57,7 @@ interface ProductData {
   rating: number;
   reviewCount: number;
   inStock: boolean;
+  sizeChartImageUrl?: string | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -538,7 +542,11 @@ function ProductDetail({ product }: { product: ProductData }) {
       {/* ----- Size Guide Modal ----- */}
       <AnimatePresence>
         {showSizeGuide && (
-          <SizeGuideModal onClose={() => setShowSizeGuide(false)} />
+          <SizeGuideModal
+            onClose={() => setShowSizeGuide(false)}
+            productId={product.id}
+            sizeChartImageUrl={product.sizeChartImageUrl}
+          />
         )}
       </AnimatePresence>
 
@@ -582,7 +590,7 @@ function ProductDetail({ product }: { product: ProductData }) {
 
             {activeTab === "tallas" && (
               <TabPanel key="tallas">
-                <SizeChartTable />
+                <SizeChartTable unit="cm" measurements={null} />
               </TabPanel>
             )}
 
@@ -656,33 +664,80 @@ function TabPanel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* ---------- Helper: Convert cm to inches ---------- */
+
+function cmToInches(cmRange: string): string {
+  if (!cmRange) return "";
+  const parts = cmRange.split("-").map((s) => s.trim());
+  if (parts.length === 2) {
+    const [min, max] = parts.map(Number);
+    if (!isNaN(min) && !isNaN(max)) {
+      return `${(min / 2.54).toFixed(1)}-${(max / 2.54).toFixed(1)}`;
+    }
+  } else if (parts.length === 1) {
+    const val = Number(parts[0]);
+    if (!isNaN(val)) {
+      return (val / 2.54).toFixed(1);
+    }
+  }
+  return cmRange;
+}
+
 /* ---------- Size Chart Table ---------- */
 
-function SizeChartTable() {
+interface SizeChartTableProps {
+  unit: Unit;
+  measurements: SizeChartMeasurement[] | null;
+}
+
+function SizeChartTable({ unit, measurements }: SizeChartTableProps) {
   const { t } = useTranslation();
+
+  // Use dynamic measurements if available, otherwise fall back to static SIZE_CHART
+  const data = measurements
+    ? measurements.map((m) => ({
+        size: m.size,
+        waist: m.waist_cm || "",
+        hip: m.hip_cm || "",
+      }))
+    : SIZE_CHART.map((row) => ({
+        size: row.size,
+        waist: row.waist,
+        hip: row.hip,
+      }));
+
+  const formatValue = (cmValue: string) => {
+    if (!cmValue) return "-";
+    return unit === "inches" ? cmToInches(cmValue) : cmValue;
+  };
+
+  const unitLabel = unit === "inches" ? " (in)" : " (cm)";
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left">
         <thead>
           <tr className="border-b border-rosa-light/40">
-            <th className="py-3 pr-6 font-semibold text-gray-800">{t("productDetail.sizeChartSize")}</th>
             <th className="py-3 pr-6 font-semibold text-gray-800">
-              {t("productDetail.sizeChartWaist")}
+              {t("productDetail.sizeChartSize")}
             </th>
-            <th className="py-3 font-semibold text-gray-800">{t("productDetail.sizeChartHip")}</th>
+            <th className="py-3 pr-6 font-semibold text-gray-800">
+              {t("productDetail.sizeChartWaist")}{unitLabel}
+            </th>
+            <th className="py-3 font-semibold text-gray-800">
+              {t("productDetail.sizeChartHip")}{unitLabel}
+            </th>
           </tr>
         </thead>
         <tbody>
-          {SIZE_CHART.map((row) => (
+          {data.map((row) => (
             <tr
               key={row.size}
               className="border-b border-gray-100 hover:bg-rosa-light/10 transition-colors"
             >
-              <td className="py-3 pr-6 font-medium text-gray-800">
-                {row.size}
-              </td>
-              <td className="py-3 pr-6 text-gray-600">{row.waist}</td>
-              <td className="py-3 text-gray-600">{row.hip}</td>
+              <td className="py-3 pr-6 font-medium text-gray-800">{row.size}</td>
+              <td className="py-3 pr-6 text-gray-600">{formatValue(row.waist)}</td>
+              <td className="py-3 text-gray-600">{formatValue(row.hip)}</td>
             </tr>
           ))}
         </tbody>
@@ -693,8 +748,49 @@ function SizeChartTable() {
 
 /* ---------- Size Guide Modal ---------- */
 
-function SizeGuideModal({ onClose }: { onClose: () => void }) {
+interface SizeGuideModalProps {
+  onClose: () => void;
+  productId: string;
+  sizeChartImageUrl?: string | null;
+}
+
+function SizeGuideModal({ onClose, productId, sizeChartImageUrl }: SizeGuideModalProps) {
   const { t } = useTranslation();
+  const [unit, setUnit] = useState<Unit>("cm");
+  const [measurements, setMeasurements] = useState<SizeChartMeasurement[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch measurements from OCR API if sizeChartImageUrl exists
+  const fetchMeasurements = useCallback(async () => {
+    if (!sizeChartImageUrl) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/products/${productId}/size-chart`);
+      const data = await res.json();
+
+      if (res.ok && data.measurements) {
+        setMeasurements(data.measurements);
+      } else {
+        // Silently fall back to static data
+        console.warn("Size chart API error:", data.error);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch size chart:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [productId, sizeChartImageUrl]);
+
+  useEffect(() => {
+    if (sizeChartImageUrl) {
+      fetchMeasurements();
+    }
+  }, [sizeChartImageUrl, fetchMeasurements]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -728,25 +824,41 @@ function SizeGuideModal({ onClose }: { onClose: () => void }) {
           <X className="w-5 h-5 text-gray-500" />
         </button>
 
-        <h2 className="font-serif text-2xl font-bold text-gray-900 mb-6">
-          {t("productDetail.sizeGuideModalTitle")}
-        </h2>
+        {/* Header with title and unit toggle */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-serif text-2xl font-bold text-gray-900">
+            {t("productDetail.sizeGuideModalTitle")}
+          </h2>
+          <UnitToggle unit={unit} onChange={setUnit} />
+        </div>
 
-        <SizeChartTable />
+        {/* Loading state */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 text-rosa animate-spin" />
+            <span className="ml-2 text-sm text-gray-500">
+              {t("productDetail.sizeChartLoading") || "Analyzing size chart..."}
+            </span>
+          </div>
+        ) : (
+          <SizeChartTable unit={unit} measurements={measurements} />
+        )}
 
         {/* How to measure */}
         <div className="mt-8 p-4 bg-arena/60 rounded-xl">
-          <h3 className="font-semibold text-gray-800 mb-2">{t("productDetail.howToMeasureHeading")}</h3>
+          <h3 className="font-semibold text-gray-800 mb-2">
+            {t("productDetail.howToMeasureHeading")}
+          </h3>
           <ul className="space-y-2 text-sm text-gray-600">
             <li>
-              <strong>{t("productDetail.sizeChartWaist").split(" ")[0]}:</strong> {t("productDetail.howToMeasureWaist")}
+              <strong>{t("productDetail.sizeChartWaist").split(" ")[0]}:</strong>{" "}
+              {t("productDetail.howToMeasureWaist")}
             </li>
             <li>
-              <strong>{t("productDetail.sizeChartHip").split(" ")[0]}:</strong> {t("productDetail.howToMeasureHip")}
+              <strong>{t("productDetail.sizeChartHip").split(" ")[0]}:</strong>{" "}
+              {t("productDetail.howToMeasureHip")}
             </li>
-            <li>
-              {t("productDetail.howToMeasureTip")}
-            </li>
+            <li>{t("productDetail.howToMeasureTip")}</li>
           </ul>
         </div>
 
