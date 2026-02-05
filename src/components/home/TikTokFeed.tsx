@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Play, Heart, MessageCircle, Music2 } from "lucide-react";
 import ScrollReveal from "@/components/ui/ScrollReveal";
@@ -12,27 +12,138 @@ const TIKTOK_PROFILE = "https://www.tiktok.com/@ivaniabeauty2";
 interface TikTokVideo {
   id: string;
   thumbnail: string;
+  title: string;
   views: string;
   likes: string;
   url: string;
 }
 
-const fallbackVideos = [
-  { gradient: "from-rosa-dark to-rosa", views: "45.2K", likes: "3.8K" },
-  { gradient: "from-turquesa/70 to-rosa/50", views: "32.1K", likes: "2.5K" },
-  { gradient: "from-rosa to-coral/60", views: "28.7K", likes: "2.1K" },
-  { gradient: "from-rosa-dark/80 to-turquesa/40", views: "22.4K", likes: "1.9K" },
-  { gradient: "from-coral/70 to-rosa-light", views: "19.8K", likes: "1.6K" },
-  { gradient: "from-rosa/60 to-arena", views: "15.3K", likes: "1.2K" },
+const FALLBACK_GRADIENTS = [
+  "from-rosa-dark to-rosa",
+  "from-turquesa/70 to-rosa/50",
+  "from-rosa to-coral/60",
+  "from-rosa-dark/80 to-turquesa/40",
+  "from-coral/70 to-rosa-light",
+  "from-rosa/60 to-arena",
 ];
+
+function VideoCard({
+  video,
+  index,
+  fallbackGradient,
+}: {
+  video: TikTokVideo | null;
+  index: number;
+  fallbackGradient: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  const showThumbnail = video && video.thumbnail && !imgError;
+  const href = video ? video.url : TIKTOK_PROFILE;
+
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer">
+      <motion.div
+        whileHover={{ scale: 1.03 }}
+        transition={{ duration: 0.2 }}
+        className="aspect-[9/14] rounded-xl overflow-hidden relative group cursor-pointer shadow-md"
+      >
+        {showThumbnail ? (
+          <>
+            {/* Real TikTok Thumbnail */}
+            <img
+              src={video.thumbnail}
+              alt={video.title || "TikTok video"}
+              className={cn(
+                "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
+                imgLoaded ? "opacity-100" : "opacity-0"
+              )}
+              loading="lazy"
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+            />
+            {/* Rosa transparent overlay on thumbnail */}
+            <div className="absolute inset-0 bg-rosa/20 mix-blend-multiply" />
+            {/* Show gradient while image loads */}
+            {!imgLoaded && (
+              <div
+                className={cn(
+                  "absolute inset-0 bg-gradient-to-b",
+                  fallbackGradient
+                )}
+              />
+            )}
+          </>
+        ) : (
+          /* Gradient Fallback */
+          <div
+            className={cn(
+              "absolute inset-0 bg-gradient-to-b",
+              fallbackGradient
+            )}
+          />
+        )}
+
+        {/* Decorative Music Note */}
+        <div className="absolute top-3 right-3 opacity-20">
+          <Music2 className="w-6 h-6 text-white" />
+        </div>
+
+        {/* Center Play Button */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 group-hover:bg-white/30 transition-colors duration-300">
+            <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+          </div>
+        </div>
+
+        {/* Bottom Stats */}
+        {video && (video.views || video.likes) && (
+          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent">
+            <div className="flex items-center gap-3 text-white text-xs font-medium">
+              {video.views && (
+                <span className="flex items-center gap-1">
+                  <Play className="w-3 h-3 fill-white" />
+                  {video.views}
+                </span>
+              )}
+              {video.likes && (
+                <span className="flex items-center gap-1">
+                  <Heart className="w-3 h-3 fill-white" />
+                  {video.likes}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Hover Overlay */}
+        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <Play className="w-8 h-8 text-white fill-white mb-2" />
+          <div className="flex items-center gap-3 text-white">
+            <span className="flex items-center gap-1 text-sm">
+              <Heart className="w-4 h-4 fill-white" />
+            </span>
+            <span className="flex items-center gap-1 text-sm">
+              <MessageCircle className="w-4 h-4 fill-white" />
+            </span>
+          </div>
+        </div>
+      </motion.div>
+    </a>
+  );
+}
 
 export default function TikTokFeed() {
   const { t } = useTranslation();
   const [tiktokVideos, setTiktokVideos] = useState<TikTokVideo[]>([]);
 
-  useEffect(() => {
+  const fetchVideos = useCallback(() => {
     fetch("/api/tiktok")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("API error");
+        return res.json();
+      })
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setTiktokVideos(data);
@@ -41,7 +152,15 @@ export default function TikTokFeed() {
       .catch(() => {});
   }, []);
 
-  const hasRealVideos = tiktokVideos.length > 0;
+  useEffect(() => {
+    fetchVideos();
+  }, [fetchVideos]);
+
+  // Build display items: real videos padded with null slots up to 6
+  const displayCount = Math.max(tiktokVideos.length, 5);
+  const displayItems = Array.from({ length: displayCount }, (_, i) =>
+    tiktokVideos[i] ?? null
+  );
 
   return (
     <section className="py-24 bg-arena">
@@ -56,82 +175,18 @@ export default function TikTokFeed() {
         </ScrollReveal>
 
         {/* TikTok Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-12">
-          {(hasRealVideos ? tiktokVideos : fallbackVideos).map((video, i) => (
-            <ScrollReveal key={hasRealVideos ? (video as TikTokVideo).id : i} direction="up" delay={i * 0.08}>
-              <a
-                href={hasRealVideos ? (video as TikTokVideo).url : TIKTOK_PROFILE}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.03 }}
-                  transition={{ duration: 0.2 }}
-                  className="aspect-[9/14] rounded-xl overflow-hidden relative group cursor-pointer shadow-md"
-                >
-                  {hasRealVideos ? (
-                    <>
-                      {/* Real TikTok Thumbnail */}
-                      <img
-                        src={(video as TikTokVideo).thumbnail}
-                        alt=""
-                        className="absolute inset-0 w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      {/* Rosa transparent overlay */}
-                      <div className="absolute inset-0 bg-rosa/25 mix-blend-multiply" />
-                    </>
-                  ) : (
-                    /* Gradient Fallback */
-                    <div
-                      className={cn(
-                        "absolute inset-0 bg-gradient-to-b",
-                        (video as { gradient: string }).gradient
-                      )}
-                    />
-                  )}
-
-                  {/* Decorative Music Note */}
-                  <div className="absolute top-3 right-3 opacity-20">
-                    <Music2 className="w-6 h-6 text-white" />
-                  </div>
-
-                  {/* Center Play Button */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 group-hover:bg-white/30 transition-colors duration-300">
-                      <Play className="w-5 h-5 text-white fill-white ml-0.5" />
-                    </div>
-                  </div>
-
-                  {/* Bottom Stats */}
-                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent">
-                    <div className="flex items-center gap-3 text-white text-xs font-medium">
-                      <span className="flex items-center gap-1">
-                        <Play className="w-3 h-3 fill-white" />
-                        {video.views}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Heart className="w-3 h-3 fill-white" />
-                        {video.likes}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <Play className="w-8 h-8 text-white fill-white mb-2" />
-                    <div className="flex items-center gap-3 text-white">
-                      <span className="flex items-center gap-1 text-sm">
-                        <Heart className="w-4 h-4 fill-white" />
-                        {video.likes}
-                      </span>
-                      <span className="flex items-center gap-1 text-sm">
-                        <MessageCircle className="w-4 h-4 fill-white" />
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
-              </a>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-12">
+          {displayItems.map((video, i) => (
+            <ScrollReveal
+              key={video?.id ?? `fallback-${i}`}
+              direction="up"
+              delay={i * 0.08}
+            >
+              <VideoCard
+                video={video}
+                index={i}
+                fallbackGradient={FALLBACK_GRADIENTS[i % FALLBACK_GRADIENTS.length]}
+              />
             </ScrollReveal>
           ))}
         </div>
