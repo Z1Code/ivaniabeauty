@@ -140,7 +140,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
             {localBadge && (
               <span
                 className={cn(
-                  "absolute top-3 left-3 z-10 px-2.5 py-0.5 text-[9px] font-semibold rounded-lg tracking-wide uppercase",
+                  "absolute top-3 left-3 z-10 px-2.5 py-1 text-[9px] font-semibold rounded-lg tracking-wide uppercase",
                   "border backdrop-blur-sm shadow-sm",
                   "transition-all duration-300 hover:shadow-md hover:scale-105",
                   (badgeStyles[localBadge] || defaultBadgeStyle).bg,
@@ -154,7 +154,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
             {/* Discount badge - matching elegant style */}
             {discountPercent && (
-              <span className="absolute top-3 right-3 z-10 px-2 py-0.5 text-[9px] font-semibold text-rosa-dark bg-white/90 backdrop-blur-sm border border-rosa rounded-lg shadow-sm transition-all duration-300 hover:shadow-md hover:scale-105">
+              <span className="absolute top-3 right-3 z-10 px-2 py-1 text-[9px] font-semibold text-rosa-dark bg-white/90 backdrop-blur-sm border border-rosa rounded-lg shadow-sm transition-all duration-300 hover:shadow-md hover:scale-105">
                 -{discountPercent}%
               </span>
             )}
