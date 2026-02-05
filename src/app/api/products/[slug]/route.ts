@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProductBySlug } from "@/lib/services/products";
 
+// GET: Public endpoint - returns a single product by slug
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -10,7 +11,7 @@ export async function GET(
 
     if (!slug) {
       return NextResponse.json(
-        { error: "Slug is required" },
+        { error: "Product slug is required" },
         { status: 400 }
       );
     }
