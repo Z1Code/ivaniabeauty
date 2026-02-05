@@ -12,9 +12,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+// Guard: skip initialization when env vars are missing (e.g. during
+// Vercel build-time prerendering). At runtime the vars are always present.
+const isConfigured = !!firebaseConfig.apiKey;
+const app =
+  isConfigured
+    ? getApps().length === 0
+      ? initializeApp(firebaseConfig)
+      : getApp()
+    : null;
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+export const auth = app
+  ? getAuth(app)
+  : (null as unknown as ReturnType<typeof getAuth>);
+export const db = app
+  ? getFirestore(app)
+  : (null as unknown as ReturnType<typeof getFirestore>);
+export const storage = app
+  ? getStorage(app)
+  : (null as unknown as ReturnType<typeof getStorage>);
 export default app;
