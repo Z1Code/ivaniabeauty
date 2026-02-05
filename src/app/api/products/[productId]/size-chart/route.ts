@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { adminDb, isFirebaseConfigured } from "@/lib/firebase/admin";
 import type { SizeChartMeasurement, SizeChartDoc } from "@/lib/firebase/types";
 
 // Lazy initialization to avoid errors during build when API key is not set
-let openaiClient: OpenAI | null = null;
+let geminiClient: GoogleGenerativeAI | null = null;
 
-function getOpenAIClient(): OpenAI | null {
-  if (!process.env.OPENAI_API_KEY) {
+function getGeminiClient(): GoogleGenerativeAI | null {
+  if (!process.env.GEMINI_API_KEY) {
     return null;
   }
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+  if (!geminiClient) {
+    geminiClient = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   }
-  return openaiClient;
+  return geminiClient;
 }
 
 const VISION_PROMPT = `Analyze this size chart image and extract all measurements in centimeters.
@@ -37,6 +35,17 @@ Rules:
 - Measurements should be in cm format, typically as ranges like "58-62"
 - If a single value is shown instead of a range, use that value as a string
 - Only return the JSON array, nothing else`;
+
+// Fetch image and convert to base64
+async function fetchImageAsBase64(url: string): Promise<{ data: string; mimeType: string }> {
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const base64 = buffer.toString("base64");
+
+  const contentType = response.headers.get("content-type") || "image/jpeg";
+  return { data: base64, mimeType: contentType };
+}
 
 export async function GET(
   request: NextRequest,
@@ -93,46 +102,42 @@ export async function GET(
       });
     }
 
-    // 3. Get OpenAI client (lazy init)
-    const openai = getOpenAIClient();
-    if (!openai) {
+    // 3. Get Gemini client (lazy init)
+    const genAI = getGeminiClient();
+    if (!genAI) {
       return NextResponse.json(
-        { error: "OpenAI API key not configured", measurements: null },
+        { error: "Gemini API key not configured", measurements: null },
         { status: 503 }
       );
     }
 
-    // 4. Call OpenAI Vision API
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: VISION_PROMPT },
-            {
-              type: "image_url",
-              image_url: {
-                url: sizeChartImageUrl,
-                detail: "high",
-              },
-            },
-          ],
-        },
-      ],
-      max_tokens: 1000,
-    });
+    // 4. Fetch image and convert to base64
+    const imageData = await fetchImageAsBase64(sizeChartImageUrl);
 
-    const content = response.choices[0]?.message?.content;
+    // 5. Call Gemini Vision API
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const result = await model.generateContent([
+      VISION_PROMPT,
+      {
+        inlineData: {
+          data: imageData.data,
+          mimeType: imageData.mimeType,
+        },
+      },
+    ]);
+
+    const response = result.response;
+    const content = response.text();
 
     if (!content) {
       return NextResponse.json(
-        { error: "No response from OpenAI", measurements: null },
+        { error: "No response from Gemini", measurements: null },
         { status: 500 }
       );
     }
 
-    // 5. Parse the JSON response
+    // 6. Parse the JSON response
     let measurements: SizeChartMeasurement[];
     try {
       // Clean up the response - remove markdown code blocks if present
@@ -142,14 +147,14 @@ export async function GET(
         .trim();
       measurements = JSON.parse(cleanContent);
     } catch {
-      console.error("Failed to parse OpenAI response:", content);
+      console.error("Failed to parse Gemini response:", content);
       return NextResponse.json(
         { error: "Failed to parse size chart data", measurements: null },
         { status: 500 }
       );
     }
 
-    // 6. Save to cache
+    // 7. Save to cache
     const sizeChartDoc: SizeChartDoc = {
       productId,
       measurements,
