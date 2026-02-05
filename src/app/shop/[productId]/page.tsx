@@ -87,15 +87,49 @@ type TabKey = "descripcion" | "tallas" | "materiales" | "resenas";
 
 export default function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
+  const [product, setProduct] = useState<ProductData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  /* ----- locate product ----- */
-  const product = useMemo(
-    () =>
-      (productsData as ProductData[]).find(
-        (p) => p.slug === productId
-      ) ?? null,
-    [productId]
-  );
+  useEffect(() => {
+    async function fetchProduct() {
+      if (!productId) return;
+
+      setLoading(true);
+      try {
+        // Fetch from API (Firestore)
+        const res = await fetch(`/api/products/${productId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setProduct(data);
+        } else {
+          // Fallback to local JSON
+          const localProduct = (productsData as ProductData[]).find(
+            (p) => p.slug === productId
+          );
+          setProduct(localProduct || null);
+        }
+      } catch {
+        // Fallback to local JSON on error
+        const localProduct = (productsData as ProductData[]).find(
+          (p) => p.slug === productId
+        );
+        setProduct(localProduct || null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProduct();
+  }, [productId]);
+
+  /* Loading state */
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center pt-28">
+        <Loader2 className="w-8 h-8 text-rosa animate-spin" />
+      </div>
+    );
+  }
 
   /* If product is not found, render a friendly message */
   if (!product) {

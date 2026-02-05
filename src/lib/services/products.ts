@@ -22,6 +22,7 @@ export interface Product {
   materials: string;
   care: string;
   images: string[];
+  sizeChartImageUrl: string | null;
   rating: number;
   reviewCount: number;
   inStock: boolean;
@@ -65,6 +66,7 @@ function transformProduct(
     materials: data.materials || "",
     care: data.care || "",
     images: data.images || [],
+    sizeChartImageUrl: data.sizeChartImageUrl || null,
     rating: Number(data.rating) || 0,
     reviewCount: Number(data.reviewCount) || 0,
     inStock: data.inStock !== false,
