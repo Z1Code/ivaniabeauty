@@ -1,15 +1,32 @@
+export type HeroEffectIntensity = "soft" | "medium" | "intense";
+
 export interface HomeSectionsSettings {
   showTikTok: boolean;
   showInstagram: boolean;
+  heroEffectIntensity: HeroEffectIntensity;
 }
 
 export const HOME_SECTIONS_STORAGE_KEY = "ivania_settings_home_sections";
 export const HOME_SECTIONS_UPDATED_EVENT = "ivania:home-sections-updated";
 
+export const HERO_EFFECT_INTENSITY_OPTIONS: HeroEffectIntensity[] = [
+  "soft",
+  "medium",
+  "intense",
+];
+
 export const DEFAULT_HOME_SECTIONS_SETTINGS: HomeSectionsSettings = {
   showTikTok: true,
   showInstagram: true,
+  heroEffectIntensity: "medium",
 };
+
+function isHeroEffectIntensity(value: unknown): value is HeroEffectIntensity {
+  return (
+    typeof value === "string" &&
+    HERO_EFFECT_INTENSITY_OPTIONS.includes(value as HeroEffectIntensity)
+  );
+}
 
 export function sanitizeHomeSectionsSettings(input: unknown): HomeSectionsSettings {
   if (!input || typeof input !== "object") {
@@ -27,6 +44,9 @@ export function sanitizeHomeSectionsSettings(input: unknown): HomeSectionsSettin
       typeof candidate.showInstagram === "boolean"
         ? candidate.showInstagram
         : DEFAULT_HOME_SECTIONS_SETTINGS.showInstagram,
+    heroEffectIntensity: isHeroEffectIntensity(candidate.heroEffectIntensity)
+      ? candidate.heroEffectIntensity
+      : DEFAULT_HOME_SECTIONS_SETTINGS.heroEffectIntensity,
   };
 }
 

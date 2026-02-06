@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   Instagram,
   Video,
+  Sparkles,
 } from "lucide-react";
 import { Type } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -30,9 +31,11 @@ import {
 } from "@/app/shop/sections";
 import {
   DEFAULT_HOME_SECTIONS_SETTINGS,
+  HERO_EFFECT_INTENSITY_OPTIONS,
   HOME_SECTIONS_STORAGE_KEY,
   HOME_SECTIONS_UPDATED_EVENT,
   sanitizeHomeSectionsSettings,
+  type HeroEffectIntensity,
   type HomeSectionsSettings,
 } from "@/lib/home-sections-config";
 
@@ -74,6 +77,24 @@ function getStoredValue<T>(key: string, fallback: T): T {
 
 const inputClasses =
   "w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-colors";
+
+const HERO_INTENSITY_LABELS: Record<
+  HeroEffectIntensity,
+  { title: string; description: string }
+> = {
+  soft: {
+    title: "Suave",
+    description: "Movimiento ligero y menos particulas.",
+  },
+  medium: {
+    title: "Medio",
+    description: "Balance visual recomendado.",
+  },
+  intense: {
+    title: "Intenso",
+    description: "Parallax, reflejos y particulas mas marcados.",
+  },
+};
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -186,7 +207,7 @@ export default function SettingsPage() {
   }, []);
 
   const toggleHomeSection = useCallback(
-    (key: keyof HomeSectionsSettings) => {
+    (key: "showTikTok" | "showInstagram") => {
       setHomeSections((prev) => ({
         ...prev,
         [key]: !prev[key],
@@ -194,6 +215,13 @@ export default function SettingsPage() {
     },
     []
   );
+
+  const setHomeHeroIntensity = useCallback((intensity: HeroEffectIntensity) => {
+    setHomeSections((prev) => ({
+      ...prev,
+      heroEffectIntensity: intensity,
+    }));
+  }, []);
 
   const saveSection = useCallback(
     async (section: string) => {
@@ -832,6 +860,39 @@ export default function SettingsPage() {
                 <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
               </div>
             </label>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70 p-4 mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-rosa" />
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Intensidad visual del Hero
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {HERO_EFFECT_INTENSITY_OPTIONS.map((intensity) => {
+                const selected = homeSections.heroEffectIntensity === intensity;
+                const metadata = HERO_INTENSITY_LABELS[intensity];
+                return (
+                  <button
+                    key={intensity}
+                    type="button"
+                    onClick={() => setHomeHeroIntensity(intensity)}
+                    className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                      selected
+                        ? "border-rosa bg-rosa/10 text-rosa-dark"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-rosa/45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">{metadata.title}</p>
+                    <p className="mt-1 text-xs opacity-80">
+                      {metadata.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex justify-end">

@@ -20,7 +20,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import { useRef } from "react";
+import { useRef, useSyncExternalStore } from "react";
+import type { HeroEffectIntensity } from "@/lib/home-sections-config";
 
 const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -49,6 +50,42 @@ type HeroReflection = {
   driftY: number;
   duration: number;
   delay: number;
+};
+
+type HeroEffectPreset = {
+  background: {
+    yEnd: number;
+    xEnd: number;
+    scaleEnd: number;
+    rotateEnd: number;
+  };
+  layers: {
+    hazeOpacityEnd: number;
+    hazeYEnd: number;
+    contentYEnd: number;
+    gridYEnd: number;
+    blob1YEnd: number;
+    blob2YEnd: number;
+    blob3YEnd: number;
+    panelYEnd: number;
+    sparkleYEnd: number;
+  };
+  particles: {
+    visibleCount: number;
+    driftMultiplier: number;
+    opacityPeak: number;
+    glowMultiplier: number;
+    scalePeak: number;
+  };
+  reflections: {
+    visibleCount: number;
+    driftMultiplier: number;
+    opacityMultiplier: number;
+  };
+};
+
+type HeroProps = {
+  effectIntensity?: HeroEffectIntensity;
 };
 
 const HERO_PARTICLES: HeroParticle[] = [
@@ -110,6 +147,87 @@ const HERO_REFLECTIONS: HeroReflection[] = [
   },
 ];
 
+const HERO_EFFECT_PRESETS: Record<HeroEffectIntensity, HeroEffectPreset> = {
+  soft: {
+    background: { yEnd: 230, xEnd: -16, scaleEnd: 1.14, rotateEnd: -0.8 },
+    layers: {
+      hazeOpacityEnd: 0.13,
+      hazeYEnd: 52,
+      contentYEnd: 56,
+      gridYEnd: -82,
+      blob1YEnd: -110,
+      blob2YEnd: -70,
+      blob3YEnd: -130,
+      panelYEnd: -42,
+      sparkleYEnd: -88,
+    },
+    particles: {
+      visibleCount: 8,
+      driftMultiplier: 0.72,
+      opacityPeak: 0.56,
+      glowMultiplier: 0.75,
+      scalePeak: 1.09,
+    },
+    reflections: {
+      visibleCount: 2,
+      driftMultiplier: 0.66,
+      opacityMultiplier: 0.68,
+    },
+  },
+  medium: {
+    background: { yEnd: 340, xEnd: -28, scaleEnd: 1.28, rotateEnd: -1.4 },
+    layers: {
+      hazeOpacityEnd: 0.22,
+      hazeYEnd: 84,
+      contentYEnd: 90,
+      gridYEnd: -120,
+      blob1YEnd: -180,
+      blob2YEnd: -120,
+      blob3YEnd: -240,
+      panelYEnd: -70,
+      sparkleYEnd: -140,
+    },
+    particles: {
+      visibleCount: 14,
+      driftMultiplier: 1,
+      opacityPeak: 0.74,
+      glowMultiplier: 1,
+      scalePeak: 1.14,
+    },
+    reflections: {
+      visibleCount: 3,
+      driftMultiplier: 1,
+      opacityMultiplier: 1,
+    },
+  },
+  intense: {
+    background: { yEnd: 470, xEnd: -38, scaleEnd: 1.42, rotateEnd: -2.1 },
+    layers: {
+      hazeOpacityEnd: 0.3,
+      hazeYEnd: 108,
+      contentYEnd: 112,
+      gridYEnd: -162,
+      blob1YEnd: -250,
+      blob2YEnd: -170,
+      blob3YEnd: -320,
+      panelYEnd: -92,
+      sparkleYEnd: -186,
+    },
+    particles: {
+      visibleCount: 14,
+      driftMultiplier: 1.36,
+      opacityPeak: 0.84,
+      glowMultiplier: 1.28,
+      scalePeak: 1.2,
+    },
+    reflections: {
+      visibleCount: 3,
+      driftMultiplier: 1.42,
+      opacityMultiplier: 1.22,
+    },
+  },
+};
+
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
@@ -130,10 +248,17 @@ const childVariants: Variants = {
   },
 };
 
-export default function Hero() {
+export default function Hero({ effectIntensity = "medium" }: HeroProps) {
   const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
+  const hasHydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  const reduceMotion = hasHydrated ? shouldReduceMotion : false;
   const sectionRef = useRef<HTMLElement>(null);
+  const effectPreset = HERO_EFFECT_PRESETS[effectIntensity] ?? HERO_EFFECT_PRESETS.medium;
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start start", "end start"],
@@ -157,20 +282,20 @@ export default function Hero() {
     t("hero.panelPoint3"),
   ];
 
-  const bgY = useTransform(scrollYProgress, [0, 1], [0, 340]);
-  const bgX = useTransform(scrollYProgress, [0, 1], [0, -28]);
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.28]);
-  const bgRotate = useTransform(scrollYProgress, [0, 1], [0, -1.4]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, effectPreset.background.yEnd]);
+  const bgX = useTransform(scrollYProgress, [0, 1], [0, effectPreset.background.xEnd]);
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1, effectPreset.background.scaleEnd]);
+  const bgRotate = useTransform(scrollYProgress, [0, 1], [0, effectPreset.background.rotateEnd]);
   const overlayOpacity = useTransform(scrollYProgress, [0, 1], [0.34, 0.58]);
-  const hazeOpacity = useTransform(scrollYProgress, [0, 1], [0.04, 0.22]);
-  const hazeY = useTransform(scrollYProgress, [0, 1], [0, 84]);
-  const contentY = useTransform(scrollYProgress, [0, 1], [0, 90]);
-  const gridY = useTransform(scrollYProgress, [0, 1], [0, -120]);
-  const blob1Y = useTransform(scrollYProgress, [0, 1], [0, -180]);
-  const blob2Y = useTransform(scrollYProgress, [0, 1], [0, -120]);
-  const blob3Y = useTransform(scrollYProgress, [0, 1], [0, -240]);
-  const panelY = useTransform(scrollYProgress, [0, 1], [0, -70]);
-  const sparkleY = useTransform(scrollYProgress, [0, 1], [0, -140]);
+  const hazeOpacity = useTransform(scrollYProgress, [0, 1], [0.04, effectPreset.layers.hazeOpacityEnd]);
+  const hazeY = useTransform(scrollYProgress, [0, 1], [0, effectPreset.layers.hazeYEnd]);
+  const contentY = useTransform(scrollYProgress, [0, 1], [0, effectPreset.layers.contentYEnd]);
+  const gridY = useTransform(scrollYProgress, [0, 1], [0, effectPreset.layers.gridYEnd]);
+  const blob1Y = useTransform(scrollYProgress, [0, 1], [0, effectPreset.layers.blob1YEnd]);
+  const blob2Y = useTransform(scrollYProgress, [0, 1], [0, effectPreset.layers.blob2YEnd]);
+  const blob3Y = useTransform(scrollYProgress, [0, 1], [0, effectPreset.layers.blob3YEnd]);
+  const panelY = useTransform(scrollYProgress, [0, 1], [0, effectPreset.layers.panelYEnd]);
+  const sparkleY = useTransform(scrollYProgress, [0, 1], [0, effectPreset.layers.sparkleYEnd]);
 
   return (
     <section
@@ -180,7 +305,7 @@ export default function Hero() {
       <motion.div
         className="absolute inset-0 z-0"
         style={
-          shouldReduceMotion
+          reduceMotion
             ? { willChange: "auto" }
             : {
                 y: bgY,
@@ -205,7 +330,7 @@ export default function Hero() {
 
       <motion.div
         className="absolute inset-0 z-[1]"
-        style={shouldReduceMotion ? undefined : { opacity: overlayOpacity }}
+        style={reduceMotion ? undefined : { opacity: overlayOpacity }}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-perla/88 via-white/55 to-rosa-light/42" />
         <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_25%,rgba(255,255,255,0.3)_0%,rgba(255,255,255,0)_65%)]" />
@@ -213,115 +338,133 @@ export default function Hero() {
 
       <motion.div
         className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/10 via-transparent to-black/20"
-        style={shouldReduceMotion ? undefined : { opacity: hazeOpacity, y: hazeY }}
+        style={reduceMotion ? undefined : { opacity: hazeOpacity, y: hazeY }}
       />
 
       <motion.div
         className="absolute inset-0 z-[3] pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.16)_1px,transparent_1px)] bg-[size:72px_72px] opacity-40"
-        style={shouldReduceMotion ? undefined : { y: gridY }}
+        style={reduceMotion ? undefined : { y: gridY }}
       />
 
       <motion.div
         className="pointer-events-none absolute -top-32 -right-24 z-[3] h-[28rem] w-[28rem] rounded-full bg-rosa-light/30 blur-[90px]"
-        style={shouldReduceMotion ? undefined : { y: blob1Y }}
+        style={reduceMotion ? undefined : { y: blob1Y }}
       />
       <motion.div
         className="pointer-events-none absolute bottom-0 -left-20 z-[3] h-[22rem] w-[22rem] rounded-full bg-turquesa/20 blur-[80px]"
-        style={shouldReduceMotion ? undefined : { y: blob2Y }}
+        style={reduceMotion ? undefined : { y: blob2Y }}
       />
       <motion.div
         className="pointer-events-none absolute top-24 left-[36%] z-[3] h-[14rem] w-[14rem] rounded-full bg-dorado/18 blur-[70px]"
-        style={shouldReduceMotion ? undefined : { y: blob3Y }}
+        style={reduceMotion ? undefined : { y: blob3Y }}
       />
 
       <motion.div
         className="pointer-events-none absolute inset-x-0 top-0 z-[3] h-24 bg-gradient-to-b from-white/45 to-transparent"
-        style={shouldReduceMotion ? undefined : { y: sparkleY }}
+        style={reduceMotion ? undefined : { y: sparkleY }}
       />
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] h-32 bg-gradient-to-t from-perla to-transparent" />
 
       <motion.div
         className="pointer-events-none absolute inset-0 z-[4]"
-        style={shouldReduceMotion ? undefined : { y: sparkleY }}
+        style={reduceMotion ? undefined : { y: sparkleY }}
         aria-hidden="true"
       >
-        {HERO_PARTICLES.map((particle) => (
-          <motion.span
-            key={particle.id}
-            className="absolute rounded-full"
-            style={{
-              left: particle.left,
-              top: particle.top,
-              width: particle.size,
-              height: particle.size,
-              backgroundColor: particle.color,
-              boxShadow: `0 0 ${particle.glow}px ${particle.color}`,
-            }}
-            animate={
-              shouldReduceMotion
-                ? undefined
-                : {
-                    x: [0, particle.driftX, 0],
-                    y: [0, particle.driftY, 0],
-                    opacity: [0.18, 0.74, 0.18],
-                    scale: [1, 1.14, 1],
-                  }
-            }
-            transition={{
-              duration: particle.duration,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: particle.delay,
-            }}
-          />
-        ))}
+        {HERO_PARTICLES.slice(0, effectPreset.particles.visibleCount).map(
+          (particle) => (
+            <motion.span
+              key={particle.id}
+              className="absolute rounded-full"
+              style={{
+                left: particle.left,
+                top: particle.top,
+                width: particle.size,
+                height: particle.size,
+                backgroundColor: particle.color,
+                boxShadow: `0 0 ${Math.round(
+                  particle.glow * effectPreset.particles.glowMultiplier
+                )}px ${particle.color}`,
+              }}
+              animate={
+                reduceMotion
+                  ? undefined
+                  : {
+                      x: [0, particle.driftX * effectPreset.particles.driftMultiplier, 0],
+                      y: [0, particle.driftY * effectPreset.particles.driftMultiplier, 0],
+                      opacity: [0.16, effectPreset.particles.opacityPeak, 0.16],
+                      scale: [1, effectPreset.particles.scalePeak, 1],
+                    }
+              }
+              transition={{
+                duration: particle.duration,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: particle.delay,
+              }}
+            />
+          )
+        )}
       </motion.div>
 
       <motion.div
         className="pointer-events-none absolute inset-0 z-[5] overflow-hidden mix-blend-screen"
-        style={shouldReduceMotion ? undefined : { y: sparkleY }}
+        style={reduceMotion ? undefined : { y: sparkleY }}
         aria-hidden="true"
       >
-        {HERO_REFLECTIONS.map((reflection) => (
-          <motion.div
-            key={reflection.id}
-            className="absolute rounded-full"
-            style={{
-              left: reflection.left,
-              top: reflection.top,
-              width: reflection.width,
-              height: reflection.height,
-              opacity: reflection.opacity,
-              background: `linear-gradient(${reflection.angle}deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.88) 48%, rgba(255,255,255,0) 100%)`,
-              filter: "blur(1.2px)",
-            }}
-            animate={
-              shouldReduceMotion
-                ? undefined
-                : {
-                    x: [0, reflection.driftX, 0],
-                    y: [0, reflection.driftY, 0],
-                    opacity: [
-                      reflection.opacity * 0.42,
-                      reflection.opacity,
-                      reflection.opacity * 0.42,
-                    ],
-                  }
-            }
-            transition={{
-              duration: reflection.duration,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: reflection.delay,
-            }}
-          />
-        ))}
+        {HERO_REFLECTIONS.slice(0, effectPreset.reflections.visibleCount).map(
+          (reflection) => {
+            const reflectionOpacity =
+              reflection.opacity * effectPreset.reflections.opacityMultiplier;
+            return (
+              <motion.div
+                key={reflection.id}
+                className="absolute rounded-full"
+                style={{
+                  left: reflection.left,
+                  top: reflection.top,
+                  width: reflection.width,
+                  height: reflection.height,
+                  opacity: reflectionOpacity,
+                  background: `linear-gradient(${reflection.angle}deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.88) 48%, rgba(255,255,255,0) 100%)`,
+                  filter: "blur(1.2px)",
+                }}
+                animate={
+                  reduceMotion
+                    ? undefined
+                    : {
+                        x: [
+                          0,
+                          reflection.driftX * effectPreset.reflections.driftMultiplier,
+                          0,
+                        ],
+                        y: [
+                          0,
+                          reflection.driftY * effectPreset.reflections.driftMultiplier,
+                          0,
+                        ],
+                        opacity: [
+                          reflectionOpacity * 0.42,
+                          reflectionOpacity,
+                          reflectionOpacity * 0.42,
+                        ],
+                      }
+                }
+                transition={{
+                  duration: reflection.duration,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: reflection.delay,
+                }}
+              />
+            );
+          }
+        )}
       </motion.div>
 
       <motion.div
         className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-6 pb-14 pt-28 lg:grid-cols-[1.08fr_0.92fr] lg:gap-14 lg:pt-32"
-        style={shouldReduceMotion ? undefined : { y: contentY }}
+        style={reduceMotion ? undefined : { y: contentY }}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -415,7 +558,7 @@ export default function Hero() {
 
         <motion.aside
           variants={childVariants}
-          style={shouldReduceMotion ? undefined : { y: panelY }}
+          style={reduceMotion ? undefined : { y: panelY }}
           className="relative"
         >
           <div className="rounded-[28px] border border-white/65 bg-white/58 p-6 shadow-[0_25px_80px_rgba(232,30,99,0.16)] backdrop-blur-2xl md:p-7">
@@ -459,7 +602,7 @@ export default function Hero() {
 
           <motion.div
             className="absolute -bottom-6 -right-4 rounded-2xl border border-white/65 bg-white/70 px-4 py-3 shadow-lg backdrop-blur-xl"
-            animate={shouldReduceMotion ? undefined : { y: [0, -8, 0] }}
+            animate={reduceMotion ? undefined : { y: [0, -8, 0] }}
             transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
           >
             <div className="flex items-center gap-2">

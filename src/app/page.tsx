@@ -35,7 +35,8 @@ export default function Home() {
       );
       setHomeSections((prev) =>
         prev.showTikTok === parsed.showTikTok &&
-        prev.showInstagram === parsed.showInstagram
+        prev.showInstagram === parsed.showInstagram &&
+        prev.heroEffectIntensity === parsed.heroEffectIntensity
           ? prev
           : parsed
       );
@@ -80,7 +81,7 @@ export default function Home() {
       />
 
       <div className="relative z-10">
-        <Hero />
+        <Hero effectIntensity={homeSections.heroEffectIntensity} />
         <Features />
         <Collections />
         <FeaturedProduct />

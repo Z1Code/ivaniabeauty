@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -22,8 +22,11 @@ import LanguageToggle from "@/components/shared/LanguageToggle";
 const DARK_HERO_PAGES: string[] = [];
 
 export default function Header() {
-  const [scrolled, setScrolled] = useState(
-    () => typeof window !== "undefined" && window.scrollY > 50
+  const [scrolled, setScrolled] = useState(false);
+  const hasMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
   );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { openCart, totalItems } = useCart();
@@ -164,7 +167,7 @@ export default function Header() {
               >
                 <ShoppingBag className="w-5 h-5" />
                 <AnimatePresence>
-                  {cartCount > 0 && (
+                  {hasMounted && cartCount > 0 && (
                     <motion.span
                       key="cart-badge"
                       initial={{ scale: 0 }}
