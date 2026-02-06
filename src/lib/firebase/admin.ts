@@ -14,16 +14,32 @@ let adminAuth: Auth;
 let adminDb: Firestore;
 let adminStorage: Storage;
 
-const sanitizedProjectId = (process.env.FIREBASE_ADMIN_PROJECT_ID ||
-  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
-  "").trim();
+const sanitizeString = (value: string | undefined) =>
+  (value || "")
+    .replace(/^"|"$/g, "") // strip wrapping quotes if present
+    .replace(/\\n/g, "\n")
+    .trim();
+
+const sanitizedProjectId = sanitizeString(
+  process.env.FIREBASE_ADMIN_PROJECT_ID ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+);
+const sanitizedClientEmail = sanitizeString(
+  process.env.FIREBASE_ADMIN_CLIENT_EMAIL
+);
+const sanitizedPrivateKey = sanitizeString(
+  process.env.FIREBASE_ADMIN_PRIVATE_KEY
+);
+const sanitizedStorageBucket =
+  sanitizeString(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) ||
+  (sanitizedProjectId ? `${sanitizedProjectId}.appspot.com` : undefined);
 
 function isFirebaseConfigured(): boolean {
   return !!(
     sanitizedProjectId &&
-    process.env.FIREBASE_ADMIN_CLIENT_EMAIL &&
-    process.env.FIREBASE_ADMIN_PRIVATE_KEY &&
-    !process.env.FIREBASE_ADMIN_PRIVATE_KEY.includes("your-private-key")
+    sanitizedClientEmail &&
+    sanitizedPrivateKey &&
+    !sanitizedPrivateKey.includes("your-private-key")
   );
 }
 
@@ -33,16 +49,13 @@ function initFirebaseAdmin() {
   } else if (isFirebaseConfigured()) {
     const serviceAccount: ServiceAccount = {
       projectId: sanitizedProjectId,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(
-        /\\n/g,
-        "\n"
-      ),
+      clientEmail: sanitizedClientEmail,
+      privateKey: sanitizedPrivateKey,
     };
     app = initializeApp({
       credential: cert(serviceAccount),
       projectId: sanitizedProjectId,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      storageBucket: sanitizedStorageBucket,
     });
   } else {
     // Firebase not configured - initialize with minimal config for build time
