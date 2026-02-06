@@ -5,8 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Sparkles, X } from "lucide-react";
-import SectionChips from "@/components/shop/SectionChips";
 import ProductSection from "@/components/shop/ProductSection";
+import UniformScrollController from "@/components/shop/UniformScrollController";
 import {
   SECTIONS,
   getSectionsByIds,
@@ -810,6 +810,7 @@ function ShopPageContent() {
 
   return (
     <main className="min-h-screen bg-perla">
+      <UniformScrollController />
       {/* Hero Banner */}
       <section className="pt-28 pb-8 bg-perla flex items-center justify-center">
         <div className="text-center">
