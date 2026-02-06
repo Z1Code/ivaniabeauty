@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminSession } from "@/lib/firebase/auth-helpers";
@@ -8,6 +8,11 @@ import {
   getProductModelProfiles,
   isProductImageGenerationConfigured,
 } from "@/lib/product-image-ai/generator";
+import {
+  getBackgroundRemovalConfiguration,
+  isSpecializedBackgroundRemovalConfigured,
+  type ProviderId,
+} from "@/lib/product-image-ai/background-removal";
 
 export const maxDuration = 120;
 
@@ -27,9 +32,30 @@ interface GenerationRequestBody {
   preferredProfileId?: string;
   customPrompt?: string;
   targetColor?: string;
+  variantCount?: number;
+  angleMode?: "auto" | "front_only";
   placeFirst?: boolean;
   maxImages?: number;
 }
+
+interface GeneratedVariant {
+  variantIndex: number;
+  imageUrl: string;
+  variantPrompt: string;
+  generation: Awaited<ReturnType<typeof generateProfessionalProductImage>>;
+}
+
+interface VariantFailure {
+  variantIndex: number;
+  message: string;
+  status?: number;
+  code?: string;
+}
+
+type BackgroundRemovalProvider =
+  | ProviderId
+  | "gemini_transparency_pass"
+  | "gemini_strict_pass";
 
 function getGeminiEnvPresence() {
   const presence = {
@@ -108,6 +134,94 @@ function limitImages(images: string[], maxImages?: number): string[] {
   return images.slice(0, maxImages);
 }
 
+function sanitizeVariantCount(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 1;
+  const parsed = Math.floor(value);
+  if (parsed < 1) return 1;
+  if (parsed > 8) return 8;
+  return parsed;
+}
+
+function sanitizeAngleMode(value: unknown): "auto" | "front_only" {
+  if (value === "front_only") return "front_only";
+  return "auto";
+}
+
+function pickProfileId(
+  preferredProfileId: string | null
+): { id: string | undefined; isAuto: boolean } {
+  if (preferredProfileId) {
+    return { id: preferredProfileId, isAuto: false };
+  }
+  const profiles = getProductModelProfiles();
+  if (!profiles.length) {
+    return { id: undefined, isAuto: true };
+  }
+  const profile = profiles[randomInt(0, profiles.length)];
+  return { id: profile.id, isAuto: true };
+}
+
+const AUTO_ANGLE_INSTRUCTIONS = [
+  "Front full-body camera angle, model facing camera directly.",
+  "3/4 left camera angle (about 25 degrees), full body visible.",
+  "Left side profile camera angle, full body visible.",
+  "3/4 back-left camera angle, full body visible.",
+  "Back full-body camera angle, full body visible.",
+  "3/4 back-right camera angle, full body visible.",
+  "Right side profile camera angle, full body visible.",
+  "3/4 right camera angle (about 25 degrees), full body visible.",
+];
+
+function buildAngleInstruction(index: number, variantCount: number): string {
+  if (variantCount <= 1) {
+    return "Front full-body camera angle, model facing camera directly.";
+  }
+  const preset = AUTO_ANGLE_INSTRUCTIONS[index] || AUTO_ANGLE_INSTRUCTIONS[0];
+  return `${preset} Keep garment details exact and keep the same model identity as previous generated variants.`;
+}
+
+function buildVariantPrompt({
+  basePrompt,
+  angleMode,
+  variantIndex,
+  variantCount,
+}: {
+  basePrompt: string | null;
+  angleMode: "auto" | "front_only";
+  variantIndex: number;
+  variantCount: number;
+}): string {
+  const angleInstruction =
+    angleMode === "front_only"
+      ? "Front full-body camera angle, model facing camera directly. Keep garment details exact and keep the same model identity as previous generated variants."
+      : buildAngleInstruction(variantIndex, variantCount);
+  return [basePrompt, angleInstruction].filter(Boolean).join("\n");
+}
+
+function mergeGeneratedImages({
+  existingImages,
+  generatedUrls,
+  placeFirst,
+  sourceSizeChart,
+  maxImages,
+}: {
+  existingImages: string[];
+  generatedUrls: string[];
+  placeFirst: boolean;
+  sourceSizeChart: string | null;
+  maxImages?: number;
+}): string[] {
+  const generatedSet = new Set(generatedUrls);
+  const withoutDuplicate = existingImages.filter((url) => !generatedSet.has(url));
+  const orderedImages = placeFirst
+    ? [...generatedUrls, ...withoutDuplicate]
+    : [...withoutDuplicate, ...generatedUrls];
+  const filteredImages = sourceSizeChart
+    ? orderedImages.filter((url) => url !== sourceSizeChart)
+    : orderedImages;
+  return limitImages(filteredImages, maxImages);
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -127,10 +241,15 @@ export async function GET(
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
 
+  const bgRemovalConfig = getBackgroundRemovalConfiguration();
+
   return NextResponse.json({
     productId: id,
     availableProfiles: getProductModelProfiles(),
     configured: isProductImageGenerationConfigured(),
+    specializedBackgroundRemovalConfigured:
+      isSpecializedBackgroundRemovalConfigured(),
+    backgroundRemovalConfiguration: bgRemovalConfig,
   });
 }
 
@@ -178,6 +297,10 @@ export async function POST(
     const body = (await request.json().catch(() => ({}))) as GenerationRequestBody;
     const customPrompt = sanitizePrompt(body.customPrompt);
     const targetColor = sanitizeShortText(body.targetColor, 60);
+    const variantCount = sanitizeVariantCount(body.variantCount);
+    const angleMode = sanitizeAngleMode(body.angleMode);
+    const preferredProfileId = sanitizeShortText(body.preferredProfileId, 80);
+    const bgRemovalConfig = getBackgroundRemovalConfiguration();
     const docRef = adminDb.collection("products").doc(id);
     const docSnap = await docRef.get();
 
@@ -208,85 +331,177 @@ export async function POST(
       );
     }
     const colorReferenceImageUrl = sanitizeUrl(body.colorReferenceImageUrl);
-
-    const generation = await generateProfessionalProductImage({
-      sourceImageUrl: sourceImageUrls[0],
-      sourceImageUrls,
-      colorReferenceImageUrl: colorReferenceImageUrl || undefined,
-      productName: product.nameEs || product.nameEn,
-      productCategory: product.category,
-      productColors: Array.isArray(product.colors) ? product.colors : [],
-      preferredProfileId: sanitizeUrl(body.preferredProfileId) || undefined,
-      customPrompt: customPrompt || undefined,
-      targetColor: targetColor || undefined,
-    });
-
     const bucket = adminStorage.bucket();
-    const ext = extensionFromMimeType(generation.mimeType);
-    const fileName = `products/generated/${id}/${Date.now()}-${randomUUID()}.${ext}`;
-    const file = bucket.file(fileName);
+    const generatedVariants: GeneratedVariant[] = [];
+    const variantFailures: VariantFailure[] = [];
+    const profileSelection = pickProfileId(preferredProfileId);
+    let fixedProfileId = profileSelection.id;
 
-    await file.save(generation.imageBuffer, {
-      metadata: {
-        contentType: generation.mimeType,
-      },
-    });
-    await file.makePublic();
+    for (let index = 0; index < variantCount; index += 1) {
+      const variantIndex = index + 1;
+      const variantPrompt = buildVariantPrompt({
+        basePrompt: customPrompt,
+        angleMode,
+        variantIndex: index,
+        variantCount,
+      });
 
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+      try {
+        const generation = await generateProfessionalProductImage({
+          sourceImageUrl: sourceImageUrls[0],
+          sourceImageUrls,
+          colorReferenceImageUrl: colorReferenceImageUrl || undefined,
+          productName: product.nameEs || product.nameEn,
+          productCategory: product.category,
+          productColors: Array.isArray(product.colors) ? product.colors : [],
+          preferredProfileId: fixedProfileId || undefined,
+          customPrompt: variantPrompt || undefined,
+          targetColor: targetColor || undefined,
+        });
+
+        if (!fixedProfileId) {
+          fixedProfileId = generation.profile.id;
+        }
+
+        const ext = extensionFromMimeType(generation.mimeType);
+        const fileName = `products/generated/${id}/${Date.now()}-v${variantIndex}-${randomUUID()}.${ext}`;
+        const file = bucket.file(fileName);
+
+        await file.save(generation.imageBuffer, {
+          metadata: {
+            contentType: generation.mimeType,
+          },
+        });
+        await file.makePublic();
+
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+        generatedVariants.push({
+          variantIndex,
+          imageUrl: publicUrl,
+          variantPrompt,
+          generation,
+        });
+      } catch (error) {
+        const typed = error as Error & { status?: number; code?: string };
+        variantFailures.push({
+          variantIndex,
+          message:
+            typed.message ||
+            `Variant ${variantIndex} could not be generated.`,
+          status: typed.status,
+          code: typed.code,
+        });
+      }
+    }
+
+    if (!generatedVariants.length) {
+      const primaryFailure = variantFailures[0];
+      const failed = new Error(
+        primaryFailure?.message ||
+          "No image variants could be generated with current references."
+      ) as Error & { status?: number; code?: string; attempts?: unknown };
+      failed.status = primaryFailure?.status || 502;
+      failed.code = primaryFailure?.code || "NO_VARIANTS_GENERATED";
+      failed.attempts = variantFailures;
+      throw failed;
+    }
+
+    const generatedImageUrls = generatedVariants.map((item) => item.imageUrl);
     const placeFirst = body.placeFirst !== false;
     const sourceSizeChart = sanitizeUrl(product.sizeChartImageUrl);
-
-    const withoutDuplicate = existingImages.filter((url) => url !== publicUrl);
-    const orderedImages = placeFirst
-      ? [publicUrl, ...withoutDuplicate]
-      : [...withoutDuplicate, publicUrl];
-    const filteredImages = sourceSizeChart
-      ? orderedImages.filter((url) => url !== sourceSizeChart)
-      : orderedImages;
-    const limitedImages = limitImages(filteredImages, body.maxImages ?? undefined);
+    const limitedImages = mergeGeneratedImages({
+      existingImages,
+      generatedUrls: generatedImageUrls,
+      placeFirst,
+      sourceSizeChart,
+      maxImages: body.maxImages ?? undefined,
+    });
 
     await docRef.update({
       images: limitedImages,
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    await adminDb.collection("productImageGenerations").add({
-      productId: id,
-      generatedImageUrl: publicUrl,
-      sourceImageUrl: sourceImageUrls[0],
-      sourceImageUrls,
-      sourceImageHash: generation.sourceImageHash,
-      sourceImageHashes: generation.sourceImageHashes,
-      colorReferenceImageUrl: colorReferenceImageUrl || null,
-      colorReferenceImageHash: generation.colorReferenceImageHash,
-      profileId: generation.profile.id,
-      profileLabel: generation.profile.label,
-      profileDescription: generation.profile.description,
-      modelUsed: generation.modelUsed,
-      outputFormat: generation.outputFormat,
-      quality: generation.quality,
-      inputFidelity: generation.inputFidelity,
-      prompt: generation.prompt,
-      revisedPrompt: generation.revisedPrompt,
-      targetColor: targetColor || null,
-      customPrompt: customPrompt || null,
-      createdBy: admin.uid,
-      createdAt: FieldValue.serverTimestamp(),
-    });
+    for (const variant of generatedVariants) {
+      await adminDb.collection("productImageGenerations").add({
+        productId: id,
+        variantIndex: variant.variantIndex,
+        variantCount,
+        angleMode,
+        generatedImageUrl: variant.imageUrl,
+        sourceImageUrl: sourceImageUrls[0],
+        sourceImageUrls,
+        sourceImageHash: variant.generation.sourceImageHash,
+        sourceImageHashes: variant.generation.sourceImageHashes,
+        colorReferenceImageUrl: colorReferenceImageUrl || null,
+        colorReferenceImageHash: variant.generation.colorReferenceImageHash,
+        profileId: variant.generation.profile.id,
+        profileLabel: variant.generation.profile.label,
+        profileDescription: variant.generation.profile.description,
+        modelUsed: variant.generation.modelUsed,
+        outputFormat: variant.generation.outputFormat,
+        quality: variant.generation.quality,
+        inputFidelity: variant.generation.inputFidelity,
+        backgroundRemovalApplied: variant.generation.backgroundRemovalApplied,
+        backgroundRemovalProvider:
+          (variant.generation.backgroundRemovalProvider as BackgroundRemovalProvider | null) ||
+          null,
+        backgroundRemovalError: variant.generation.backgroundRemovalError || null,
+        backgroundRemovalAttempts: variant.generation.backgroundRemovalAttempts || [],
+        backgroundRemovalConfiguredProviders:
+          variant.generation.backgroundRemovalConfiguredProviders || [],
+        backgroundRemovalProviderOrder:
+          variant.generation.backgroundRemovalProviderOrder || [],
+        prompt: variant.generation.prompt,
+        revisedPrompt: variant.generation.revisedPrompt,
+        targetColor: targetColor || null,
+        customPrompt: customPrompt || null,
+        variantPrompt: variant.variantPrompt || null,
+        createdBy: admin.uid,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    const primaryVariant = generatedVariants[0];
+    const profile = primaryVariant.generation.profile;
+    const warnings = variantFailures.map((failure) => ({
+      variantIndex: failure.variantIndex,
+      message: failure.message,
+      status: failure.status || null,
+      code: failure.code || null,
+    }));
 
     return NextResponse.json({
       success: true,
       productId: id,
-      generatedImageUrl: publicUrl,
-      profile: generation.profile,
-      modelUsed: generation.modelUsed,
+      generatedImageUrl: primaryVariant.imageUrl,
+      generatedImageUrls,
+      generatedCount: generatedVariants.length,
+      requestedVariantCount: variantCount,
+      failedVariantCount: variantFailures.length,
+      warnings,
+      profile,
+      modelUsed: primaryVariant.generation.modelUsed,
       images: limitedImages,
       sourceImageUrl: sourceImageUrls[0],
       sourceImageUrls,
       colorReferenceImageUrl: colorReferenceImageUrl || null,
       targetColor: targetColor || null,
       customPrompt: customPrompt || null,
+      angleMode,
+      variantCount,
+      specializedBackgroundRemovalConfigured: bgRemovalConfig.configured,
+      backgroundRemovalConfiguration: bgRemovalConfig,
+      backgroundRemoval: {
+        applied: primaryVariant.generation.backgroundRemovalApplied,
+        provider: primaryVariant.generation.backgroundRemovalProvider || null,
+        error: primaryVariant.generation.backgroundRemovalError || null,
+        attempts: primaryVariant.generation.backgroundRemovalAttempts || [],
+        configuredProviders:
+          primaryVariant.generation.backgroundRemovalConfiguredProviders || [],
+        providerOrder:
+          primaryVariant.generation.backgroundRemovalProviderOrder || [],
+      },
       availableProfiles: getProductModelProfiles(),
     });
   } catch (error) {

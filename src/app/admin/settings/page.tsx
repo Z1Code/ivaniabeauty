@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Type } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import CardBackgroundSettingsPanel from "@/components/admin/CardBackgroundSettingsPanel";
 import useAdminTheme from "@/hooks/useAdminTheme";
 import { ADMIN_THEMES } from "@/lib/admin-themes";
 import { ADMIN_FONTS } from "@/lib/admin-fonts";
@@ -38,6 +39,13 @@ import {
   type HeroEffectIntensity,
   type HomeSectionsSettings,
 } from "@/lib/home-sections-config";
+import {
+  CARD_BACKGROUND_SETTINGS_STORAGE_KEY,
+  CARD_BACKGROUND_SETTINGS_UPDATED_EVENT,
+  DEFAULT_CARD_BACKGROUND_SETTINGS,
+  sanitizeCardBackgroundSettings,
+  type CardBackgroundSettings,
+} from "@/lib/card-background-settings";
 
 interface StoreSettings {
   storeName: string;
@@ -127,6 +135,8 @@ export default function SettingsPage() {
   const [homeSections, setHomeSections] = useState<HomeSectionsSettings>(
     DEFAULT_HOME_SECTIONS_SETTINGS
   );
+  const [cardBackgroundSettings, setCardBackgroundSettings] =
+    useState<CardBackgroundSettings>(DEFAULT_CARD_BACKGROUND_SETTINGS);
 
   // Admin info (read-only)
   const [adminEmail] = useState("admin@ivaniabeauty.com");
@@ -168,6 +178,13 @@ export default function SettingsPage() {
       DEFAULT_HOME_SECTIONS_SETTINGS
     );
     setHomeSections(sanitizeHomeSectionsSettings(storedHomeSections));
+    const storedCardBackgroundSettings = getStoredValue<CardBackgroundSettings>(
+      CARD_BACKGROUND_SETTINGS_STORAGE_KEY,
+      DEFAULT_CARD_BACKGROUND_SETTINGS
+    );
+    setCardBackgroundSettings(
+      sanitizeCardBackgroundSettings(storedCardBackgroundSettings)
+    );
     setLoading(false);
   }, []);
 
@@ -264,6 +281,17 @@ export default function SettingsPage() {
             );
             window.dispatchEvent(new Event(HOME_SECTIONS_UPDATED_EVENT));
             break;
+          case "card-backgrounds":
+            localStorage.setItem(
+              CARD_BACKGROUND_SETTINGS_STORAGE_KEY,
+              JSON.stringify(
+                sanitizeCardBackgroundSettings(cardBackgroundSettings)
+              )
+            );
+            window.dispatchEvent(
+              new Event(CARD_BACKGROUND_SETTINGS_UPDATED_EVENT)
+            );
+            break;
         }
       } catch (error) {
         console.error("Error saving settings:", error);
@@ -271,7 +299,14 @@ export default function SettingsPage() {
         setSavingSection(null);
       }
     },
-    [store, shipping, payments, shopSections.enabledSectionIds, homeSections]
+    [
+      store,
+      shipping,
+      payments,
+      shopSections.enabledSectionIds,
+      homeSections,
+      cardBackgroundSettings,
+    ]
   );
 
   if (loading) {
@@ -906,6 +941,13 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+
+        <CardBackgroundSettingsPanel
+          value={cardBackgroundSettings}
+          onChange={setCardBackgroundSettings}
+          onSave={() => saveSection("card-backgrounds")}
+          saving={savingSection === "card-backgrounds"}
+        />
 
         {/* Admin Info */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm transition-colors duration-300">

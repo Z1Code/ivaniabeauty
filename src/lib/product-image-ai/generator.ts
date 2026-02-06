@@ -1,4 +1,11 @@
 import { createHash, randomInt } from "node:crypto";
+import {
+  getBackgroundRemovalConfiguration,
+  isSpecializedBackgroundRemovalConfigured,
+  removeBackgroundSpecializedWithDiagnostics,
+  type BackgroundRemovalAttempt,
+  type ProviderId,
+} from "./background-removal";
 
 type OutputFormat = "png" | "webp" | "jpeg";
 type Quality = "low" | "medium" | "high" | "auto";
@@ -48,6 +55,20 @@ interface GeminiImageResult {
   textNotes: string[];
 }
 
+interface EnforceTransparencyDiagnostics {
+  applied: boolean;
+  provider: ProviderId | "gemini_transparency_pass" | "gemini_strict_pass" | null;
+  error: string | null;
+  attempts: BackgroundRemovalAttempt[];
+  configuredProviders: ProviderId[];
+  providerOrder: ProviderId[];
+}
+
+interface EnforceTransparencyResult {
+  image: GeminiImageResult;
+  diagnostics: EnforceTransparencyDiagnostics;
+}
+
 export interface ProductModelProfile {
   id: string;
   label: string;
@@ -79,6 +100,16 @@ export interface GenerateProductImageResult {
   outputFormat: OutputFormat;
   quality: Quality;
   inputFidelity: InputFidelity;
+  backgroundRemovalApplied: boolean;
+  backgroundRemovalProvider:
+    | ProviderId
+    | "gemini_transparency_pass"
+    | "gemini_strict_pass"
+    | null;
+  backgroundRemovalError: string | null;
+  backgroundRemovalAttempts: BackgroundRemovalAttempt[];
+  backgroundRemovalConfiguredProviders: ProviderId[];
+  backgroundRemovalProviderOrder: ProviderId[];
 }
 
 const MODEL_CANDIDATES = [
@@ -226,14 +257,59 @@ function pickMimeType(contentType: string | null): string {
   return "image/png";
 }
 
+function ensureHttpImageUrl(sourceImageUrl: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(sourceImageUrl);
+  } catch {
+    const error = new Error("Source image URL is invalid") as Error & {
+      status?: number;
+      code?: string;
+      sourceImageUrl?: string;
+    };
+    error.status = 400;
+    error.code = "SOURCE_IMAGE_URL_INVALID";
+    error.sourceImageUrl = sourceImageUrl;
+    throw error;
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    const error = new Error("Source image URL must use http/https") as Error & {
+      status?: number;
+      code?: string;
+      sourceImageUrl?: string;
+    };
+    error.status = 400;
+    error.code = "SOURCE_IMAGE_URL_UNSUPPORTED";
+    error.sourceImageUrl = sourceImageUrl;
+    throw error;
+  }
+}
+
 async function fetchSourceImage(sourceImageUrl: string): Promise<SourceImagePayload> {
-  const response = await fetch(sourceImageUrl, {
-    headers: {
-      Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    },
-  });
+  ensureHttpImageUrl(sourceImageUrl);
+
+  let response: Response;
+  try {
+    response = await fetch(sourceImageUrl, {
+      headers: {
+        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      },
+    });
+  } catch {
+    const error = new Error("Failed to fetch source image (network error)") as Error & {
+      status?: number;
+      code?: string;
+      sourceImageUrl?: string;
+    };
+    error.status = 422;
+    error.code = "SOURCE_IMAGE_FETCH_FAILED";
+    error.sourceImageUrl = sourceImageUrl;
+    throw error;
+  }
+
   if (!response.ok) {
     const error = new Error(
       `Failed to fetch source image (${response.status})`
@@ -743,9 +819,22 @@ async function enforceTransparency({
   apiKey: string;
   modelName: string;
   initialImage: GeminiImageResult;
-}): Promise<GeminiImageResult> {
+}): Promise<EnforceTransparencyResult> {
+  const config = getBackgroundRemovalConfiguration();
+  const baseDiagnostics: EnforceTransparencyDiagnostics = {
+    applied: false,
+    provider: null,
+    error: null,
+    attempts: [],
+    configuredProviders: config.configuredProviders,
+    providerOrder: config.providerOrder,
+  };
+
   if (!shouldRunTransparencyPass(initialImage.mimeType, initialImage.imageBuffer)) {
-    return initialImage;
+    return {
+      image: initialImage,
+      diagnostics: baseDiagnostics,
+    };
   }
 
   let candidate = initialImage;
@@ -757,23 +846,100 @@ async function enforceTransparency({
       mimeType: initialImage.mimeType,
     });
   } catch {
-    return initialImage;
+    return {
+      image: initialImage,
+      diagnostics: baseDiagnostics,
+    };
   }
 
   if (!lacksRequiredTransparency(candidate.mimeType, candidate.imageBuffer)) {
-    return candidate;
+    return {
+      image: candidate,
+      diagnostics: {
+        ...baseDiagnostics,
+        applied: true,
+        provider: "gemini_transparency_pass",
+      },
+    };
+  }
+
+  let strictCandidate = candidate;
+  try {
+    strictCandidate = await runStrictTransparencyPass({
+      apiKey,
+      modelName,
+      imageBuffer: candidate.imageBuffer,
+      mimeType: candidate.mimeType,
+    });
+  } catch {
+    strictCandidate = candidate;
+  }
+
+  if (!lacksRequiredTransparency(strictCandidate.mimeType, strictCandidate.imageBuffer)) {
+    return {
+      image: strictCandidate,
+      diagnostics: {
+        ...baseDiagnostics,
+        applied: true,
+        provider: "gemini_strict_pass",
+      },
+    };
+  }
+
+  if (!isSpecializedBackgroundRemovalConfigured()) {
+    return {
+      image: strictCandidate,
+      diagnostics: {
+        ...baseDiagnostics,
+        error:
+          "Specialized background removal is not configured. Set REMOVEBG_API_KEY and/or CLIPDROP_API_KEY.",
+      },
+    };
   }
 
   try {
-      const strict = await runStrictTransparencyPass({
-        apiKey,
-        modelName,
-        imageBuffer: candidate.imageBuffer,
-        mimeType: candidate.mimeType,
-      });
-    return strict;
-  } catch {
-    return candidate;
+    const specializedOutcome = await removeBackgroundSpecializedWithDiagnostics({
+      imageBuffer: strictCandidate.imageBuffer,
+      mimeType: strictCandidate.mimeType,
+    });
+
+    if (!specializedOutcome.result) {
+      return {
+        image: strictCandidate,
+        diagnostics: {
+          ...baseDiagnostics,
+          attempts: specializedOutcome.diagnostics.attempts,
+          error: specializedOutcome.diagnostics.error,
+        },
+      };
+    }
+
+    return {
+      image: {
+        imageBuffer: specializedOutcome.result.imageBuffer,
+        mimeType: specializedOutcome.result.mimeType,
+        textNotes: [
+          ...strictCandidate.textNotes,
+          `specialized-background-removal:${specializedOutcome.result.provider}`,
+        ],
+      },
+      diagnostics: {
+        ...baseDiagnostics,
+        applied: true,
+        provider: specializedOutcome.result.provider,
+        attempts: specializedOutcome.diagnostics.attempts,
+        error: null,
+      },
+    };
+  } catch (error) {
+    const typed = error as Error;
+    return {
+      image: strictCandidate,
+      diagnostics: {
+        ...baseDiagnostics,
+        error: typed.message || "Specialized background removal failed",
+      },
+    };
   }
 }
 
@@ -792,6 +958,16 @@ async function generateWithFallback({
   mimeType: string;
   revisedPrompt: string | null;
   modelUsed: string;
+  backgroundRemovalApplied: boolean;
+  backgroundRemovalProvider:
+    | ProviderId
+    | "gemini_transparency_pass"
+    | "gemini_strict_pass"
+    | null;
+  backgroundRemovalError: string | null;
+  backgroundRemovalAttempts: BackgroundRemovalAttempt[];
+  backgroundRemovalConfiguredProviders: ProviderId[];
+  backgroundRemovalProviderOrder: ProviderId[];
 }> {
   let lastError: unknown = null;
   const attempts: Array<{ model: string; message: string }> = [];
@@ -821,15 +997,22 @@ async function generateWithFallback({
         initialImage: initial,
       });
 
-      const revisedPrompt = [...initial.textNotes, ...finalImage.textNotes]
+      const revisedPrompt = [...initial.textNotes, ...finalImage.image.textNotes]
         .filter(Boolean)
         .join(" | ");
 
       return {
-        imageBuffer: finalImage.imageBuffer,
-        mimeType: finalImage.mimeType,
+        imageBuffer: finalImage.image.imageBuffer,
+        mimeType: finalImage.image.mimeType,
         revisedPrompt: revisedPrompt || null,
         modelUsed: normalizedModel,
+        backgroundRemovalApplied: finalImage.diagnostics.applied,
+        backgroundRemovalProvider: finalImage.diagnostics.provider,
+        backgroundRemovalError: finalImage.diagnostics.error,
+        backgroundRemovalAttempts: finalImage.diagnostics.attempts,
+        backgroundRemovalConfiguredProviders:
+          finalImage.diagnostics.configuredProviders,
+        backgroundRemovalProviderOrder: finalImage.diagnostics.providerOrder,
       };
     } catch (error) {
       if (sourceImages.length > 1 && isInputPayloadError(error)) {
@@ -848,15 +1031,22 @@ async function generateWithFallback({
             initialImage: initial,
           });
 
-          const revisedPrompt = [...initial.textNotes, ...finalImage.textNotes]
+          const revisedPrompt = [...initial.textNotes, ...finalImage.image.textNotes]
             .filter(Boolean)
             .join(" | ");
 
           return {
-            imageBuffer: finalImage.imageBuffer,
-            mimeType: finalImage.mimeType,
+            imageBuffer: finalImage.image.imageBuffer,
+            mimeType: finalImage.image.mimeType,
             revisedPrompt: revisedPrompt || null,
             modelUsed: normalizedModel,
+            backgroundRemovalApplied: finalImage.diagnostics.applied,
+            backgroundRemovalProvider: finalImage.diagnostics.provider,
+            backgroundRemovalError: finalImage.diagnostics.error,
+            backgroundRemovalAttempts: finalImage.diagnostics.attempts,
+            backgroundRemovalConfiguredProviders:
+              finalImage.diagnostics.configuredProviders,
+            backgroundRemovalProviderOrder: finalImage.diagnostics.providerOrder,
           };
         } catch (singleImageError) {
           lastError = singleImageError;
@@ -985,10 +1175,23 @@ export async function generateProfessionalProductImage(
     typeof input.colorReferenceImageUrl === "string"
       ? input.colorReferenceImageUrl.trim()
       : "";
-  const colorReferenceImage =
-    colorReferenceImageUrl.length > 0
-      ? await fetchSourceImage(colorReferenceImageUrl)
-      : null;
+  let colorReferenceImage: SourceImagePayload | null = null;
+  if (colorReferenceImageUrl.length > 0) {
+    try {
+      colorReferenceImage = await fetchSourceImage(colorReferenceImageUrl);
+    } catch (error) {
+      const typed = error as Error & { status?: number; code?: string };
+      const wrapped = new Error(
+        `Color reference image could not be used. ${typed.message || "invalid or inaccessible URL."}`
+      ) as Error & { status?: number; code?: string };
+      wrapped.status =
+        typeof typed.status === "number" && typed.status >= 400 && typed.status <= 599
+          ? typed.status
+          : 400;
+      wrapped.code = typed.code || "COLOR_REFERENCE_IMAGE_UNUSABLE";
+      throw wrapped;
+    }
+  }
   const profile = getRandomProfile(input.preferredProfileId);
   const prompt = buildPrompt({
     profile,
@@ -1021,5 +1224,12 @@ export async function generateProfessionalProductImage(
     outputFormat: inferOutputFormat(generated.mimeType),
     quality: inferQuality(generated.modelUsed),
     inputFidelity: inferInputFidelity(generated.modelUsed),
+    backgroundRemovalApplied: generated.backgroundRemovalApplied,
+    backgroundRemovalProvider: generated.backgroundRemovalProvider,
+    backgroundRemovalError: generated.backgroundRemovalError,
+    backgroundRemovalAttempts: generated.backgroundRemovalAttempts,
+    backgroundRemovalConfiguredProviders:
+      generated.backgroundRemovalConfiguredProviders,
+    backgroundRemovalProviderOrder: generated.backgroundRemovalProviderOrder,
   };
 }

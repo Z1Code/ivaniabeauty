@@ -91,12 +91,46 @@ interface FitGuideApiResponse {
 interface AiImageGenerationResponse {
   success?: boolean;
   generatedImageUrl?: string;
+  generatedImageUrls?: string[];
+  generatedCount?: number;
+  requestedVariantCount?: number;
+  failedVariantCount?: number;
+  warnings?: Array<{
+    variantIndex: number;
+    message: string;
+    status?: number | null;
+    code?: string | null;
+  }>;
   modelUsed?: string;
   images?: string[];
   sourceImageUrls?: string[];
   colorReferenceImageUrl?: string | null;
   targetColor?: string | null;
   customPrompt?: string | null;
+  angleMode?: "auto" | "front_only";
+  variantCount?: number;
+  specializedBackgroundRemovalConfigured?: boolean;
+  backgroundRemovalConfiguration?: {
+    configured?: boolean;
+    providerOrder?: string[];
+    configuredProviders?: string[];
+  };
+  backgroundRemoval?: {
+    applied?: boolean;
+    provider?: string | null;
+    error?: string | null;
+    attempts?: Array<{
+      provider?: string;
+      ok?: boolean;
+      skipped?: boolean;
+      status?: number | null;
+      code?: string | null;
+      message?: string | null;
+      durationMs?: number;
+    }>;
+    configuredProviders?: string[];
+    providerOrder?: string[];
+  };
   availableProfiles?: AiImageProfile[];
   profile?: {
     id?: string;
@@ -110,6 +144,16 @@ interface AiImageProfile {
   id: string;
   label: string;
   description: string;
+}
+
+interface AiImageSetupResponse {
+  availableProfiles?: AiImageProfile[];
+  specializedBackgroundRemovalConfigured?: boolean;
+  backgroundRemovalConfiguration?: {
+    configured?: boolean;
+    providerOrder?: string[];
+    configuredProviders?: string[];
+  };
 }
 
 type EditableFitGuideRow = {
@@ -235,9 +279,22 @@ export default function ProductForm({
   const [aiTargetColor, setAiTargetColor] = useState("");
   const [aiCustomPrompt, setAiCustomPrompt] = useState("");
   const [aiPreferredProfileId, setAiPreferredProfileId] = useState("");
+  const [aiVariantCount, setAiVariantCount] = useState(1);
+  const [aiAngleMode, setAiAngleMode] = useState<"auto" | "front_only">("auto");
   const [aiAvailableProfiles, setAiAvailableProfiles] = useState<AiImageProfile[]>(
     []
   );
+  const [aiBgRemovalConfigured, setAiBgRemovalConfigured] = useState(false);
+  const [aiBgRemovalConfiguredProviders, setAiBgRemovalConfiguredProviders] =
+    useState<string[]>([]);
+  const [aiBgRemovalProviderOrder, setAiBgRemovalProviderOrder] = useState<
+    string[]
+  >([]);
+  const [aiLastBgRemoval, setAiLastBgRemoval] = useState<{
+    applied: boolean;
+    provider: string | null;
+    error: string | null;
+  } | null>(null);
   const aiColorReferenceInputRef = useRef<HTMLInputElement | null>(null);
 
   const [form, setForm] = useState<ProductFormData>({
@@ -549,12 +606,22 @@ export default function ProductForm({
           method: "GET",
           signal: controller.signal,
         });
-        const data = (await res.json()) as {
-          availableProfiles?: AiImageProfile[];
-        };
+        const data = (await res.json()) as AiImageSetupResponse;
         if (!res.ok) return;
         if (Array.isArray(data.availableProfiles)) {
           setAiAvailableProfiles(data.availableProfiles);
+        }
+        const bgConfig = data.backgroundRemovalConfiguration;
+        if (typeof data.specializedBackgroundRemovalConfigured === "boolean") {
+          setAiBgRemovalConfigured(data.specializedBackgroundRemovalConfigured);
+        } else if (typeof bgConfig?.configured === "boolean") {
+          setAiBgRemovalConfigured(bgConfig.configured);
+        }
+        if (Array.isArray(bgConfig?.configuredProviders)) {
+          setAiBgRemovalConfiguredProviders(bgConfig.configuredProviders);
+        }
+        if (Array.isArray(bgConfig?.providerOrder)) {
+          setAiBgRemovalProviderOrder(bgConfig.providerOrder);
         }
       } catch {
         // Ignore. Generation endpoint will still return profiles on success.
@@ -583,6 +650,8 @@ export default function ProductForm({
     setAiCustomPrompt("");
     setAiPreferredProfileId("");
     setAiTargetColor("");
+    setAiVariantCount(1);
+    setAiAngleMode("auto");
     setAiColorReferenceImageUrl("");
     setAiColorReferenceError(null);
   }
@@ -653,6 +722,7 @@ export default function ProductForm({
     setGeneratingAiImage(true);
     setAiGenerationSummary(null);
     setAiGenerationError(null);
+    setAiLastBgRemoval(null);
     setError("");
 
     try {
@@ -666,6 +736,8 @@ export default function ProductForm({
           preferredProfileId: aiPreferredProfileId || undefined,
           targetColor: aiTargetColor.trim() || undefined,
           customPrompt: aiCustomPrompt || undefined,
+          variantCount: aiVariantCount,
+          angleMode: aiAngleMode,
           placeFirst: true,
           maxImages: 8,
         }),
@@ -678,6 +750,27 @@ export default function ProductForm({
 
       if (Array.isArray(data.availableProfiles) && data.availableProfiles.length) {
         setAiAvailableProfiles(data.availableProfiles);
+      }
+      const bgConfig = data.backgroundRemovalConfiguration;
+      if (typeof data.specializedBackgroundRemovalConfigured === "boolean") {
+        setAiBgRemovalConfigured(data.specializedBackgroundRemovalConfigured);
+      } else if (typeof bgConfig?.configured === "boolean") {
+        setAiBgRemovalConfigured(bgConfig.configured);
+      }
+      if (Array.isArray(bgConfig?.configuredProviders)) {
+        setAiBgRemovalConfiguredProviders(bgConfig.configuredProviders);
+      }
+      if (Array.isArray(bgConfig?.providerOrder)) {
+        setAiBgRemovalProviderOrder(bgConfig.providerOrder);
+      }
+      if (data.backgroundRemoval) {
+        setAiLastBgRemoval({
+          applied: Boolean(data.backgroundRemoval.applied),
+          provider: data.backgroundRemoval.provider || null,
+          error: data.backgroundRemoval.error || null,
+        });
+      } else {
+        setAiLastBgRemoval(null);
       }
       if (data.colorReferenceImageUrl !== undefined) {
         setAiColorReferenceImageUrl(data.colorReferenceImageUrl || "");
@@ -695,11 +788,27 @@ export default function ProductForm({
       const modelUsed = data.modelUsed ? ` (${data.modelUsed})` : "";
       const colorNote = data.targetColor ? ` | Color: ${data.targetColor}` : "";
       const sourceNote = ` | Ref: ${aiSourceImageUrls.length}`;
+      const generatedCount = Number.isFinite(data.generatedCount)
+        ? Number(data.generatedCount)
+        : Array.isArray(data.generatedImageUrls)
+          ? data.generatedImageUrls.length
+          : 1;
+      const variantNote =
+        generatedCount > 1 ? ` | Variantes: ${generatedCount}` : "";
+      const failedCount =
+        typeof data.failedVariantCount === "number" ? data.failedVariantCount : 0;
+      const failedNote =
+        failedCount > 0 ? ` | Fallos parciales: ${failedCount}` : "";
+      const bgNote = data.backgroundRemoval?.provider
+        ? ` | Fondo: ${data.backgroundRemoval.provider}`
+        : data.backgroundRemoval?.applied
+          ? " | Fondo: aplicado"
+          : "";
       const colorRefNote = data.colorReferenceImageUrl
         ? " | Color por imagen"
         : "";
       setAiGenerationSummary(
-        `${profileLabel}${modelUsed}${sourceNote}${colorNote}${colorRefNote}`
+        `${profileLabel}${modelUsed}${sourceNote}${variantNote}${failedNote}${bgNote}${colorNote}${colorRefNote}`
       );
       setAiGenerationError(null);
     } catch (err) {
@@ -1052,6 +1161,43 @@ export default function ProductForm({
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Genera una foto comercial con una modelo aleatoria (10 perfiles) usando la prenda de la imagen base.
                 </p>
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-3 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                      Remocion especializada:
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[11px] px-2 py-0.5 rounded-full font-medium",
+                        aiBgRemovalConfigured
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                      )}
+                    >
+                      {aiBgRemovalConfigured ? "Activa" : "No configurada"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Proveedores configurados:{" "}
+                    {aiBgRemovalConfiguredProviders.length
+                      ? aiBgRemovalConfiguredProviders.join(", ")
+                      : "ninguno"}
+                  </p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Orden de fallback:{" "}
+                    {aiBgRemovalProviderOrder.length
+                      ? aiBgRemovalProviderOrder.join(" -> ")
+                      : "removebg -> clipdrop"}
+                  </p>
+                  {aiLastBgRemoval && (
+                    <p className="text-[11px] text-gray-600 dark:text-gray-300">
+                      Ultima ejecucion:{" "}
+                      {aiLastBgRemoval.applied
+                        ? `aplicada (${aiLastBgRemoval.provider || "provider desconocido"})`
+                        : `sin aplicar${aiLastBgRemoval.error ? `: ${aiLastBgRemoval.error}` : ""}`}
+                    </p>
+                  )}
+                </div>
 
                 {form.images.length > 0 ? (
                   <div className="space-y-3">
@@ -1138,6 +1284,44 @@ export default function ProductForm({
                               {profile.label}
                             </option>
                           ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                          Cantidad de variantes
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={8}
+                          step={1}
+                          value={aiVariantCount}
+                          onChange={(e) => {
+                            const raw = Number.parseInt(e.target.value || "1", 10);
+                            if (!Number.isFinite(raw)) {
+                              setAiVariantCount(1);
+                              return;
+                            }
+                            setAiVariantCount(Math.min(8, Math.max(1, raw)));
+                          }}
+                          className={inputClasses + " text-xs"}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                          Modo de angulos
+                        </label>
+                        <select
+                          value={aiAngleMode}
+                          onChange={(e) =>
+                            setAiAngleMode(
+                              e.target.value === "front_only" ? "front_only" : "auto"
+                            )
+                          }
+                          className={inputClasses + " text-xs"}
+                        >
+                          <option value="auto">Auto (frontal + 3/4 + lateral + espalda)</option>
+                          <option value="front_only">Solo frontal</option>
                         </select>
                       </div>
                       <div>
@@ -1286,7 +1470,7 @@ export default function ProductForm({
 
                 {aiGenerationSummary && (
                   <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                    Imagen generada correctamente con {aiGenerationSummary}. Se agrego como primera imagen del producto.
+                    Imagen IA generada con {aiGenerationSummary}. Se agrego al inicio de la galeria.
                   </p>
                 )}
                 {aiGenerationError && (
