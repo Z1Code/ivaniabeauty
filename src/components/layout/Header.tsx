@@ -34,6 +34,10 @@ export default function Header() {
   const { t } = useTranslation();
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const hideCollectionsLink = pathname === "/" || pathname === "/shop" || pathname === "/shop/";
+  const navigationLinks = hideCollectionsLink
+    ? NAV_LINKS.filter((link) => link.labelKey !== "nav.collections")
+    : NAV_LINKS;
 
   // Show white text when on a page with a dark hero and not scrolled
   const heroWhite = DARK_HERO_PAGES.includes(pathname) && !scrolled;
@@ -104,7 +108,7 @@ export default function Header() {
                 isHome ? "gap-9" : "gap-8"
               }`}
             >
-              {NAV_LINKS.map((link) => (
+              {navigationLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -240,7 +244,7 @@ export default function Header() {
               {/* Drawer Links */}
               <nav className="flex-1 overflow-y-auto px-6 py-8">
                 <ul className="flex flex-col gap-2">
-                  {NAV_LINKS.map((link, index) => (
+                  {navigationLinks.map((link, index) => (
                     <motion.li
                       key={link.href}
                       initial={{ opacity: 0, x: 40 }}

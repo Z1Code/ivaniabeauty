@@ -502,13 +502,13 @@ export default function Hero({ effectIntensity = "medium" }: HeroProps) {
             variants={childVariants}
             className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:items-start"
           >
-            <Link
-              href="/shop"
+            <a
+              href="https://ivaniabeauty.com/shop"
               className="btn-shimmer inline-flex items-center gap-2 px-8 py-3 text-base shadow-xl shadow-rosa/25"
             >
               {t("hero.cta")}
               <ArrowRight className="h-4 w-4" />
-            </Link>
+            </a>
             <Link
               href="#colecciones"
               className="inline-flex items-center gap-2 rounded-full border border-rosa/30 bg-white/70 px-7 py-3 text-sm font-semibold text-rosa-dark transition-all hover:border-rosa hover:bg-white"

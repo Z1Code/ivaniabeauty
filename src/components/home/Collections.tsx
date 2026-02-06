@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Sun, Coffee, Sparkles, Heart } from "lucide-react";
+import { Droplets, ShieldCheck, CircleDot, Shirt } from "lucide-react";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -16,28 +16,28 @@ interface CollectionItem {
 
 const collections: CollectionItem[] = [
   {
-    nameKey: "collections.beachPool",
-    icon: Sun,
+    nameKey: "collections.hairBodyCare",
+    icon: Droplets,
     gradient: "from-turquesa/40 to-rosa-light/40",
-    slug: "playa",
+    slug: "hair-body-care",
   },
   {
-    nameKey: "collections.everyday",
-    icon: Coffee,
+    nameKey: "collections.shapewear",
+    icon: ShieldCheck,
     gradient: "from-rosa-light/40 to-arena",
-    slug: "diario",
+    slug: "shapewear",
   },
   {
-    nameKey: "collections.specialEvents",
-    icon: Sparkles,
+    nameKey: "collections.waistCinchers",
+    icon: CircleDot,
     gradient: "from-dorado/30 to-rosa/30",
-    slug: "eventos",
+    slug: "waist-cinchers",
   },
   {
-    nameKey: "collections.postPartum",
-    icon: Heart,
+    nameKey: "collections.topsShorts",
+    icon: Shirt,
     gradient: "from-rosa-light/40 to-coral/30",
-    slug: "postparto",
+    slug: "tops-shorts",
   },
 ];
 
