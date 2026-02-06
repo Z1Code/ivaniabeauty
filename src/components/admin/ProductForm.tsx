@@ -11,11 +11,12 @@ import {
   Eye,
   RefreshCw,
   Pencil,
-  Sparkles,
 } from "lucide-react";
 import AdminPageHeader from "./AdminPageHeader";
 import AdminBilingualInput from "./AdminBilingualInput";
 import AdminImageUpload from "./AdminImageUpload";
+import AiMagicGenerateButton from "./AiMagicGenerateButton";
+import AiGenerationFullscreenOverlay from "./AiGenerationFullscreenOverlay";
 import { cn, getColorHex } from "@/lib/utils";
 import type { FitGuideRow, FitGuideStatus, SizeChartMeasurement } from "@/lib/firebase/types";
 import { metricToCmText, normalizeSizeList } from "@/lib/fit-guide/utils";
@@ -895,6 +896,7 @@ export default function ProductForm({
 
   return (
     <form onSubmit={handleSubmit}>
+      <AiGenerationFullscreenOverlay open={generatingAiImage} />
       <AdminPageHeader
         title={isEditing ? "Editar Producto" : "Nuevo Producto"}
         breadcrumbs={[
@@ -1437,21 +1439,13 @@ export default function ProductForm({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
+                      <AiMagicGenerateButton
+                        loading={generatingAiImage}
+                        disabled={aiSourceImageUrls.length === 0}
                         onClick={generateAiProductImage}
-                        disabled={generatingAiImage || aiSourceImageUrls.length === 0}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rosa/10 text-rosa hover:bg-rosa/20 transition-colors text-sm font-medium cursor-pointer disabled:opacity-50"
-                      >
-                        {generatingAiImage ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-4 h-4" />
-                        )}
-                        {generatingAiImage
-                          ? "Generando imagen profesional..."
-                          : "Autogenerar imagen profesional"}
-                      </button>
+                        loadingLabel="Generando imagen profesional"
+                        idleLabel="Autogenerar imagen profesional"
+                      />
                       <button
                         type="button"
                         onClick={resetAiAdjustments}
@@ -1461,6 +1455,11 @@ export default function ProductForm({
                         Limpiar ajustes
                       </button>
                     </div>
+                    {generatingAiImage && (
+                      <p className="text-[11px] text-rosa-dark/90 dark:text-rosa-light/90 animate-pulse">
+                        Preparando modelo, prenda y acabado comercial. Esto puede tardar unos segundos.
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
