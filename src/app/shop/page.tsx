@@ -322,34 +322,52 @@ function ShopPageContent() {
     return results;
   }, [enrichedProducts, sortBy]);
 
-  const shapewearProducts = useMemo(
-    () => sortedProducts.filter((product) => SHAPEWEAR_CATEGORIES.has(product.category)),
-    [sortedProducts]
-  );
+  const activeSection =
+    visibleSections.find((section) => section.id === activeSectionId) ||
+    visibleSections[0];
+  const isCareSection = Boolean(activeSection?.categories.includes("cuidado"));
 
-  const careProducts = useMemo(
-    () => sortedProducts.filter((product) => product.category === "cuidado"),
-    [sortedProducts]
+  const activeSectionProducts = useMemo(() => {
+    if (!activeSection) return [];
+    return sortedProducts.filter((product) =>
+      activeSection.categories.includes(product.category)
+    );
+  }, [activeSection, sortedProducts]);
+
+  const activeShapewearProducts = useMemo(
+    () =>
+      activeSectionProducts.filter((product) =>
+        SHAPEWEAR_CATEGORIES.has(product.category)
+      ),
+    [activeSectionProducts]
   );
 
   const sizeOptions = useMemo(
     () =>
       normalizeSizeList(
-        shapewearProducts.flatMap((product) =>
+        activeShapewearProducts.flatMap((product) =>
           Array.isArray(product.sizes) ? product.sizes : []
         )
       ),
-    [shapewearProducts]
+    [activeShapewearProducts]
   );
 
   const compressionOptions = useMemo(
     () =>
-      [...new Set(shapewearProducts.map((product) => product.compression).filter(Boolean))].sort(),
-    [shapewearProducts]
+      [
+        ...new Set(
+          activeShapewearProducts
+            .map((product) => product.compression)
+            .filter((compression): compression is string => Boolean(compression))
+        ),
+      ].sort(),
+    [activeShapewearProducts]
   );
 
   const colorOptions = useMemo(() => {
-    const uniqueColors = [...new Set(shapewearProducts.flatMap((product) => product.colors || []))];
+    const uniqueColors = [
+      ...new Set(activeShapewearProducts.flatMap((product) => product.colors || [])),
+    ];
     return uniqueColors.sort((a, b) => {
       const priorityA = COLOR_PRIORITY.indexOf(a);
       const priorityB = COLOR_PRIORITY.indexOf(b);
@@ -358,21 +376,25 @@ function ShopPageContent() {
       if (priorityB === -1) return -1;
       return priorityA - priorityB;
     });
-  }, [shapewearProducts]);
+  }, [activeShapewearProducts]);
 
   const careFocusOptions = useMemo(
-    () => [...new Set(careProducts.map((product) => product.careFocus))],
-    [careProducts]
+    () => [...new Set(activeSectionProducts.map((product) => product.careFocus))],
+    [activeSectionProducts]
   );
 
   const careFormatOptions = useMemo(
-    () => [...new Set(careProducts.map((product) => product.careFormat))],
-    [careProducts]
+    () => [...new Set(activeSectionProducts.map((product) => product.careFormat))],
+    [activeSectionProducts]
   );
 
   const sectionedProducts = useMemo(() => {
     return visibleSections.map((section) => {
       let products = sortedProducts.filter((product) => section.categories.includes(product.category));
+
+      if (section.id !== activeSectionId) {
+        return { section, products };
+      }
 
       if (section.id === "shampoo-fragrance") {
         if (careFilters.focus) {
@@ -395,12 +417,56 @@ function ShopPageContent() {
 
       return { section, products };
     });
-  }, [sortedProducts, careFilters.focus, careFilters.format, shapewearFilters.size, shapewearFilters.compression, shapewearFilters.color, visibleSections]);
+  }, [activeSectionId, sortedProducts, careFilters.focus, careFilters.format, shapewearFilters.size, shapewearFilters.compression, shapewearFilters.color, visibleSections]);
 
   const totalVisibleProducts = useMemo(
     () => sectionedProducts.reduce((acc, group) => acc + group.products.length, 0),
     [sectionedProducts]
   );
+
+  useEffect(() => {
+    if (isCareSection) {
+      setCareFilters((prev) => {
+        const nextFocus = prev.focus && careFocusOptions.includes(prev.focus) ? prev.focus : null;
+        const nextFormat = prev.format && careFormatOptions.includes(prev.format) ? prev.format : null;
+        if (nextFocus === prev.focus && nextFormat === prev.format) {
+          return prev;
+        }
+        return { focus: nextFocus, format: nextFormat };
+      });
+      return;
+    }
+
+    setShapewearFilters((prev) => {
+      const nextSize = prev.size && sizeOptions.includes(prev.size) ? prev.size : null;
+      const nextCompression =
+        prev.compression && compressionOptions.includes(prev.compression)
+          ? prev.compression
+          : null;
+      const nextColor = prev.color && colorOptions.includes(prev.color) ? prev.color : null;
+
+      if (
+        nextSize === prev.size &&
+        nextCompression === prev.compression &&
+        nextColor === prev.color
+      ) {
+        return prev;
+      }
+
+      return {
+        size: nextSize,
+        compression: nextCompression,
+        color: nextColor,
+      };
+    });
+  }, [
+    careFocusOptions,
+    careFormatOptions,
+    colorOptions,
+    compressionOptions,
+    isCareSection,
+    sizeOptions,
+  ]);
 
   useEffect(() => {
     const sectionParam = searchParams.get("section");
@@ -476,11 +542,6 @@ function ShopPageContent() {
     elements.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
   }, [isLoading, visibleSections]);
-
-  const activeSection =
-    visibleSections.find((section) => section.id === activeSectionId) ||
-    visibleSections[0];
-  const isCareSection = Boolean(activeSection?.categories.includes("cuidado"));
 
   useEffect(() => {
     if (
@@ -660,147 +721,157 @@ function ShopPageContent() {
         >
           {isCareSection ? (
             <>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
-                  {language === "es" ? "Enfoque" : "Focus"}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {careFocusOptions.map((focus) => (
-                    <button
-                      key={focus}
-                      onClick={() =>
-                        setCareFilters((prev) => ({
-                          ...prev,
-                          focus: prev.focus === focus ? null : focus,
-                        }))
-                      }
-                      className={cn(
-                        "rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all cursor-pointer",
-                        careFilters.focus === focus
-                          ? "bg-turquesa text-white shadow-md"
-                          : "bg-turquesa/10 text-gray-700 hover:bg-turquesa/20"
-                      )}
-                    >
-                      {careFocusLabel(focus)}
-                    </button>
-                  ))}
+              {careFocusOptions.length > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
+                    {language === "es" ? "Enfoque" : "Focus"}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {careFocusOptions.map((focus) => (
+                      <button
+                        key={focus}
+                        onClick={() =>
+                          setCareFilters((prev) => ({
+                            ...prev,
+                            focus: prev.focus === focus ? null : focus,
+                          }))
+                        }
+                        className={cn(
+                          "rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all cursor-pointer",
+                          careFilters.focus === focus
+                            ? "bg-turquesa text-white shadow-md"
+                            : "bg-turquesa/10 text-gray-700 hover:bg-turquesa/20"
+                        )}
+                      >
+                        {careFocusLabel(focus)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
-                  {language === "es" ? "Tipo de producto" : "Product type"}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {careFormatOptions.map((format) => (
-                    <button
-                      key={format}
-                      onClick={() =>
-                        setCareFilters((prev) => ({
-                          ...prev,
-                          format: prev.format === format ? null : format,
-                        }))
-                      }
-                      className={cn(
-                        "rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all cursor-pointer",
-                        careFilters.format === format
-                          ? "bg-emerald-500 text-white shadow-md"
-                          : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                      )}
-                    >
-                      {careFormatLabel(format)}
-                    </button>
-                  ))}
+              {careFormatOptions.length > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
+                    {language === "es" ? "Tipo de producto" : "Product type"}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {careFormatOptions.map((format) => (
+                      <button
+                        key={format}
+                        onClick={() =>
+                          setCareFilters((prev) => ({
+                            ...prev,
+                            format: prev.format === format ? null : format,
+                          }))
+                        }
+                        className={cn(
+                          "rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all cursor-pointer",
+                          careFilters.format === format
+                            ? "bg-emerald-500 text-white shadow-md"
+                            : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        )}
+                      >
+                        {careFormatLabel(format)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           ) : (
             <>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
-                  {t("filters.sizeHeading")}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {sizeOptions.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() =>
-                        setShapewearFilters((prev) => ({
-                          ...prev,
-                          size: prev.size === size ? null : size,
-                        }))
-                      }
-                      className={cn(
-                        "rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition-all cursor-pointer min-w-[38px]",
-                        shapewearFilters.size === size
-                          ? "bg-rosa text-white shadow-md"
-                          : "bg-rosa-light/30 text-gray-700 hover:bg-rosa-light/50"
-                      )}
-                    >
-                      {size}
-                    </button>
-                  ))}
+              {sizeOptions.length > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
+                    {t("filters.sizeHeading")}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sizeOptions.map((size) => (
+                      <button
+                        key={size}
+                        onClick={() =>
+                          setShapewearFilters((prev) => ({
+                            ...prev,
+                            size: prev.size === size ? null : size,
+                          }))
+                        }
+                        className={cn(
+                          "rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition-all cursor-pointer min-w-[38px]",
+                          shapewearFilters.size === size
+                            ? "bg-rosa text-white shadow-md"
+                            : "bg-rosa-light/30 text-gray-700 hover:bg-rosa-light/50"
+                        )}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
-                  {t("filters.compressionHeading")}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {compressionOptions.map((compression) => (
-                    <button
-                      key={compression}
-                      onClick={() =>
-                        setShapewearFilters((prev) => ({
-                          ...prev,
-                          compression: prev.compression === compression ? null : compression,
-                        }))
-                      }
-                      className={cn(
-                        "rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all cursor-pointer",
-                        shapewearFilters.compression === compression
-                          ? "bg-rosa text-white shadow-md"
-                          : "bg-white border border-gray-200 text-gray-700 hover:border-rosa/40"
-                      )}
-                    >
-                      {compression === "suave"
-                        ? t("filters.compressionSoft")
-                        : compression === "media"
-                          ? t("filters.compressionMedium")
-                          : t("filters.compressionFirm")}
-                    </button>
-                  ))}
+              {compressionOptions.length > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
+                    {t("filters.compressionHeading")}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {compressionOptions.map((compression) => (
+                      <button
+                        key={compression}
+                        onClick={() =>
+                          setShapewearFilters((prev) => ({
+                            ...prev,
+                            compression: prev.compression === compression ? null : compression,
+                          }))
+                        }
+                        className={cn(
+                          "rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all cursor-pointer",
+                          shapewearFilters.compression === compression
+                            ? "bg-rosa text-white shadow-md"
+                            : "bg-white border border-gray-200 text-gray-700 hover:border-rosa/40"
+                        )}
+                      >
+                        {compression === "suave"
+                          ? t("filters.compressionSoft")
+                          : compression === "media"
+                            ? t("filters.compressionMedium")
+                            : t("filters.compressionFirm")}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
-                  {t("filters.colorHeading")}
-                </p>
-                <div className="flex flex-wrap gap-2.5">
-                  {colorOptions.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() =>
-                        setShapewearFilters((prev) => ({
-                          ...prev,
-                          color: prev.color === color ? null : color,
-                        }))
-                      }
-                      className={cn(
-                        "w-7 h-7 rounded-full border-2 transition-all cursor-pointer",
-                        shapewearFilters.color === color
-                          ? "ring-2 ring-rosa ring-offset-2 border-rosa scale-110"
-                          : "border-gray-200 hover:scale-110"
-                      )}
-                      style={{ backgroundColor: getColorHex(color) }}
-                      aria-label={`${t("filters.colorAriaLabel")} ${color}`}
-                      title={color}
-                    />
-                  ))}
+              {colorOptions.length > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
+                    {t("filters.colorHeading")}
+                  </p>
+                  <div className="flex flex-wrap gap-2.5">
+                    {colorOptions.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() =>
+                          setShapewearFilters((prev) => ({
+                            ...prev,
+                            color: prev.color === color ? null : color,
+                          }))
+                        }
+                        className={cn(
+                          "w-7 h-7 rounded-full border-2 transition-all cursor-pointer",
+                          shapewearFilters.color === color
+                            ? "ring-2 ring-rosa ring-offset-2 border-rosa scale-110"
+                            : "border-gray-200 hover:scale-110"
+                        )}
+                        style={{ backgroundColor: getColorHex(color) }}
+                        aria-label={`${t("filters.colorAriaLabel")} ${color}`}
+                        title={color}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </motion.div>
@@ -841,15 +912,19 @@ function ShopPageContent() {
       {/* Shop Content */}
       <div className="max-w-[86rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="lg:flex lg:items-start lg:gap-4">
-          <aside className="hidden lg:block lg:w-56 lg:flex-none">
-            <div className="sticky top-20">
-              {renderContextualFiltersCard()}
-            </div>
+          <aside
+            className="hidden lg:block lg:w-56 lg:flex-none lg:sticky lg:mt-30"
+            style={{ top: "calc(var(--header-height, 86px) + 8px)" }}
+          >
+            {renderContextualFiltersCard()}
           </aside>
 
           <div className="min-w-0 flex-1 lg:max-w-[66rem]">
-            <div className="sticky top-16 z-30 mb-4">
-              <div className="rounded-xl border border-white/70 bg-white/80 backdrop-blur-xl shadow-[0_10px_32px_rgba(0,0,0,0.08)] px-3 py-3">
+            <div
+              className="sticky z-30 mb-2"
+              style={{ top: "calc(var(--header-height, 86px) + 4px)" }}
+            >
+              <div className="px-1 py-1">
                 {/* Mobile: 2-col grid with sort below */}
                 <div className="lg:hidden">
                   <div className="grid grid-cols-2 gap-1.5">

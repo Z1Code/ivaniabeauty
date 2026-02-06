@@ -26,6 +26,7 @@
   :root {
     --background: #FFFAF5;
     --foreground: #2D2D2D;
+    --header-height: 86px;
   }
 
   html {

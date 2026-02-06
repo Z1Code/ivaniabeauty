@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
+import { useState, useEffect, useCallback, useSyncExternalStore, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -22,6 +22,7 @@ import LanguageToggle from "@/components/shared/LanguageToggle";
 const DARK_HERO_PAGES: string[] = [];
 
 export default function Header() {
+  const headerRef = useRef<HTMLElement | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const hasMounted = useSyncExternalStore(
     () => () => {},
@@ -33,7 +34,8 @@ export default function Header() {
   const cartCount = totalItems();
   const { t } = useTranslation();
   const pathname = usePathname();
-  const isHome = pathname === "/";
+  const isPrimaryCommerce =
+    pathname === "/" || pathname === "/shop" || pathname.startsWith("/shop/");
   const hideCollectionsLink = pathname === "/" || pathname === "/shop" || pathname === "/shop/";
   const navigationLinks = hideCollectionsLink
     ? NAV_LINKS.filter((link) => link.labelKey !== "nav.collections")
@@ -51,6 +53,22 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
+  useLayoutEffect(() => {
+    const updateHeaderHeightVar = () => {
+      if (!headerRef.current) return;
+      const rect = headerRef.current.getBoundingClientRect();
+      document.documentElement.style.setProperty("--header-height", `${rect.height}px`);
+    };
+
+    updateHeaderHeightVar();
+    window.addEventListener("resize", updateHeaderHeightVar);
+    window.addEventListener("orientationchange", updateHeaderHeightVar);
+    return () => {
+      window.removeEventListener("resize", updateHeaderHeightVar);
+      window.removeEventListener("orientationchange", updateHeaderHeightVar);
+    };
+  }, []);
+
   // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -66,6 +84,7 @@ export default function Header() {
   return (
     <>
       <motion.header
+        ref={headerRef}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 glass-rosa ${
           scrolled ? "shadow-lg shadow-rosa/10" : ""
         }`}
@@ -76,7 +95,7 @@ export default function Header() {
         <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div
             className={`flex items-center justify-between ${
-              isHome ? "h-[4.5rem] md:h-[5.25rem]" : "h-16 md:h-20"
+              isPrimaryCommerce ? "h-[4.5rem] md:h-[5.25rem]" : "h-16 md:h-20"
             }`}
           >
             {/* Logo */}
@@ -87,14 +106,14 @@ export default function Header() {
                 width={36}
                 height={36}
                 className={`object-contain transition-all duration-500 ${
-                  isHome ? "w-9 h-9 md:w-10 md:h-10" : "w-8 h-8 md:w-9 md:h-9"
+                  isPrimaryCommerce ? "w-9 h-9 md:w-10 md:h-10" : "w-8 h-8 md:w-9 md:h-9"
                 } ${
                   heroWhite ? "brightness-0 invert" : ""
                 }`}
                 priority
               />
               <span className={`font-serif font-semibold tracking-wide transition-colors duration-500 ${
-                isHome ? "text-2xl md:text-[2.15rem]" : "text-xl md:text-2xl"
+                isPrimaryCommerce ? "text-2xl md:text-[2.15rem]" : "text-xl md:text-2xl"
               } ${
                 heroWhite ? "text-white" : "text-rosa"
               }`}>
@@ -105,7 +124,7 @@ export default function Header() {
             {/* Desktop Navigation */}
             <ul
               className={`hidden lg:flex items-center ${
-                isHome ? "gap-9" : "gap-8"
+                isPrimaryCommerce ? "gap-9" : "gap-8"
               }`}
             >
               {navigationLinks.map((link) => (
@@ -113,7 +132,7 @@ export default function Header() {
                   <Link
                     href={link.href}
                     className={`relative transition-colors duration-500 group ${
-                      isHome ? "text-[15px] font-semibold" : "text-sm font-medium"
+                      isPrimaryCommerce ? "text-[15px] font-semibold" : "text-sm font-medium"
                     } ${
                       heroWhite
                         ? "text-white/90 hover:text-white"

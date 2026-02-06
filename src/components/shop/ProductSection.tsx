@@ -4,8 +4,6 @@ import React, { useRef } from "react";
 import {
   motion,
   AnimatePresence,
-  useScroll,
-  useTransform,
   useReducedMotion,
   useInView,
 } from "framer-motion";
@@ -42,7 +40,7 @@ function SectionTitle({ text }: { text: string }) {
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <div ref={ref} className="mb-8 overflow-hidden">
+    <div ref={ref} className="mb-2 overflow-hidden">
       <motion.h2
         initial={{ opacity: 0, y: 50, filter: "blur(12px)" }}
         animate={
@@ -54,7 +52,7 @@ function SectionTitle({ text }: { text: string }) {
           duration: 0.8,
           ease: [0.25, 0.46, 0.45, 0.94],
         }}
-        className="text-gradient-section text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight"
+        className="text-gradient-section text-[30px] sm:text-4xl lg:text-[42px] font-extrabold tracking-tight leading-tight"
       >
         {text}
       </motion.h2>
@@ -72,7 +70,7 @@ function SectionTitle({ text }: { text: string }) {
           delay: 0.4,
           ease: [0.25, 0.46, 0.45, 0.94],
         }}
-        className="mt-3 h-[3px] w-16 origin-left rounded-full bg-gradient-to-r from-rosa via-rosa-dark to-dorado/60"
+        className="mt-1.5 h-[3px] w-14 origin-left rounded-full bg-gradient-to-r from-rosa via-rosa-dark to-dorado/60"
       />
     </div>
   );
@@ -92,14 +90,17 @@ export default function ProductSection({
       ref={sectionRef}
       id={section.id}
       data-shop-section
-      className="relative py-10 scroll-mt-32"
+      className={cn(
+        "relative pt-0 pb-10 scroll-mt-[calc(var(--header-height,86px)+20px)]",
+        isActive && "transition-shadow duration-300"
+      )}
     >
       {/* Section Title */}
       <SectionTitle text={t(section.titleKey)} />
 
       {/* Products Grid */}
       {products.length > 0 ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 mt-1">
           <AnimatePresence>
             {products.map((product, index) => (
               <motion.div
