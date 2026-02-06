@@ -18,6 +18,8 @@ interface ProductRow {
   stockQuantity: number;
   isActive: boolean;
   images: string[];
+  fitGuideStatus?: "draft" | "confirmed" | "failed" | "stale";
+  fitGuideWarnings?: string[];
 }
 
 const CATEGORIES: Record<string, string> = {
@@ -28,12 +30,20 @@ const CATEGORIES: Record<string, string> = {
   cuidado: "Cuidado Personal",
 };
 
+const FIT_GUIDE_LABELS: Record<string, string> = {
+  confirmed: "Confirmada",
+  draft: "Borrador",
+  stale: "Desactualizada",
+  failed: "Fallida",
+};
+
 export default function AdminProductsPage() {
   const router = useRouter();
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
+  const [fitGuideStatus, setFitGuideStatus] = useState("");
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -41,6 +51,7 @@ export default function AdminProductsPage() {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (category) params.set("category", category);
+      if (fitGuideStatus) params.set("fitGuideStatus", fitGuideStatus);
 
       const res = await fetch(`/api/admin/products?${params.toString()}`);
       if (res.ok) {
@@ -52,7 +63,7 @@ export default function AdminProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, category]);
+  }, [search, category, fitGuideStatus]);
 
   useEffect(() => {
     const timeout = setTimeout(fetchProducts, 300);
@@ -133,6 +144,36 @@ export default function AdminProductsPage() {
       ),
     },
     {
+      key: "fitGuide",
+      header: "Fit Guide",
+      render: (p: ProductRow) => {
+        const status = p.fitGuideStatus || "failed";
+        const variant =
+          status === "confirmed"
+            ? "success"
+            : status === "draft"
+              ? "rosa"
+              : status === "stale"
+                ? "warning"
+                : "danger";
+        return (
+          <div className="space-y-1">
+            <AdminBadge variant={variant}>
+              {FIT_GUIDE_LABELS[status] || status}
+            </AdminBadge>
+            {p.fitGuideWarnings?.[0] && (
+              <p
+                className="text-[10px] text-gray-400 dark:text-gray-500 max-w-[150px] truncate"
+                title={p.fitGuideWarnings[0]}
+              >
+                {p.fitGuideWarnings[0]}
+              </p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: "status",
       header: "Estado",
       render: (p: ProductRow) => (
@@ -185,6 +226,17 @@ export default function AdminProductsPage() {
               {label}
             </option>
           ))}
+        </select>
+        <select
+          value={fitGuideStatus}
+          onChange={(e) => setFitGuideStatus(e.target.value)}
+          className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-rosa/30 cursor-pointer"
+        >
+          <option value="">Todos los fit guide</option>
+          <option value="confirmed">Confirmada</option>
+          <option value="draft">Borrador</option>
+          <option value="stale">Desactualizada</option>
+          <option value="failed">Fallida</option>
         </select>
       </div>
 

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Loader2, Trash2, Plus, X, Eye, RefreshCw, Pencil } from "lucide-react";
 import AdminPageHeader from "./AdminPageHeader";
 import AdminBilingualInput from "./AdminBilingualInput";
 import AdminImageUpload from "./AdminImageUpload";
 import { cn, getColorHex } from "@/lib/utils";
+import type { FitGuideRow, FitGuideStatus, SizeChartMeasurement } from "@/lib/firebase/types";
+import { metricToCmText, normalizeSizeList } from "@/lib/fit-guide/utils";
 
 const ALL_COLORS = ["cocoa", "negro", "beige", "brown", "rosado", "pink"];
 const ALL_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "2XL", "XXXL", "3XL", "4XL", "5XL"];
@@ -66,6 +68,21 @@ interface ProductFormProps {
   isEditing?: boolean;
 }
 
+interface FitGuideApiResponse {
+  status: FitGuideStatus;
+  warnings: string[];
+  confidenceScore: number;
+  availableSizes: string[];
+  metricKeys: string[];
+  rows: FitGuideRow[];
+  measurements: SizeChartMeasurement[] | null;
+}
+
+type EditableFitGuideRow = {
+  size: string;
+  [metricKey: string]: string | null;
+};
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -78,6 +95,73 @@ function slugify(text: string): string {
 const inputClasses =
   "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all";
 
+function metricValueToText(value: unknown): string | null {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && value) {
+    const metric = value as {
+      min_cm?: number | null;
+      max_cm?: number | null;
+      raw?: string | null;
+    };
+    if (metric.raw) return metric.raw;
+    return metricToCmText({
+      min_cm: metric.min_cm ?? null,
+      max_cm: metric.max_cm ?? null,
+      raw: metric.raw ?? null,
+      confidence: null,
+    });
+  }
+  return null;
+}
+
+function rowsToEditableRows(
+  rows: FitGuideRow[],
+  metricKeys: string[]
+): EditableFitGuideRow[] {
+  return rows.map((row) => {
+    const editable: EditableFitGuideRow = {
+      size: String(row.size || ""),
+    };
+    for (const key of metricKeys) {
+      editable[key] = metricValueToText((row as Record<string, unknown>)[key]);
+    }
+    return editable;
+  });
+}
+
+function metricLabel(metricKey: string): string {
+  switch (metricKey) {
+    case "waist":
+      return "Cintura";
+    case "hip":
+      return "Cadera";
+    case "bust":
+      return "Busto";
+    case "length":
+      return "Largo";
+    default:
+      return metricKey.replace(/[_-]/g, " ");
+  }
+}
+
+function cmTextToInchesText(value: string | null): string | null {
+  if (!value) return null;
+  const values = value.match(/\d+(?:[.,]\d+)?/g) || [];
+  if (!values.length) return null;
+  const nums = values
+    .map((token) => Number.parseFloat(token.replace(",", ".")))
+    .filter((num) => Number.isFinite(num));
+  if (!nums.length) return null;
+  const [first, second] = nums;
+  if (second == null) return String(Math.round(first / 2.54));
+  const min = Math.min(first, second);
+  const max = Math.max(first, second);
+  const minIn = Math.round(min / 2.54);
+  const maxIn = Math.round(max / 2.54);
+  return minIn === maxIn ? String(minIn) : `${minIn}-${maxIn}`;
+}
+
 export default function ProductForm({
   initialData,
   isEditing,
@@ -86,17 +170,18 @@ export default function ProductForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Size chart OCR states
-  const [showMeasurements, setShowMeasurements] = useState(false);
-  const [measurements, setMeasurements] = useState<Array<{
-    size: string;
-    waist_cm: string | null;
-    hip_cm: string | null;
-    bust_cm: string | null;
-    length_cm: string | null;
-  }> | null>(null);
-  const [loadingMeasurements, setLoadingMeasurements] = useState(false);
-  const [savingMeasurements, setSavingMeasurements] = useState(false);
+  // Fit-guide states
+  const [fitGuideRows, setFitGuideRows] = useState<EditableFitGuideRow[]>([]);
+  const [fitGuideMetricKeys, setFitGuideMetricKeys] = useState<string[]>([]);
+  const [fitGuideStatus, setFitGuideStatus] = useState<FitGuideStatus | null>(null);
+  const [fitGuideWarnings, setFitGuideWarnings] = useState<string[]>([]);
+  const [fitGuideConfidence, setFitGuideConfidence] = useState<number | null>(null);
+  const [fitGuideAvailableSizes, setFitGuideAvailableSizes] = useState<string[]>([]);
+  const [showFitGuideEditor, setShowFitGuideEditor] = useState(false);
+  const [loadingFitGuide, setLoadingFitGuide] = useState(false);
+  const [analyzingFitGuide, setAnalyzingFitGuide] = useState(false);
+  const [savingFitGuideDraft, setSavingFitGuideDraft] = useState(false);
+  const [confirmingFitGuide, setConfirmingFitGuide] = useState(false);
 
   const [form, setForm] = useState<ProductFormData>({
     nameEn: initialData?.nameEn || "",
@@ -130,6 +215,30 @@ export default function ProductForm({
     sizeChartImageUrl: initialData?.sizeChartImageUrl || null,
   });
 
+  const sizesLockedByFitGuide = fitGuideStatus === "confirmed";
+  const normalizedProductSizes = useMemo(
+    () => normalizeSizeList(form.sizes),
+    [form.sizes]
+  );
+  const normalizedGuideSizes = useMemo(
+    () => normalizeSizeList(fitGuideAvailableSizes),
+    [fitGuideAvailableSizes]
+  );
+  const missingInGuide = useMemo(
+    () =>
+      normalizedProductSizes.filter(
+        (size) => !normalizedGuideSizes.includes(size)
+      ),
+    [normalizedProductSizes, normalizedGuideSizes]
+  );
+  const missingInProduct = useMemo(
+    () =>
+      normalizedGuideSizes.filter(
+        (size) => !normalizedProductSizes.includes(size)
+      ),
+    [normalizedGuideSizes, normalizedProductSizes]
+  );
+
   function updateField<K extends keyof ProductFormData>(
     key: K,
     value: ProductFormData[K]
@@ -148,6 +257,9 @@ export default function ProductForm({
     key: "colors" | "sizes",
     item: string
   ) {
+    if (key === "sizes" && sizesLockedByFitGuide) {
+      return;
+    }
     setForm((prev) => ({
       ...prev,
       [key]: prev[key].includes(item)
@@ -184,79 +296,179 @@ export default function ProductForm({
     }));
   }
 
-  // Fetch measurements from OCR API
-  async function fetchMeasurements() {
+  function clearFitGuideLocalState() {
+    setFitGuideRows([]);
+    setFitGuideMetricKeys([]);
+    setFitGuideWarnings([]);
+    setFitGuideConfidence(null);
+    setFitGuideAvailableSizes([]);
+    setFitGuideStatus(null);
+  }
+
+  function applyFitGuidePayload(payload: FitGuideApiResponse) {
+    const metricKeys = Array.isArray(payload.metricKeys) ? payload.metricKeys : [];
+    const rows = Array.isArray(payload.rows) ? payload.rows : [];
+    const editableRows = rowsToEditableRows(rows, metricKeys);
+
+    setFitGuideMetricKeys(metricKeys);
+    setFitGuideRows(editableRows);
+    setFitGuideStatus(payload.status || null);
+    setFitGuideWarnings(payload.warnings || []);
+    setFitGuideConfidence(
+      typeof payload.confidenceScore === "number"
+        ? payload.confidenceScore
+        : null
+    );
+    setFitGuideAvailableSizes(payload.availableSizes || []);
+    setShowFitGuideEditor(editableRows.length > 0);
+  }
+
+  function buildFitGuideRowsPayload(): Array<Record<string, string | null>> {
+    return fitGuideRows.map((row) => {
+      const next: Record<string, string | null> = {
+        size: row.size || "",
+      };
+      for (const key of fitGuideMetricKeys) {
+        next[key] = row[key] || null;
+      }
+      return next;
+    });
+  }
+
+  const loadFitGuide = useCallback(async () => {
     if (!initialData?.id) return;
-    setLoadingMeasurements(true);
+    setLoadingFitGuide(true);
     try {
       const res = await fetch(`/api/products/${initialData.id}/size-chart`);
-      const data = await res.json();
-      if (res.ok && data.measurements) {
-        setMeasurements(data.measurements);
-        setShowMeasurements(true);
-      } else {
-        setError(data.error || "No se pudieron extraer las medidas");
+      const data = (await res.json()) as FitGuideApiResponse & { error?: string };
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo cargar fit guide");
       }
-    } catch {
-      setError("Error al obtener las medidas");
+      applyFitGuidePayload(data);
+      if (data.status === "confirmed" && Array.isArray(data.availableSizes)) {
+        setForm((prev) => ({
+          ...prev,
+          sizes: normalizeSizeList(data.availableSizes),
+        }));
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Error al cargar fit guide"
+      );
     } finally {
-      setLoadingMeasurements(false);
+      setLoadingFitGuide(false);
+    }
+  }, [initialData?.id]);
+
+  async function analyzeFitGuide() {
+    if (!initialData?.id || !form.sizeChartImageUrl) return;
+    setAnalyzingFitGuide(true);
+    try {
+      const res = await fetch(`/api/products/${initialData.id}/size-chart`, {
+        method: "POST",
+      });
+      const data = (await res.json()) as FitGuideApiResponse & { error?: string };
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo analizar la imagen");
+      }
+      applyFitGuidePayload(data);
+      setError("");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Error al analizar fit guide"
+      );
+    } finally {
+      setAnalyzingFitGuide(false);
     }
   }
 
-  // Save corrected measurements
-  async function saveMeasurements() {
-    if (!initialData?.id || !measurements) return;
-    setSavingMeasurements(true);
+  async function saveFitGuideDraft() {
+    if (!initialData?.id || !fitGuideRows.length) return;
+    setSavingFitGuideDraft(true);
     try {
       const res = await fetch(`/api/products/${initialData.id}/size-chart`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ measurements }),
+        body: JSON.stringify({ rows: buildFitGuideRowsPayload() }),
       });
+      const data = (await res.json()) as FitGuideApiResponse & { error?: string };
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Error al guardar");
+        throw new Error(data.error || "No se pudo guardar el borrador");
       }
+      applyFitGuidePayload(data);
       setError("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar medidas");
+      setError(
+        err instanceof Error ? err.message : "Error al guardar borrador"
+      );
     } finally {
-      setSavingMeasurements(false);
+      setSavingFitGuideDraft(false);
     }
   }
 
-  // Clear cache to re-extract
-  async function clearMeasurementsCache() {
+  async function confirmFitGuide() {
+    if (!initialData?.id || !fitGuideRows.length) return;
+    setConfirmingFitGuide(true);
+    try {
+      const res = await fetch(`/api/products/${initialData.id}/size-chart`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: buildFitGuideRowsPayload() }),
+      });
+      const data = (await res.json()) as
+        | (FitGuideApiResponse & { syncedSizes?: string[]; error?: string })
+        | { error?: string };
+      if (!res.ok) {
+        throw new Error(("error" in data && data.error) || "No se pudo confirmar");
+      }
+      applyFitGuidePayload(data as FitGuideApiResponse);
+      const synced =
+        "syncedSizes" in data && Array.isArray(data.syncedSizes)
+          ? normalizeSizeList(data.syncedSizes)
+          : normalizeSizeList(
+              (data as FitGuideApiResponse).availableSizes || []
+            );
+      setForm((prev) => ({ ...prev, sizes: synced }));
+      setError("");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Error al confirmar fit guide"
+      );
+    } finally {
+      setConfirmingFitGuide(false);
+    }
+  }
+
+  async function clearFitGuideCache() {
     if (!initialData?.id) return;
-    if (!confirm("Limpiar cache y volver a extraer?")) return;
-    setLoadingMeasurements(true);
+    if (!confirm("Limpiar fit guide y cachear nuevamente?")) return;
+    setLoadingFitGuide(true);
     try {
       await fetch(`/api/products/${initialData.id}/size-chart`, {
         method: "DELETE",
       });
-      setMeasurements(null);
-      // Re-fetch
-      await fetchMeasurements();
+      clearFitGuideLocalState();
+      setShowFitGuideEditor(false);
+      setError("");
     } catch {
-      setError("Error al limpiar cache");
-      setLoadingMeasurements(false);
+      setError("Error al limpiar fit guide");
+    } finally {
+      setLoadingFitGuide(false);
     }
   }
 
-  // Update a measurement field
-  function updateMeasurement(
-    index: number,
-    field: "size" | "waist_cm" | "hip_cm" | "bust_cm" | "length_cm",
-    value: string
-  ) {
-    if (!measurements) return;
-    setMeasurements(
-      measurements.map((m, i) =>
-        i === index ? { ...m, [field]: value || null } : m
+  function updateFitGuideCell(index: number, key: string, value: string) {
+    setFitGuideRows((prev) =>
+      prev.map((row, rowIndex) =>
+        rowIndex === index ? { ...row, [key]: value || null } : row
       )
     );
   }
+
+  useEffect(() => {
+    if (!isEditing || !initialData?.id) return;
+    void loadFitGuide();
+  }, [initialData?.id, isEditing, loadFitGuide]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -264,8 +476,14 @@ export default function ProductForm({
     setSaving(true);
 
     try {
+      const cleanedSizeChartImageUrl = form.sizeChartImageUrl || null;
+      const sanitizedGalleryImages = form.images.filter(
+        (image) => image && image !== cleanedSizeChartImageUrl
+      );
+
       const payload = {
         ...form,
+        images: sanitizedGalleryImages,
         price: parseFloat(form.price),
         originalPrice: form.originalPrice
           ? parseFloat(form.originalPrice)
@@ -278,7 +496,7 @@ export default function ProductForm({
         badgeEn: form.badgeEn || null,
         badgeEs: form.badgeEs || null,
         sku: form.sku || null,
-        sizeChartImageUrl: form.sizeChartImageUrl || null,
+        sizeChartImageUrl: cleanedSizeChartImageUrl,
       };
 
       const url = isEditing
@@ -581,11 +799,11 @@ export default function ProductForm({
             />
           </section>
 
-          {/* Size Chart Image */}
+          {/* Fit Guide Image */}
           <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-800 dark:text-gray-100">
-                Tabla de Tallas (OCR)
+                Fit Guide (IA)
               </h3>
               {form.sizeChartImageUrl && (
                 <button
@@ -598,7 +816,10 @@ export default function ProductForm({
               )}
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Selecciona una imagen del producto o pega una URL externa. El sistema extraera las medidas automaticamente usando IA.
+              Analiza la tabla para extraer medidas en cm y pulgadas (sin decimales). Las tallas se sincronizan solo al confirmar.
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              La imagen seleccionada para fit guide se excluye automaticamente de la galeria visible del producto.
             </p>
 
             {/* Thumbnails from product images */}
@@ -630,8 +851,8 @@ export default function ProductForm({
                       />
                       {form.sizeChartImageUrl === img && (
                         <div className="absolute inset-0 bg-rosa/20 flex items-center justify-center">
-                          <div className="w-6 h-6 rounded-full bg-rosa text-white flex items-center justify-center">
-                            ✓
+                          <div className="px-2 py-1 rounded bg-rosa text-white text-xs font-semibold">
+                            OK
                           </div>
                         </div>
                       )}
@@ -681,30 +902,97 @@ export default function ProductForm({
               </div>
             )}
 
-            {/* Extract/View Measurements Button */}
+            {fitGuideStatus && (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-gray-500 dark:text-gray-400">Estado:</span>
+                <span
+                  className={cn(
+                    "px-2 py-1 rounded-full font-semibold",
+                    fitGuideStatus === "confirmed" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+                    fitGuideStatus === "draft" && "bg-rosa/15 text-rosa-dark dark:bg-rosa/20 dark:text-rosa-light",
+                    fitGuideStatus === "stale" && "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+                    fitGuideStatus === "failed" && "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+                  )}
+                >
+                  {fitGuideStatus}
+                </span>
+                {fitGuideConfidence != null && (
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Confianza: {Math.round(fitGuideConfidence * 100)}%
+                  </span>
+                )}
+              </div>
+            )}
+
+            {fitGuideWarnings.length > 0 && (
+              <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 p-3">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1">
+                  Advertencias Fit Guide
+                </p>
+                <ul className="text-xs text-amber-700/90 dark:text-amber-300/90 space-y-1">
+                  {fitGuideWarnings.map((warning, idx) => (
+                    <li key={idx}>- {warning}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {isEditing && form.sizeChartImageUrl && (
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={fetchMeasurements}
-                    disabled={loadingMeasurements}
+                    onClick={analyzeFitGuide}
+                    disabled={analyzingFitGuide || loadingFitGuide}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rosa/10 text-rosa hover:bg-rosa/20 transition-colors text-sm font-medium cursor-pointer disabled:opacity-50"
                   >
-                    {loadingMeasurements ? (
+                    {analyzingFitGuide ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Eye className="w-4 h-4" />
                     )}
-                    {measurements ? "Ver medidas" : "Extraer medidas (OCR)"}
+                    Analizar con IA
                   </button>
-                  {measurements && (
+
+                  {fitGuideRows.length > 0 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={saveFitGuideDraft}
+                        disabled={savingFitGuideDraft}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors text-sm font-medium cursor-pointer disabled:opacity-50"
+                      >
+                        {savingFitGuideDraft ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
+                        Guardar borrador
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={confirmFitGuide}
+                        disabled={confirmingFitGuide}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rosa text-white hover:bg-rosa-dark transition-colors text-sm font-semibold cursor-pointer disabled:opacity-50"
+                      >
+                        {confirmingFitGuide ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Pencil className="w-4 h-4" />
+                        )}
+                        Confirmar y sincronizar tallas
+                      </button>
+                    </>
+                  )}
+
+                  {(fitGuideStatus || fitGuideRows.length > 0) && (
                     <button
                       type="button"
-                      onClick={clearMeasurementsCache}
-                      disabled={loadingMeasurements}
+                      onClick={clearFitGuideCache}
+                      disabled={loadingFitGuide}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm cursor-pointer disabled:opacity-50"
-                      title="Re-extraer medidas"
+                      title="Limpiar cache de fit guide"
                     >
                       <RefreshCw className="w-4 h-4" />
                     </button>
@@ -714,26 +1002,28 @@ export default function ProductForm({
             )}
           </section>
 
-          {/* Measurements Editor */}
-          {showMeasurements && measurements && (
+          {/* Fit Guide Editor */}
+          {showFitGuideEditor && fitGuideRows.length > 0 && (
             <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                   <Pencil className="w-4 h-4" />
-                  Editar Medidas Extraidas
+                  Editor de Fit Guide
                 </h3>
                 <button
                   type="button"
-                  onClick={() => setShowMeasurements(false)}
+                  onClick={() => setShowFitGuideEditor(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Side by side: Image and Table */}
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Edita valores en centimetros. La vista en pulgadas se calcula automaticamente con redondeo entero.
+              </p>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Image for comparison */}
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Imagen original:</p>
                   <img
@@ -743,67 +1033,55 @@ export default function ProductForm({
                   />
                 </div>
 
-                {/* Editable table */}
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700">
-                        <th className="py-2 px-1 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Talla</th>
-                        <th className="py-2 px-1 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Cintura</th>
-                        <th className="py-2 px-1 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Cadera</th>
+                        <th className="py-2 px-1 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">
+                          Talla
+                        </th>
+                        {fitGuideMetricKeys.map((metricKey) => (
+                          <th
+                            key={metricKey}
+                            className="py-2 px-1 text-left text-xs font-semibold text-gray-600 dark:text-gray-400"
+                          >
+                            {metricLabel(metricKey)}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {measurements.map((m, idx) => (
-                        <tr key={idx} className="border-b border-gray-100 dark:border-gray-800">
+                      {fitGuideRows.map((row, idx) => (
+                        <tr key={`${row.size}-${idx}`} className="border-b border-gray-100 dark:border-gray-800">
                           <td className="py-1.5 px-1">
                             <input
                               type="text"
-                              value={m.size || ""}
-                              onChange={(e) => updateMeasurement(idx, "size", e.target.value)}
+                              value={row.size || ""}
+                              onChange={(e) => updateFitGuideCell(idx, "size", e.target.value)}
                               className="w-full px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
                             />
                           </td>
-                          <td className="py-1.5 px-1">
-                            <input
-                              type="text"
-                              value={m.waist_cm || ""}
-                              onChange={(e) => updateMeasurement(idx, "waist_cm", e.target.value)}
-                              placeholder="ej: 58-62"
-                              className="w-full px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-                            />
-                          </td>
-                          <td className="py-1.5 px-1">
-                            <input
-                              type="text"
-                              value={m.hip_cm || ""}
-                              onChange={(e) => updateMeasurement(idx, "hip_cm", e.target.value)}
-                              placeholder="ej: 84-88"
-                              className="w-full px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-                            />
-                          </td>
+                          {fitGuideMetricKeys.map((metricKey) => (
+                            <td key={metricKey} className="py-1.5 px-1 min-w-[130px]">
+                              <input
+                                type="text"
+                                value={row[metricKey] || ""}
+                                onChange={(e) =>
+                                  updateFitGuideCell(idx, metricKey, e.target.value)
+                                }
+                                placeholder="ej: 58-62"
+                                className="w-full px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                              />
+                              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                                in: {cmTextToInchesText(row[metricKey]) || "-"}
+                              </p>
+                            </td>
+                          ))}
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
-
-              {/* Save button */}
-              <div className="flex justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={saveMeasurements}
-                  disabled={savingMeasurements}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors text-sm font-medium cursor-pointer disabled:opacity-50"
-                >
-                  {savingMeasurements ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
-                  Guardar correcciones
-                </button>
               </div>
             </section>
           )}
@@ -903,24 +1181,43 @@ export default function ProductForm({
 
           {/* Sizes */}
           <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-3 transition-colors duration-300">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Tallas</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">Tallas</h3>
+              {sizesLockedByFitGuide && (
+                <span className="text-[11px] px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-semibold">
+                  Controlado por fit guide
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-4 gap-2">
               {ALL_SIZES.map((size) => (
                 <button
                   key={size}
                   type="button"
                   onClick={() => toggleArrayItem("sizes", size)}
+                  disabled={sizesLockedByFitGuide}
                   className={cn(
                     "py-2 rounded-lg text-sm font-medium transition-all cursor-pointer text-center",
                     form.sizes.includes(size)
                       ? "bg-rosa text-white ring-2 ring-rosa shadow-sm"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700",
+                    sizesLockedByFitGuide && "opacity-60 cursor-not-allowed"
                   )}
                 >
                   {size}
                 </button>
               ))}
             </div>
+            {missingInGuide.length > 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Tallas fuera del fit guide: {missingInGuide.join(", ")}
+              </p>
+            )}
+            {missingInProduct.length > 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Tallas detectadas aun no sincronizadas: {missingInProduct.join(", ")}
+              </p>
+            )}
           </section>
 
           {/* Inventory */}

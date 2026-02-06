@@ -128,19 +128,19 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       className={cn("group h-full", className)}
       aria-label={name}
     >
-      <div className="relative rounded-2xl overflow-hidden bg-white flex flex-col h-full shadow-[0_2px_8px_rgba(180,140,100,0.10)] hover:shadow-[0_8px_30px_rgba(255,107,157,0.13)] transition-shadow duration-500 ease-out border border-[#ddd0c3]">
+      <div className="relative rounded-xl overflow-hidden bg-white flex flex-col h-full shadow-[0_1px_4px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_30px_rgba(255,107,157,0.12)] transition-all duration-500 ease-out border border-gray-100/80 hover:border-rosa-light/40">
         {/* ─── Image Area ─── */}
         <Link
           href={`/shop/${slug}`}
           className="block flex-shrink-0 relative"
           tabIndex={-1}
         >
-          <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-[#faf5f0] to-[#f0e8e0]">
+          <div className="relative aspect-[3/4] overflow-hidden bg-[#f9f7f5]">
             {/* Badge - elegant style with neutral bg and colored border */}
             {localBadge && (
               <span
                 className={cn(
-                  "absolute top-3 left-3 z-10 px-2.5 py-1 text-[9px] font-semibold rounded-lg tracking-wide uppercase",
+                  "absolute top-2.5 left-2.5 z-10 px-2.5 py-1 text-[9px] font-semibold rounded-lg tracking-wide uppercase",
                   "border backdrop-blur-sm shadow-sm",
                   "transition-all duration-300 hover:shadow-md hover:scale-105",
                   (badgeStyles[localBadge] || defaultBadgeStyle).bg,
@@ -154,7 +154,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
             {/* Discount badge - matching elegant style */}
             {discountPercent && (
-              <span className="absolute top-3 right-3 z-10 px-2 py-1 text-[9px] font-semibold text-rosa-dark bg-white/90 backdrop-blur-sm border border-rosa rounded-lg shadow-sm transition-all duration-300 hover:shadow-md hover:scale-105">
+              <span className="absolute top-2.5 right-2.5 z-10 px-2 py-1 text-[9px] font-semibold text-rosa-dark bg-white/90 backdrop-blur-sm border border-rosa rounded-lg shadow-sm transition-all duration-300 hover:shadow-md hover:scale-105">
                 -{discountPercent}%
               </span>
             )}
@@ -187,8 +187,8 @@ export default function ProductCard({ product, className }: ProductCardProps) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none" />
 
             {/* Quick View hint (desktop only) */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 pointer-events-none hidden sm:flex">
-              <span className="flex items-center gap-1.5 px-4 py-2 bg-[#FFFDF9]/92 backdrop-blur-sm text-gray-800 text-[11px] font-medium rounded-full shadow-lg">
+            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 pointer-events-none hidden sm:flex">
+              <span className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#FFFDF9]/92 backdrop-blur-sm text-gray-800 text-[10px] font-medium rounded-full shadow-lg">
                 <Eye className="w-3 h-3" />
                 {t("shop.quickView") || "Ver detalle"}
               </span>
@@ -197,16 +197,16 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         </Link>
 
         {/* ─── Card Body ─── */}
-        <div className="p-3.5 sm:p-4 flex flex-col flex-1 gap-1.5">
+        <div className="p-3 sm:p-3.5 flex flex-col flex-1 gap-1">
           {/* Rating */}
           {product.rating > 0 && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <div className="flex items-center gap-px">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star
                     key={i}
                     className={cn(
-                      "w-3 h-3",
+                      "w-2.5 h-2.5",
                       i < fullStars
                         ? "fill-amber-400 text-amber-400"
                         : i === fullStars && hasHalf
@@ -216,7 +216,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                   />
                 ))}
               </div>
-              <span className="text-[10px] text-gray-400 font-medium">
+              <span className="text-[9px] text-gray-400 font-medium">
                 ({product.reviewCount})
               </span>
             </div>
@@ -224,24 +224,24 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
           {/* Product name */}
           <Link href={`/shop/${slug}`} className="block flex-1">
-            <h3 className="font-serif text-sm sm:text-base font-semibold text-gray-800 leading-snug line-clamp-2 group-hover:text-rosa-dark transition-colors duration-300">
+            <h3 className="font-serif text-[13px] sm:text-[14px] font-semibold text-gray-800 leading-snug line-clamp-2 group-hover:text-rosa-dark transition-colors duration-300">
               {name}
             </h3>
           </Link>
 
           {/* Color swatches preview */}
           {colors.length > 0 && (
-            <div className="flex items-center gap-1.5 pt-0.5">
+            <div className="flex items-center gap-1 pt-0.5">
               {colors.slice(0, 4).map((color) => (
                 <span
                   key={color}
-                  className="w-3.5 h-3.5 rounded-full border border-gray-200/80 shadow-[0_0_0_0.5px_rgba(0,0,0,0.08)]"
+                  className="w-3 h-3 rounded-full border border-gray-200/80 shadow-[0_0_0_0.5px_rgba(0,0,0,0.08)]"
                   style={{ backgroundColor: getColorHex(color) }}
                   title={color}
                 />
               ))}
               {colors.length > 4 && (
-                <span className="text-[10px] text-gray-400 font-medium ml-0.5">
+                <span className="text-[9px] text-gray-400 font-medium ml-0.5">
                   +{colors.length - 4}
                 </span>
               )}
@@ -250,11 +250,11 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
           {/* Price */}
           <div className="flex items-baseline gap-2 mt-auto pt-1">
-            <span className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">
+            <span className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">
               {formatPrice(price)}
             </span>
             {originalPrice && originalPrice > price && (
-              <span className="text-[11px] text-gray-400 line-through decoration-gray-300">
+              <span className="text-[10px] text-gray-400 line-through decoration-gray-300">
                 {formatPrice(originalPrice)}
               </span>
             )}
@@ -272,7 +272,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                 : undefined
             }
             className={cn(
-              "group/btn relative w-full py-2.5 sm:py-3 rounded-xl text-sm font-medium cursor-pointer overflow-hidden transition-all duration-300 min-h-[44px] mt-1",
+              "group/btn relative w-full py-2 sm:py-2.5 rounded-lg text-[13px] font-medium cursor-pointer overflow-hidden transition-all duration-300 min-h-[40px] mt-1",
               isOutOfStock
                 ? "border border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
                 : added
@@ -330,7 +330,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                       : "text-rosa-dark group-hover/btn:text-rosa-dark"
                   )}
                 >
-                  <ShoppingBag className="w-3.5 h-3.5" />
+                  <ShoppingBag className="w-3 h-3" />
                   {t("productDetail.addToCart")}
                 </motion.span>
               )}

@@ -7,6 +7,13 @@ export interface SectionConfig {
   svgColor: string;
 }
 
+export interface ShopSectionsSettings {
+  enabledSectionIds: string[];
+}
+
+export const SHOP_SECTIONS_STORAGE_KEY = "ivania_settings_shop_sections";
+export const SHOP_SECTIONS_UPDATED_EVENT = "ivania:shop-sections-updated";
+
 export const SECTIONS: SectionConfig[] = [
   {
     id: "shampoo-fragrance",
@@ -41,3 +48,43 @@ export const SECTIONS: SectionConfig[] = [
     svgPattern: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="currentColor" class="w-full h-full"><g opacity="0.35"><path d="M60 80 Q65 60 70 70 Q80 50 85 65 Q95 55 90 70 Q100 65 95 80 Q85 85 80 78 Q75 85 70 80 Q65 88 60 80Z"/><circle cx="77" cy="73" r="5"/><path d="M200 40 Q205 20 210 30 Q220 10 225 25 Q235 15 230 30 Q240 25 235 40 Q225 45 220 38 Q215 45 210 40 Q205 48 200 40Z"/><circle cx="217" cy="33" r="5"/><path d="M340 100 Q345 80 350 90 Q360 70 365 85 Q375 75 370 90 Q380 85 375 100 Q365 105 360 98 Q355 105 350 100 Q345 108 340 100Z"/><circle cx="357" cy="93" r="5"/><path d="M120 200 Q125 180 130 190 Q140 170 145 185 Q155 175 150 190 Q160 185 155 200 Q145 205 140 198 Q135 205 130 200 Q125 208 120 200Z"/><circle cx="137" cy="193" r="5"/><path d="M280 180 Q285 160 290 170 Q300 150 305 165 Q315 155 310 170 Q320 165 315 180 Q305 185 300 178 Q295 185 290 180 Q285 188 280 180Z"/><circle cx="297" cy="173" r="5"/><path d="M50 320 Q55 300 60 310 Q70 290 75 305 Q85 295 80 310 Q90 305 85 320 Q75 325 70 318 Q65 325 60 320 Q55 328 50 320Z"/><circle cx="67" cy="313" r="5"/><path d="M190 300 Q195 280 200 290 Q210 270 215 285 Q225 275 220 290 Q230 285 225 300 Q215 305 210 298 Q205 305 200 300 Q195 308 190 300Z"/><circle cx="207" cy="293" r="5"/><path d="M330 280 Q335 260 340 270 Q350 250 355 265 Q365 255 360 270 Q370 265 365 280 Q355 285 350 278 Q345 285 340 280 Q335 288 330 280Z"/><circle cx="347" cy="273" r="5"/><path d="M100 380 Q105 360 110 370 Q120 350 125 365 Q135 355 130 370 Q140 365 135 380 Q125 385 120 378 Q115 385 110 380 Q105 388 100 380Z"/><circle cx="117" cy="373" r="5"/><path d="M260 360 Q265 340 270 350 Q280 330 285 345 Q295 335 290 350 Q300 345 295 360 Q285 365 280 358 Q275 365 270 360 Q265 368 260 360Z"/><circle cx="277" cy="353" r="5"/></g></svg>`,
   },
 ];
+
+export const DEFAULT_SHOP_SECTION_IDS = SECTIONS.map((section) => section.id);
+
+const SECTION_ID_SET = new Set(DEFAULT_SHOP_SECTION_IDS);
+
+export function sanitizeShopSectionIds(ids: unknown): string[] {
+  if (!Array.isArray(ids)) {
+    return DEFAULT_SHOP_SECTION_IDS;
+  }
+
+  const selectedIds = new Set<string>();
+  for (const id of ids) {
+    if (typeof id === "string" && SECTION_ID_SET.has(id)) {
+      selectedIds.add(id);
+    }
+  }
+
+  const orderedIds = DEFAULT_SHOP_SECTION_IDS.filter((id) => selectedIds.has(id));
+  return orderedIds.length > 0 ? orderedIds : DEFAULT_SHOP_SECTION_IDS;
+}
+
+export function parseShopSectionsSettings(raw: string | null | undefined): ShopSectionsSettings {
+  if (!raw) {
+    return { enabledSectionIds: DEFAULT_SHOP_SECTION_IDS };
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as { enabledSectionIds?: unknown };
+    return {
+      enabledSectionIds: sanitizeShopSectionIds(parsed?.enabledSectionIds),
+    };
+  } catch {
+    return { enabledSectionIds: DEFAULT_SHOP_SECTION_IDS };
+  }
+}
+
+export function getSectionsByIds(enabledSectionIds: unknown): SectionConfig[] {
+  const validIds = new Set(sanitizeShopSectionIds(enabledSectionIds));
+  return SECTIONS.filter((section) => validIds.has(section.id));
+}

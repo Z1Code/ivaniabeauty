@@ -12,12 +12,29 @@ import {
   Moon,
   Sun,
   Check,
+  SlidersHorizontal,
+  Instagram,
+  Video,
 } from "lucide-react";
 import { Type } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import useAdminTheme from "@/hooks/useAdminTheme";
 import { ADMIN_THEMES } from "@/lib/admin-themes";
 import { ADMIN_FONTS } from "@/lib/admin-fonts";
+import {
+  DEFAULT_SHOP_SECTION_IDS,
+  SECTIONS,
+  SHOP_SECTIONS_STORAGE_KEY,
+  SHOP_SECTIONS_UPDATED_EVENT,
+  sanitizeShopSectionIds,
+} from "@/app/shop/sections";
+import {
+  DEFAULT_HOME_SECTIONS_SETTINGS,
+  HOME_SECTIONS_STORAGE_KEY,
+  HOME_SECTIONS_UPDATED_EVENT,
+  sanitizeHomeSectionsSettings,
+  type HomeSectionsSettings,
+} from "@/lib/home-sections-config";
 
 interface StoreSettings {
   storeName: string;
@@ -35,6 +52,10 @@ interface PaymentSettings {
   cardEnabled: boolean;
   paypalEnabled: boolean;
   transferEnabled: boolean;
+}
+
+interface ShopSectionsSettings {
+  enabledSectionIds: string[];
 }
 
 const STORAGE_KEY_STORE = "ivania_settings_store";
@@ -79,6 +100,12 @@ export default function SettingsPage() {
     paypalEnabled: false,
     transferEnabled: false,
   });
+  const [shopSections, setShopSections] = useState<ShopSectionsSettings>({
+    enabledSectionIds: DEFAULT_SHOP_SECTION_IDS,
+  });
+  const [homeSections, setHomeSections] = useState<HomeSectionsSettings>(
+    DEFAULT_HOME_SECTIONS_SETTINGS
+  );
 
   // Admin info (read-only)
   const [adminEmail] = useState("admin@ivaniabeauty.com");
@@ -106,8 +133,67 @@ export default function SettingsPage() {
         transferEnabled: false,
       })
     );
+    const storedShopSections = getStoredValue<ShopSectionsSettings>(
+      SHOP_SECTIONS_STORAGE_KEY,
+      { enabledSectionIds: DEFAULT_SHOP_SECTION_IDS }
+    );
+    setShopSections({
+      enabledSectionIds: sanitizeShopSectionIds(
+        storedShopSections.enabledSectionIds
+      ),
+    });
+    const storedHomeSections = getStoredValue<HomeSectionsSettings>(
+      HOME_SECTIONS_STORAGE_KEY,
+      DEFAULT_HOME_SECTIONS_SETTINGS
+    );
+    setHomeSections(sanitizeHomeSectionsSettings(storedHomeSections));
     setLoading(false);
   }, []);
+
+  const toggleShopSection = useCallback((sectionId: string) => {
+    setShopSections((prev) => {
+      const isEnabled = prev.enabledSectionIds.includes(sectionId);
+      if (isEnabled && prev.enabledSectionIds.length === 1) {
+        return prev;
+      }
+
+      const nextSet = new Set(prev.enabledSectionIds);
+      if (isEnabled) {
+        nextSet.delete(sectionId);
+      } else {
+        nextSet.add(sectionId);
+      }
+
+      return {
+        enabledSectionIds: sanitizeShopSectionIds([...nextSet]),
+      };
+    });
+  }, []);
+
+  const getShopSectionLabel = useCallback((sectionId: string) => {
+    switch (sectionId) {
+      case "shampoo-fragrance":
+        return "Cabello y Cuerpo";
+      case "fajas":
+        return "Fajas";
+      case "cinturillas":
+        return "Cinturillas";
+      case "tops-shorts":
+        return "Tops y Shorts";
+      default:
+        return sectionId;
+    }
+  }, []);
+
+  const toggleHomeSection = useCallback(
+    (key: keyof HomeSectionsSettings) => {
+      setHomeSections((prev) => ({
+        ...prev,
+        [key]: !prev[key],
+      }));
+    },
+    []
+  );
 
   const saveSection = useCallback(
     async (section: string) => {
@@ -132,6 +218,24 @@ export default function SettingsPage() {
               JSON.stringify(payments)
             );
             break;
+          case "shop":
+            localStorage.setItem(
+              SHOP_SECTIONS_STORAGE_KEY,
+              JSON.stringify({
+                enabledSectionIds: sanitizeShopSectionIds(
+                  shopSections.enabledSectionIds
+                ),
+              })
+            );
+            window.dispatchEvent(new Event(SHOP_SECTIONS_UPDATED_EVENT));
+            break;
+          case "home":
+            localStorage.setItem(
+              HOME_SECTIONS_STORAGE_KEY,
+              JSON.stringify(sanitizeHomeSectionsSettings(homeSections))
+            );
+            window.dispatchEvent(new Event(HOME_SECTIONS_UPDATED_EVENT));
+            break;
         }
       } catch (error) {
         console.error("Error saving settings:", error);
@@ -139,7 +243,7 @@ export default function SettingsPage() {
         setSavingSection(null);
       }
     },
-    [store, shipping, payments]
+    [store, shipping, payments, shopSections.enabledSectionIds, homeSections]
   );
 
   if (loading) {
@@ -591,6 +695,153 @@ export default function SettingsPage() {
             >
               <Save className="w-4 h-4" />
               {savingSection === "payments" ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+        </div>
+
+        {/* Shop Sections Settings */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm transition-colors duration-300">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-fuchsia-50 dark:bg-fuchsia-950 flex items-center justify-center">
+              <SlidersHorizontal className="w-5 h-5 text-fuchsia-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">
+                Secciones de Shop
+              </h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Activa u oculta las 4 secciones visibles en /shop
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 mb-2">
+            {SECTIONS.map((section) => {
+              const isEnabled = shopSections.enabledSectionIds.includes(
+                section.id
+              );
+              const isOnlyEnabledSection =
+                isEnabled && shopSections.enabledSectionIds.length === 1;
+              return (
+                <label
+                  key={section.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {getShopSectionLabel(section.id)}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      {isEnabled ? "Visible en Shop" : "Oculta en Shop"}
+                    </p>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={isEnabled}
+                      disabled={isOnlyEnabledSection}
+                      onChange={() => toggleShopSection(section.id)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-rosa transition-colors peer-disabled:opacity-50" />
+                    <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5 peer-disabled:opacity-70" />
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">
+            Debe haber al menos una seccion activa para mostrar productos.
+          </p>
+
+          <div className="flex justify-end">
+            <button
+              onClick={() => saveSection("shop")}
+              disabled={savingSection === "shop"}
+              className="flex items-center gap-2 px-5 py-2.5 bg-rosa text-white rounded-xl hover:bg-rosa-dark transition-colors disabled:opacity-50 text-sm font-medium cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              {savingSection === "shop" ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+        </div>
+
+        {/* Home Social Sections Settings */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm transition-colors duration-300">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-pink-50 dark:bg-pink-950 flex items-center justify-center">
+              <Instagram className="w-5 h-5 text-pink-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">
+                Secciones Sociales del Home
+              </h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Elige si mostrar TikTok e Instagram en la landing
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 mb-5">
+            <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer">
+              <div className="flex items-center gap-3">
+                <Video className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Feed de TikTok
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Mostrar videos y CTA de TikTok en home
+                  </p>
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={homeSections.showTikTok}
+                  onChange={() => toggleHomeSection("showTikTok")}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-rosa transition-colors" />
+                <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
+              </div>
+            </label>
+
+            <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer">
+              <div className="flex items-center gap-3">
+                <Instagram className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Feed de Instagram
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Mostrar grid y newsletter de Instagram en home
+                  </p>
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={homeSections.showInstagram}
+                  onChange={() => toggleHomeSection("showInstagram")}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-rosa transition-colors" />
+                <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
+              </div>
+            </label>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={() => saveSection("home")}
+              disabled={savingSection === "home"}
+              className="flex items-center gap-2 px-5 py-2.5 bg-rosa text-white rounded-xl hover:bg-rosa-dark transition-colors disabled:opacity-50 text-sm font-medium cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              {savingSection === "home" ? "Guardando..." : "Guardar"}
             </button>
           </div>
         </div>

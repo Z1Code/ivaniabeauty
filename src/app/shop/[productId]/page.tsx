@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,7 +27,8 @@ import ProductCard from "@/components/ui/ProductCard";
 import UnitToggle, { type Unit } from "@/components/ui/UnitToggle";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getLocalizedField } from "@/lib/productHelpers";
-import type { SizeChartMeasurement } from "@/lib/firebase/types";
+import type { FitGuideStatus } from "@/lib/firebase/types";
+import { canonicalizeSizeLabel } from "@/lib/fit-guide/utils";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -58,6 +59,23 @@ interface ProductData {
   reviewCount: number;
   inStock: boolean;
   sizeChartImageUrl?: string | null;
+}
+
+interface SizeChartDisplayCell {
+  cm: string | null;
+  in: string | null;
+}
+
+interface SizeChartDisplayRow {
+  size: string;
+  metrics: Record<string, SizeChartDisplayCell | null>;
+}
+
+interface SizeChartApiResponse {
+  status: FitGuideStatus;
+  warnings: string[];
+  metricKeys: string[];
+  displayRows: SizeChartDisplayRow[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -192,6 +210,9 @@ function ProductDetail({ product }: { product: ProductData }) {
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("descripcion");
   const [show360, setShow360] = useState(false);
+  const [sizeGuideUnit, setSizeGuideUnit] = useState<Unit>("cm");
+  const [fitGuideLoading, setFitGuideLoading] = useState(false);
+  const [fitGuideData, setFitGuideData] = useState<SizeChartApiResponse | null>(null);
 
   /* ----- translated tab labels ----- */
   const TAB_LABELS: { key: TabKey; label: string }[] = [
@@ -199,34 +220,6 @@ function ProductDetail({ product }: { product: ProductData }) {
     { key: "tallas", label: t("productDetail.tabSizeGuide") },
     { key: "materiales", label: t("productDetail.tabMaterials") },
     { key: "resenas", label: t("productDetail.tabReviews") },
-  ];
-
-  /* ----- translated mock reviews ----- */
-  const MOCK_REVIEWS = [
-    {
-      id: 1,
-      name: "Maria Garcia",
-      avatar: "MG",
-      rating: 5,
-      date: "15 Enero, 2026",
-      text: t("testimonials.review1Text"),
-    },
-    {
-      id: 2,
-      name: "Laura Martinez",
-      avatar: "LM",
-      rating: 4,
-      date: "8 Enero, 2026",
-      text: t("testimonials.review2Text"),
-    },
-    {
-      id: 3,
-      name: "Carolina Lopez",
-      avatar: "CL",
-      rating: 5,
-      date: "28 Diciembre, 2025",
-      text: t("testimonials.review3Text"),
-    },
   ];
 
   /* ----- derived ----- */
@@ -254,13 +247,134 @@ function ProductDetail({ product }: { product: ProductData }) {
     return pool.slice(0, 4);
   }, [product.id, product.category]);
 
+  const galleryImages = useMemo(() => {
+    const source = Array.isArray(product.images) ? product.images : [];
+    const fitGuideImage = product.sizeChartImageUrl || null;
+    return source.filter((image) => image && image !== fitGuideImage);
+  }, [product.images, product.sizeChartImageUrl]);
+
+  const selectedGalleryImage =
+    galleryImages[selectedImageIndex] || galleryImages[0] || null;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchFitGuide() {
+      setFitGuideLoading(true);
+      setFitGuideData(null);
+      try {
+        const res = await fetch(`/api/products/${product.id}/size-chart`);
+        const data = (await res.json()) as Partial<SizeChartApiResponse>;
+        if (cancelled) return;
+
+        if (res.ok && typeof data.status === "string") {
+          const nextData: SizeChartApiResponse = {
+            status: data.status as FitGuideStatus,
+            warnings: Array.isArray(data.warnings) ? data.warnings : [],
+            metricKeys: Array.isArray(data.metricKeys) ? data.metricKeys : [],
+            displayRows: Array.isArray(data.displayRows) ? data.displayRows : [],
+          };
+          setFitGuideData(nextData);
+
+          if (nextData.status !== "confirmed") {
+            console.warn(
+              `[fit-guide] Fallback to static chart for product ${product.id}.`,
+              nextData.warnings
+            );
+          }
+        } else {
+          setFitGuideData(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setFitGuideData(null);
+          console.warn("[fit-guide] Failed to load fit-guide.", error);
+        }
+      } finally {
+        if (!cancelled) {
+          setFitGuideLoading(false);
+        }
+      }
+    }
+
+    void fetchFitGuide();
+    return () => {
+      cancelled = true;
+    };
+  }, [product.id]);
+
+  const fallbackRows = useMemo(() => {
+    const normalizedProductSizes = new Set(
+      product.sizes.map((size) => canonicalizeSizeLabel(size))
+    );
+
+    const staticRows: SizeChartDisplayRow[] = SIZE_CHART.map((row) => ({
+      size: row.size,
+      metrics: {
+        waist: {
+          cm: row.waist,
+          in: toRoundedInches(row.waist),
+        },
+        hip: {
+          cm: row.hip,
+          in: toRoundedInches(row.hip),
+        },
+      },
+    }));
+
+    const filteredRows = staticRows.filter((row) =>
+      normalizedProductSizes.has(canonicalizeSizeLabel(row.size))
+    );
+
+    return filteredRows.length > 0 ? filteredRows : staticRows;
+  }, [product.sizes]);
+
+  const hasConfirmedFitGuide = useMemo(
+    () =>
+      fitGuideData?.status === "confirmed" &&
+      Array.isArray(fitGuideData.displayRows) &&
+      fitGuideData.displayRows.length > 0,
+    [fitGuideData]
+  );
+
+  const chartRows = useMemo(
+    () => (hasConfirmedFitGuide ? fitGuideData?.displayRows || [] : fallbackRows),
+    [fitGuideData?.displayRows, fallbackRows, hasConfirmedFitGuide]
+  );
+
+  const chartMetricKeys = useMemo(() => {
+    const baseKeys =
+      hasConfirmedFitGuide && fitGuideData?.metricKeys?.length
+        ? fitGuideData.metricKeys
+        : ["waist", "hip"];
+
+    const visibleKeys = baseKeys.filter((metricKey) =>
+      chartRows.some((row) => {
+        const metric = row.metrics[metricKey];
+        return Boolean(metric?.cm || metric?.in);
+      })
+    );
+
+    if (visibleKeys.length > 0) return visibleKeys;
+    return baseKeys;
+  }, [chartRows, fitGuideData?.metricKeys, hasConfirmedFitGuide]);
+
+  const fitGuideNotice = useMemo(() => {
+    if (hasConfirmedFitGuide) return null;
+    const warning = fitGuideData?.warnings?.[0];
+    if (warning) return warning;
+    return language === "es"
+      ? "Se muestra una tabla referencial mientras se confirma el fit guide."
+      : "Showing a fallback chart while the fit guide is being confirmed.";
+  }, [fitGuideData?.warnings, hasConfirmedFitGuide, language]);
+
   /* ----- cart handler ----- */
   const handleAddToCart = () => {
     addItem({
       id: product.id,
       name: localName,
       price: product.price,
-      image: product.images[0] ?? "",
+      image: galleryImages[0] ?? "",
       color: selectedColor,
       size: selectedSize || product.sizes[0],
       quantity,
@@ -304,10 +418,10 @@ function ProductDetail({ product }: { product: ProductData }) {
         >
           {/* --- main image --- */}
           <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-rosa-light/30 to-arena group cursor-zoom-in">
-            {product.images[selectedImageIndex] ? (
+            {selectedGalleryImage ? (
               <motion.img
-                key={selectedImageIndex}
-                src={product.images[selectedImageIndex]}
+                key={selectedGalleryImage}
+                src={selectedGalleryImage}
                 alt={`${localName} - ${selectedImageIndex + 1}`}
                 className="absolute inset-0 w-full h-full object-cover"
                 initial={{ opacity: 0 }}
@@ -338,7 +452,7 @@ function ProductDetail({ product }: { product: ProductData }) {
 
           {/* --- thumbnails --- */}
           <div className="flex gap-3 mt-4">
-            {product.images.map((img, i) => (
+            {galleryImages.map((img, i) => (
               <button
                 key={i}
                 onClick={() => setSelectedImageIndex(i)}
@@ -578,8 +692,12 @@ function ProductDetail({ product }: { product: ProductData }) {
         {showSizeGuide && (
           <SizeGuideModal
             onClose={() => setShowSizeGuide(false)}
-            productId={product.id}
-            sizeChartImageUrl={product.sizeChartImageUrl}
+            unit={sizeGuideUnit}
+            onUnitChange={setSizeGuideUnit}
+            loading={fitGuideLoading}
+            rows={chartRows}
+            metricKeys={chartMetricKeys}
+            notice={fitGuideNotice}
           />
         )}
       </AnimatePresence>
@@ -624,7 +742,30 @@ function ProductDetail({ product }: { product: ProductData }) {
 
             {activeTab === "tallas" && (
               <TabPanel key="tallas">
-                <SizeChartTable unit="cm" measurements={null} />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-gray-500">
+                      {hasConfirmedFitGuide
+                        ? language === "es"
+                          ? "Guía confirmada del producto"
+                          : "Confirmed product fit guide"
+                        : language === "es"
+                          ? "Tabla referencial"
+                          : "Reference chart"}
+                    </p>
+                    <UnitToggle unit={sizeGuideUnit} onChange={setSizeGuideUnit} />
+                  </div>
+                  {fitGuideNotice && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      {fitGuideNotice}
+                    </p>
+                  )}
+                  <SizeChartTable
+                    unit={sizeGuideUnit}
+                    rows={chartRows}
+                    metricKeys={chartMetricKeys}
+                  />
+                </div>
               </TabPanel>
             )}
 
@@ -698,54 +839,60 @@ function TabPanel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ---------- Helper: Convert cm to inches ---------- */
+/* ---------- Helpers ---------- */
 
-function cmToInches(cmRange: string): string {
-  if (!cmRange) return "";
-  const parts = cmRange.split("-").map((s) => s.trim());
-  if (parts.length === 2) {
-    const [min, max] = parts.map(Number);
-    if (!isNaN(min) && !isNaN(max)) {
-      return `${(min / 2.54).toFixed(1)}-${(max / 2.54).toFixed(1)}`;
-    }
-  } else if (parts.length === 1) {
-    const val = Number(parts[0]);
-    if (!isNaN(val)) {
-      return (val / 2.54).toFixed(1);
-    }
-  }
-  return cmRange;
+function toRoundedInches(value: string | null): string | null {
+  if (!value) return null;
+  const numbers = (value.match(/\d+(?:[.,]\d+)?/g) || [])
+    .map((token) => Number.parseFloat(token.replace(",", ".")))
+    .filter((num) => Number.isFinite(num));
+
+  if (!numbers.length) return null;
+
+  const first = numbers[0];
+  const second = numbers[1];
+  if (second == null) return String(Math.round(first / 2.54));
+
+  const min = Math.min(first, second);
+  const max = Math.max(first, second);
+  const minIn = Math.round(min / 2.54);
+  const maxIn = Math.round(max / 2.54);
+  return minIn === maxIn ? String(minIn) : `${minIn}-${maxIn}`;
+}
+
+function humanizeMetricKey(metricKey: string, language: string): string {
+  const normalized = metricKey.toLowerCase();
+  if (normalized === "waist") return language === "es" ? "Cintura" : "Waist";
+  if (normalized === "hip") return language === "es" ? "Cadera" : "Hip";
+  if (normalized === "bust") return language === "es" ? "Busto" : "Bust";
+  if (normalized === "length") return language === "es" ? "Largo" : "Length";
+
+  return metricKey
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 /* ---------- Size Chart Table ---------- */
 
 interface SizeChartTableProps {
   unit: Unit;
-  measurements: SizeChartMeasurement[] | null;
+  rows: SizeChartDisplayRow[];
+  metricKeys: string[];
 }
 
-function SizeChartTable({ unit, measurements }: SizeChartTableProps) {
-  const { t } = useTranslation();
-
-  // Use dynamic measurements if available, otherwise fall back to static SIZE_CHART
-  const data = measurements
-    ? measurements.map((m) => ({
-        size: m.size,
-        waist: m.waist_cm || "",
-        hip: m.hip_cm || "",
-      }))
-    : SIZE_CHART.map((row) => ({
-        size: row.size,
-        waist: row.waist,
-        hip: row.hip,
-      }));
-
-  const formatValue = (cmValue: string) => {
-    if (!cmValue) return "-";
-    return unit === "inches" ? cmToInches(cmValue) : cmValue;
-  };
-
+function SizeChartTable({ unit, rows, metricKeys }: SizeChartTableProps) {
+  const { t, language } = useTranslation();
   const unitLabel = unit === "inches" ? " (in)" : " (cm)";
+
+  if (!rows.length) {
+    return (
+      <p className="text-sm text-gray-500">
+        {language === "es"
+          ? "No hay medidas disponibles para este producto."
+          : "No measurements are available for this product."}
+      </p>
+    );
+  }
 
   return (
     <div className="overflow-x-auto">
@@ -755,23 +902,34 @@ function SizeChartTable({ unit, measurements }: SizeChartTableProps) {
             <th className="py-3 pr-6 font-semibold text-gray-800">
               {t("productDetail.sizeChartSize")}
             </th>
-            <th className="py-3 pr-6 font-semibold text-gray-800">
-              {t("productDetail.sizeChartWaist")}{unitLabel}
-            </th>
-            <th className="py-3 font-semibold text-gray-800">
-              {t("productDetail.sizeChartHip")}{unitLabel}
-            </th>
+            {metricKeys.map((metricKey) => (
+              <th
+                key={metricKey}
+                className="py-3 pr-6 font-semibold text-gray-800 whitespace-nowrap"
+              >
+                {humanizeMetricKey(metricKey, language)}
+                {unitLabel}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {data.map((row) => (
+          {rows.map((row) => (
             <tr
               key={row.size}
               className="border-b border-gray-100 hover:bg-rosa-light/10 transition-colors"
             >
               <td className="py-3 pr-6 font-medium text-gray-800">{row.size}</td>
-              <td className="py-3 pr-6 text-gray-600">{formatValue(row.waist)}</td>
-              <td className="py-3 text-gray-600">{formatValue(row.hip)}</td>
+              {metricKeys.map((metricKey) => {
+                const metric = row.metrics[metricKey];
+                const value =
+                  unit === "inches" ? metric?.in || "-" : metric?.cm || "-";
+                return (
+                  <td key={metricKey} className="py-3 pr-6 text-gray-600">
+                    {value}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
@@ -784,46 +942,24 @@ function SizeChartTable({ unit, measurements }: SizeChartTableProps) {
 
 interface SizeGuideModalProps {
   onClose: () => void;
-  productId: string;
-  sizeChartImageUrl?: string | null;
+  unit: Unit;
+  onUnitChange: (unit: Unit) => void;
+  loading: boolean;
+  rows: SizeChartDisplayRow[];
+  metricKeys: string[];
+  notice: string | null;
 }
 
-function SizeGuideModal({ onClose, productId, sizeChartImageUrl }: SizeGuideModalProps) {
+function SizeGuideModal({
+  onClose,
+  unit,
+  onUnitChange,
+  loading,
+  rows,
+  metricKeys,
+  notice,
+}: SizeGuideModalProps) {
   const { t } = useTranslation();
-  const [unit, setUnit] = useState<Unit>("cm");
-  const [measurements, setMeasurements] = useState<SizeChartMeasurement[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch measurements from OCR API if sizeChartImageUrl exists
-  const fetchMeasurements = useCallback(async () => {
-    if (!sizeChartImageUrl) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`/api/products/${productId}/size-chart`);
-      const data = await res.json();
-
-      if (res.ok && data.measurements) {
-        setMeasurements(data.measurements);
-      } else {
-        // Silently fall back to static data
-        console.warn("Size chart API error:", data.error);
-      }
-    } catch (err) {
-      console.warn("Failed to fetch size chart:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [productId, sizeChartImageUrl]);
-
-  useEffect(() => {
-    if (sizeChartImageUrl) {
-      fetchMeasurements();
-    }
-  }, [sizeChartImageUrl, fetchMeasurements]);
 
   return (
     <motion.div
@@ -863,8 +999,14 @@ function SizeGuideModal({ onClose, productId, sizeChartImageUrl }: SizeGuideModa
           <h2 className="font-serif text-2xl font-bold text-gray-900">
             {t("productDetail.sizeGuideModalTitle")}
           </h2>
-          <UnitToggle unit={unit} onChange={setUnit} />
+          <UnitToggle unit={unit} onChange={onUnitChange} />
         </div>
+
+        {notice && (
+          <p className="mb-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            {notice}
+          </p>
+        )}
 
         {/* Loading state */}
         {loading ? (
@@ -875,7 +1017,7 @@ function SizeGuideModal({ onClose, productId, sizeChartImageUrl }: SizeGuideModa
             </span>
           </div>
         ) : (
-          <SizeChartTable unit={unit} measurements={measurements} />
+          <SizeChartTable unit={unit} rows={rows} metricKeys={metricKeys} />
         )}
 
         {/* How to measure */}

@@ -6,7 +6,9 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "backfill:fit-guides": "npx tsx scripts/backfill-fit-guides.ts",
+    "test:fit-guide": "npx tsx --test src/lib/fit-guide/*.test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

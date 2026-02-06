@@ -12,6 +12,7 @@ import {
   Josefin_Sans,
   Raleway,
   Outfit,
+  Inter,
 } from "next/font/google";
 import "./globals.css";
 import LayoutShell from "@/components/layout/LayoutShell";
@@ -102,6 +103,13 @@ const outfit = Outfit({
   display: "swap",
 });
 
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Ivania Beauty | Fajas Premium - Tu Silueta Perfecta",
   description:
@@ -131,7 +139,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${poppins.variable} ${playfair.variable} ${dancingScript.variable} ${cormorant.variable} ${lora.variable} ${merriweather.variable} ${libreBaskerville.variable} ${dmSerifDisplay.variable} ${spectral.variable} ${josefinSans.variable} ${raleway.variable} ${outfit.variable} font-sans antialiased`}
+        className={`${poppins.variable} ${playfair.variable} ${dancingScript.variable} ${cormorant.variable} ${lora.variable} ${merriweather.variable} ${libreBaskerville.variable} ${dmSerifDisplay.variable} ${spectral.variable} ${josefinSans.variable} ${raleway.variable} ${outfit.variable} ${inter.variable} font-sans antialiased`}
       >
 
         <LanguageInitializer />

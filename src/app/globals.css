@@ -149,6 +149,26 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  /* Apple-style gradient section title */
+  .text-gradient-section {
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    background: linear-gradient(
+      135deg,
+      #E91E63 0%,
+      #FF6B9D 25%,
+      #C2185B 50%,
+      #D4AF37 75%,
+      #FF6B9D 100%
+    );
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 6s ease-in-out infinite;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
 }
 
 @layer utilities {
@@ -202,6 +222,11 @@
 @keyframes scrollBounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(10px); }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 @keyframes fadeSlideIn {

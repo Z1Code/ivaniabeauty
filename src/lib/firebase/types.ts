@@ -214,9 +214,36 @@ export interface SizeChartMeasurement {
   length_cm: string | null;
 }
 
+export type FitGuideStatus = "draft" | "confirmed" | "failed" | "stale";
+
+export interface FitGuideMetric {
+  min_cm: number | null;
+  max_cm: number | null;
+  raw: string | null;
+  confidence: number | null;
+}
+
+export interface FitGuideRow {
+  size: string;
+  waist?: FitGuideMetric | null;
+  hip?: FitGuideMetric | null;
+  bust?: FitGuideMetric | null;
+  length?: FitGuideMetric | null;
+  [metricKey: string]: FitGuideMetric | string | null | undefined;
+}
+
 export interface SizeChartDoc {
   productId: string;
+  version: number;
+  status: FitGuideStatus;
+  warnings: string[];
+  confidenceScore: number;
+  availableSizesCanonical: string[];
+  rows: FitGuideRow[];
   measurements: SizeChartMeasurement[];
   extractedAt: Date;
   sourceImageUrl: string;
+  sourceImageHash: string;
+  confirmedAt?: Date | null;
+  confirmedBy?: string | null;
 }

@@ -19,18 +19,18 @@ import { useTranslation } from "@/hooks/useTranslation";
 import LanguageToggle from "@/components/shared/LanguageToggle";
 
 // Pages with dark/colored hero banners where header text should be white
-const DARK_HERO_PAGES = ["/shop"];
+const DARK_HERO_PAGES: string[] = [];
 
 export default function Header() {
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(
+    () => typeof window !== "undefined" && window.scrollY > 50
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const { openCart, totalItems } = useCart();
   const cartCount = totalItems();
   const { t } = useTranslation();
   const pathname = usePathname();
-
-  useEffect(() => { setMounted(true); }, []);
+  const isHome = pathname === "/";
 
   // Show white text when on a page with a dark hero and not scrolled
   const heroWhite = DARK_HERO_PAGES.includes(pathname) && !scrolled;
@@ -40,7 +40,6 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
@@ -60,17 +59,19 @@ export default function Header() {
   return (
     <>
       <motion.header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled
-            ? "glass-rosa shadow-lg shadow-rosa/10"
-            : "bg-transparent"
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 glass-rosa ${
+          scrolled ? "shadow-lg shadow-rosa/10" : ""
         }`}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
         <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
+          <div
+            className={`flex items-center justify-between ${
+              isHome ? "h-[4.5rem] md:h-[5.25rem]" : "h-16 md:h-20"
+            }`}
+          >
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 group">
               <Image
@@ -78,12 +79,16 @@ export default function Header() {
                 alt={SITE_NAME}
                 width={36}
                 height={36}
-                className={`w-8 h-8 md:w-9 md:h-9 object-contain transition-all duration-500 ${
+                className={`object-contain transition-all duration-500 ${
+                  isHome ? "w-9 h-9 md:w-10 md:h-10" : "w-8 h-8 md:w-9 md:h-9"
+                } ${
                   heroWhite ? "brightness-0 invert" : ""
                 }`}
                 priority
               />
-              <span className={`font-serif text-xl md:text-2xl font-semibold tracking-wide transition-colors duration-500 ${
+              <span className={`font-serif font-semibold tracking-wide transition-colors duration-500 ${
+                isHome ? "text-2xl md:text-[2.15rem]" : "text-xl md:text-2xl"
+              } ${
                 heroWhite ? "text-white" : "text-rosa"
               }`}>
                 {SITE_NAME}
@@ -91,12 +96,18 @@ export default function Header() {
             </Link>
 
             {/* Desktop Navigation */}
-            <ul className="hidden lg:flex items-center gap-8">
+            <ul
+              className={`hidden lg:flex items-center ${
+                isHome ? "gap-9" : "gap-8"
+              }`}
+            >
               {NAV_LINKS.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className={`relative text-sm font-medium transition-colors duration-500 group ${
+                    className={`relative transition-colors duration-500 group ${
+                      isHome ? "text-[15px] font-semibold" : "text-sm font-medium"
+                    } ${
                       heroWhite
                         ? "text-white/90 hover:text-white"
                         : "text-foreground/80 hover:text-rosa-dark"
@@ -153,7 +164,7 @@ export default function Header() {
               >
                 <ShoppingBag className="w-5 h-5" />
                 <AnimatePresence>
-                  {mounted && cartCount > 0 && (
+                  {cartCount > 0 && (
                     <motion.span
                       key="cart-badge"
                       initial={{ scale: 0 }}

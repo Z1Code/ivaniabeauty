@@ -2,6 +2,33 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { getAdminSession } from "@/lib/firebase/auth-helpers";
 import { FieldValue } from "firebase-admin/firestore";
+import type { SizeChartDoc } from "@/lib/firebase/types";
+import { FIT_GUIDE_VERSION } from "@/lib/fit-guide/constants";
+import { extractFitGuideFromImage, isGeminiConfigured } from "@/lib/fit-guide/extractor";
+import { areSameSizeSet } from "@/lib/fit-guide/utils";
+
+function toOptionalImageUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function sanitizeGalleryImages(
+  value: unknown,
+  sizeChartImageUrl: string | null
+): string[] {
+  if (!Array.isArray(value)) return [];
+  const blocked = sizeChartImageUrl || "";
+  const deduped: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+    if (blocked && trimmed === blocked) continue;
+    if (!deduped.includes(trimmed)) deduped.push(trimmed);
+  }
+  return deduped;
+}
 
 // GET: Get a single product by ID
 export async function GET(
@@ -64,6 +91,29 @@ export async function PUT(
       );
     }
 
+    const existingData = doc.data()!;
+    const fitGuideRef = adminDb.collection("sizeCharts").doc(id);
+    const fitGuideSnap = await fitGuideRef.get();
+    const fitGuideData = fitGuideSnap.exists
+      ? (fitGuideSnap.data() as SizeChartDoc)
+      : null;
+
+    // If fit guide is confirmed, reject manual sizes outside the confirmed set.
+    if (
+      fitGuideData?.status === "confirmed" &&
+      body.sizes !== undefined &&
+      !areSameSizeSet(body.sizes || [], fitGuideData.availableSizesCanonical || [])
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Sizes are locked by confirmed fit guide. Confirm a new fit guide before changing sizes.",
+          availableSizes: fitGuideData.availableSizesCanonical || [],
+        },
+        { status: 409 }
+      );
+    }
+
     // Check slug uniqueness if changed
     if (body.slug && body.slug !== doc.data()?.slug) {
       const existing = await adminDb
@@ -123,6 +173,25 @@ export async function PUT(
       }
     }
 
+    const previousImageUrl = (existingData.sizeChartImageUrl as string | null) || null;
+    const hasImageUrlInPayload = Object.prototype.hasOwnProperty.call(
+      body,
+      "sizeChartImageUrl"
+    );
+    const nextImageUrl = hasImageUrlInPayload
+      ? toOptionalImageUrl(body.sizeChartImageUrl)
+      : previousImageUrl;
+    const hasImagesInPayload = Object.prototype.hasOwnProperty.call(body, "images");
+    const sourceImages = hasImagesInPayload ? body.images : existingData.images;
+    const sanitizedImages = sanitizeGalleryImages(sourceImages, nextImageUrl);
+
+    if (hasImageUrlInPayload) {
+      updateData.sizeChartImageUrl = nextImageUrl;
+    }
+    if (hasImagesInPayload || hasImageUrlInPayload) {
+      updateData.images = sanitizedImages;
+    }
+
     // Ensure numeric fields
     if (updateData.price != null) updateData.price = Number(updateData.price);
     if (updateData.originalPrice != null)
@@ -131,6 +200,64 @@ export async function PUT(
       updateData.stockQuantity = Number(updateData.stockQuantity);
 
     await docRef.update(updateData);
+
+    if (hasImageUrlInPayload && nextImageUrl !== previousImageUrl) {
+      if (!nextImageUrl) {
+        await fitGuideRef.delete();
+      } else if (isGeminiConfigured()) {
+        try {
+          const extraction = await extractFitGuideFromImage(nextImageUrl);
+          await fitGuideRef.set({
+            productId: id,
+            version: FIT_GUIDE_VERSION,
+            status: extraction.status,
+            warnings: extraction.warnings,
+            confidenceScore: extraction.confidenceScore,
+            availableSizesCanonical: extraction.availableSizesCanonical,
+            rows: extraction.rows,
+            measurements: extraction.measurements,
+            sourceImageUrl: extraction.sourceImageUrl,
+            sourceImageHash: extraction.sourceImageHash,
+            extractedAt: new Date(),
+            confirmedAt: null,
+            confirmedBy: null,
+          });
+        } catch (fitGuideError) {
+          console.warn("Automatic fit-guide extraction failed on image change:", fitGuideError);
+          await fitGuideRef.set({
+            productId: id,
+            version: FIT_GUIDE_VERSION,
+            status: "failed",
+            warnings: ["Automatic extraction failed after image change. Analyze manually."],
+            confidenceScore: 0,
+            availableSizesCanonical: [],
+            rows: [],
+            measurements: [],
+            sourceImageUrl: nextImageUrl,
+            sourceImageHash: "",
+            extractedAt: new Date(),
+            confirmedAt: null,
+            confirmedBy: null,
+          });
+        }
+      } else {
+        await fitGuideRef.set({
+          productId: id,
+          version: FIT_GUIDE_VERSION,
+          status: "stale",
+          warnings: ["Image changed. Pending analysis (Gemini key missing)."],
+          confidenceScore: 0,
+          availableSizesCanonical: [],
+          rows: [],
+          measurements: [],
+          sourceImageUrl: nextImageUrl,
+          sourceImageHash: "",
+          extractedAt: new Date(),
+          confirmedAt: null,
+          confirmedBy: null,
+        });
+      }
+    }
 
     const updated = await docRef.get();
     const updatedData = updated.data()!;

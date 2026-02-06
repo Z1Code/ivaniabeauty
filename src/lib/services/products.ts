@@ -36,6 +36,17 @@ function transformProduct(
   id: string,
   data: FirebaseFirestore.DocumentData
 ): Product {
+  const sizeChartImageUrl =
+    typeof data.sizeChartImageUrl === "string" && data.sizeChartImageUrl.trim()
+      ? data.sizeChartImageUrl
+      : null;
+  const images = Array.isArray(data.images)
+    ? data.images
+        .filter((item: unknown): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter((item) => item && item !== sizeChartImageUrl)
+    : [];
+
   return {
     id,
     name: { en: data.nameEn || "", es: data.nameEs || "" },
@@ -65,8 +76,8 @@ function transformProduct(
     },
     materials: data.materials || "",
     care: data.care || "",
-    images: data.images || [],
-    sizeChartImageUrl: data.sizeChartImageUrl || null,
+    images,
+    sizeChartImageUrl,
     rating: Number(data.rating) || 0,
     reviewCount: Number(data.reviewCount) || 0,
     inStock: data.inStock !== false,
