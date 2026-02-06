@@ -1,13 +1,22 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ShoppingBag, Check, Star, Eye } from "lucide-react";
 import { formatPrice, cn, getColorHex } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getLocalizedField } from "@/lib/productHelpers";
 import useCart from "@/hooks/useCart";
+import {
+  CARD_BACKGROUND_SETTINGS_STORAGE_KEY,
+  CARD_BACKGROUND_SETTINGS_UPDATED_EVENT,
+  DEFAULT_CARD_BACKGROUND_SETTINGS,
+  resolveCardPresetBackground,
+  sanitizeCardBackgroundSettings,
+  type CardBackgroundPreset,
+  type CardBackgroundSettings,
+} from "@/lib/card-background-settings";
 
 type BilingualString = { en: string; es: string };
 
@@ -67,20 +76,128 @@ const defaultBadgeStyle = {
   bg: "bg-white/90",
 };
 
+const STUDY_MODE_INTERVAL_MS = 2600;
+const STUDY_MODE_MANUAL_LOCK_MS = 8500;
+const FALLBACK_CARD_BACKGROUND_SETTINGS = sanitizeCardBackgroundSettings(
+  DEFAULT_CARD_BACKGROUND_SETTINGS
+);
+
+function readCardBackgroundSettingsFromStorage(): CardBackgroundSettings {
+  if (typeof window === "undefined") {
+    return FALLBACK_CARD_BACKGROUND_SETTINGS;
+  }
+  try {
+    const raw = window.localStorage.getItem(CARD_BACKGROUND_SETTINGS_STORAGE_KEY);
+    if (!raw) {
+      return FALLBACK_CARD_BACKGROUND_SETTINGS;
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    return sanitizeCardBackgroundSettings(parsed);
+  } catch {
+    return FALLBACK_CARD_BACKGROUND_SETTINGS;
+  }
+}
+
+function getPresetSurfaceStyle(preset: CardBackgroundPreset): React.CSSProperties {
+  const resolved = resolveCardPresetBackground(preset);
+  if (resolved.backgroundImage) {
+    return {
+      backgroundImage: resolved.backgroundImage,
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      backgroundSize: "cover",
+      backgroundColor: "#f3f4f6",
+    };
+  }
+  if (resolved.background) {
+    return {
+      background: resolved.background,
+    };
+  }
+  return {
+    background: "#f3f4f6",
+  };
+}
+
 export default function ProductCard({ product, className }: ProductCardProps) {
   const { t, language } = useTranslation();
   const addItem = useCart((s) => s.addItem);
   const openCart = useCart((s) => s.openCart);
+  const prefersReducedMotion = useReducedMotion();
   const { slug, price, originalPrice, badge, colors } = product;
   const primaryImage = product.images[0] || "";
+  const aiAngleImages = useMemo(
+    () => product.images.filter((url) => url.includes("/products/generated/")),
+    [product.images]
+  );
+  const imageSequence = aiAngleImages.length > 0 ? aiAngleImages : [primaryImage].filter(Boolean);
 
   const name = getLocalizedField(product.name, language);
   const localBadge = getLocalizedField(badge, language);
-  const isAiGeneratedImage = primaryImage.includes("/products/generated/");
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [cardBackgroundSettings, setCardBackgroundSettings] =
+    useState<CardBackgroundSettings>(FALLBACK_CARD_BACKGROUND_SETTINGS);
+  const [manualBackgroundPresetId, setManualBackgroundPresetId] = useState<string | null>(
+    null
+  );
+  const normalizedImageIndex = imageSequence.length
+    ? activeImageIndex % imageSequence.length
+    : 0;
+  const currentImage = imageSequence[normalizedImageIndex] || primaryImage;
+  const isAiGeneratedImage = currentImage.includes("/products/generated/");
+  const supportsAngleCycling = imageSequence.length > 1;
+  const studyModeAutoplayEnabled =
+    supportsAngleCycling && isAiGeneratedImage && !prefersReducedMotion;
 
   const [filling, setFilling] = useState(false);
   const [added, setAdded] = useState(false);
-  const [imgError, setImgError] = useState(false);
+  const [failedImages, setFailedImages] = useState<Record<string, true>>({});
+  const isCurrentImageFailed = Boolean(currentImage && failedImages[currentImage]);
+  const [isImageHovered, setIsImageHovered] = useState(false);
+  const [manualLockUntilTs, setManualLockUntilTs] = useState(0);
+
+  const effectiveBackgroundSettings = useMemo(
+    () => sanitizeCardBackgroundSettings(cardBackgroundSettings),
+    [cardBackgroundSettings]
+  );
+  const availableBackgroundPresets = useMemo(() => {
+    const source = effectiveBackgroundSettings.enabled
+      ? effectiveBackgroundSettings.presets
+      : FALLBACK_CARD_BACKGROUND_SETTINGS.presets;
+    return source.length ? source : FALLBACK_CARD_BACKGROUND_SETTINGS.presets;
+  }, [effectiveBackgroundSettings]);
+  const effectiveDefaultPresetId = effectiveBackgroundSettings.enabled
+    ? effectiveBackgroundSettings.defaultPresetId
+    : FALLBACK_CARD_BACKGROUND_SETTINGS.defaultPresetId;
+  const activeBackgroundPreset = useMemo(() => {
+    if (manualBackgroundPresetId && effectiveBackgroundSettings.enabled) {
+      const manualPreset =
+        availableBackgroundPresets.find(
+          (preset) => preset.id === manualBackgroundPresetId
+        ) || null;
+      if (manualPreset) return manualPreset;
+    }
+    const byDefault =
+      availableBackgroundPresets.find(
+        (preset) => preset.id === effectiveDefaultPresetId
+      ) || null;
+    return byDefault || availableBackgroundPresets[0] || null;
+  }, [
+    availableBackgroundPresets,
+    effectiveBackgroundSettings.enabled,
+    manualBackgroundPresetId,
+    effectiveDefaultPresetId,
+  ]);
+  const cardBackgroundStyle = useMemo(() => {
+    if (!isAiGeneratedImage) return undefined;
+    if (!activeBackgroundPreset) return undefined;
+    return getPresetSurfaceStyle(activeBackgroundPreset);
+  }, [isAiGeneratedImage, activeBackgroundPreset]);
+  const showPerCardBackgroundSelector =
+    isAiGeneratedImage &&
+    effectiveBackgroundSettings.enabled &&
+    effectiveBackgroundSettings.allowPerCardSelector &&
+    availableBackgroundPresets.length > 1;
 
   const isOutOfStock = product.inStock === false;
 
@@ -122,6 +239,77 @@ export default function ProductCard({ product, className }: ProductCardProps) {
   const fullStars = Math.floor(product.rating);
   const hasHalf = product.rating - fullStars >= 0.5;
 
+  const getNextValidImageIndex = useCallback(
+    (fromIndex: number): number => {
+      if (!imageSequence.length) return 0;
+      for (let step = 1; step <= imageSequence.length; step += 1) {
+        const candidate = (fromIndex + step) % imageSequence.length;
+        const candidateUrl = imageSequence[candidate];
+        if (!failedImages[candidateUrl]) {
+          return candidate;
+        }
+      }
+      return fromIndex % imageSequence.length;
+    },
+    [imageSequence, failedImages]
+  );
+
+  const lockManualControl = useCallback(() => {
+    setManualLockUntilTs(Date.now() + STUDY_MODE_MANUAL_LOCK_MS);
+  }, []);
+
+  const handleImageAreaClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (!supportsAngleCycling) return;
+      e.preventDefault();
+      lockManualControl();
+      setActiveImageIndex((prev) => getNextValidImageIndex(prev));
+    },
+    [supportsAngleCycling, lockManualControl, getNextValidImageIndex]
+  );
+
+  useEffect(() => {
+    if (!studyModeAutoplayEnabled) return;
+
+    const timer = window.setInterval(() => {
+      if (isImageHovered) return;
+      if (Date.now() < manualLockUntilTs) return;
+      setActiveImageIndex((prev) => getNextValidImageIndex(prev));
+    }, STUDY_MODE_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [
+    studyModeAutoplayEnabled,
+    isImageHovered,
+    manualLockUntilTs,
+    getNextValidImageIndex,
+  ]);
+
+  useEffect(() => {
+    const syncSettings = () => {
+      setCardBackgroundSettings(readCardBackgroundSettingsFromStorage());
+    };
+
+    syncSettings();
+    window.addEventListener(CARD_BACKGROUND_SETTINGS_UPDATED_EVENT, syncSettings);
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === CARD_BACKGROUND_SETTINGS_STORAGE_KEY) {
+        syncSettings();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener(
+        CARD_BACKGROUND_SETTINGS_UPDATED_EVENT,
+        syncSettings
+      );
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -136,6 +324,10 @@ export default function ProductCard({ product, className }: ProductCardProps) {
           href={`/shop/${slug}`}
           className="block flex-shrink-0 relative"
           tabIndex={-1}
+          onClick={handleImageAreaClick}
+          onMouseEnter={() => setIsImageHovered(true)}
+          onMouseLeave={() => setIsImageHovered(false)}
+          onTouchStart={() => lockManualControl()}
         >
           <div
             className={cn(
@@ -144,6 +336,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                 ? "bg-white"
                 : "bg-[#f9f7f5]"
             )}
+            style={isAiGeneratedImage ? cardBackgroundStyle : undefined}
           >
             {/* Badge - elegant style with neutral bg and colored border */}
             {localBadge && (
@@ -178,23 +371,61 @@ export default function ProductCard({ product, className }: ProductCardProps) {
             )}
 
             {/* Product image */}
-            {primaryImage && !imgError ? (
-              <img
-                src={primaryImage}
-                alt={name}
-                className={cn(
-                  "absolute inset-0 w-full h-full transition-transform duration-700 ease-out will-change-transform",
-                  isAiGeneratedImage
-                    ? "object-contain p-1.5 group-hover:scale-[1.01]"
-                    : "object-cover group-hover:scale-[1.06]"
-                )}
-                loading="lazy"
-                onError={() => setImgError(true)}
-              />
+            {currentImage && !isCurrentImageFailed ? (
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.img
+                  key={currentImage}
+                  src={currentImage}
+                  alt={name}
+                  className={cn(
+                    "absolute inset-0 w-full h-full transition-transform duration-700 ease-out will-change-transform",
+                    isAiGeneratedImage
+                      ? "object-contain p-1.5 group-hover:scale-[1.01]"
+                      : "object-cover group-hover:scale-[1.06]"
+                  )}
+                  loading="lazy"
+                  initial={
+                    prefersReducedMotion
+                      ? { opacity: 1 }
+                      : { opacity: 0, scale: 1.035, x: 6 }
+                  }
+                  animate={
+                    prefersReducedMotion
+                      ? { opacity: 1 }
+                      : { opacity: 1, scale: 1, x: 0 }
+                  }
+                  exit={
+                    prefersReducedMotion
+                      ? { opacity: 0.8 }
+                      : { opacity: 0, scale: 0.985, x: -6 }
+                  }
+                  transition={
+                    prefersReducedMotion
+                      ? { duration: 0.12 }
+                      : { duration: 0.48, ease: [0.22, 0.61, 0.36, 1] }
+                  }
+                  onError={() =>
+                    setFailedImages((prev) => ({
+                      ...prev,
+                      [currentImage]: true,
+                    }))
+                  }
+                />
+              </AnimatePresence>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <ShoppingBag className="w-10 h-10 text-rosa-light/40" />
               </div>
+            )}
+
+            {supportsAngleCycling && (
+              <span className="absolute left-2 bottom-2 z-10 px-2 py-1 rounded-full bg-white/90 text-[9px] font-semibold text-gray-700 shadow-sm border border-gray-100">
+                {studyModeAutoplayEnabled
+                  ? isImageHovered
+                    ? "Modo estudio: en pausa"
+                    : "Modo estudio: activo"
+                  : "Click: cambiar angulo"}
+              </span>
             )}
 
             {/* Hover gradient overlay */}
@@ -266,6 +497,54 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                   +{colors.length - 4}
                 </span>
               )}
+            </div>
+          )}
+
+          {supportsAngleCycling && (
+            <div className="flex items-center gap-1.5 pt-1">
+              {imageSequence.slice(0, 8).map((img, idx) => (
+                <button
+                  key={`${img}-${idx}`}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    lockManualControl();
+                    setActiveImageIndex(idx);
+                  }}
+                  className={cn(
+                    "w-2 h-2 rounded-full transition-all cursor-pointer border",
+                    idx === activeImageIndex
+                      ? "bg-gray-800 border-gray-800 scale-110"
+                      : "bg-gray-300 border-gray-300 hover:bg-gray-500 hover:border-gray-500"
+                  )}
+                  aria-label={`Ver angulo ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
+
+          {showPerCardBackgroundSelector && (
+            <div className="flex items-center gap-1.5 pt-1">
+              {availableBackgroundPresets.slice(0, 8).map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setManualBackgroundPresetId(preset.id);
+                  }}
+                  className={cn(
+                    "w-3 h-3 rounded-full border cursor-pointer transition-all",
+                    preset.id === activeBackgroundPreset?.id
+                      ? "border-gray-700 ring-1 ring-gray-500 ring-offset-1"
+                      : "border-gray-200 hover:border-gray-400"
+                  )}
+                  style={getPresetSurfaceStyle(preset)}
+                  aria-label={`Fondo ${preset.label}`}
+                />
+              ))}
             </div>
           )}
 

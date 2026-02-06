@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
+import Cropper, { type Area } from "react-easy-crop";
 import { Reorder, useDragControls } from "framer-motion";
-import { Upload, X, GripVertical, AlertCircle } from "lucide-react";
+import { Upload, X, GripVertical, AlertCircle, Scissors } from "lucide-react";
 
 interface AdminImageUploadProps {
   images: string[];
@@ -10,14 +11,28 @@ interface AdminImageUploadProps {
   maxImages?: number;
 }
 
+const CROP_ASPECT_PRESETS: Array<{
+  id: string;
+  label: string;
+  value?: number;
+}> = [
+  { id: "1:1", label: "1:1", value: 1 },
+  { id: "3:4", label: "3:4", value: 3 / 4 },
+  { id: "4:5", label: "4:5", value: 4 / 5 },
+  { id: "16:9", label: "16:9", value: 16 / 9 },
+  { id: "original", label: "Original" },
+];
+
 function DraggableImage({
   img,
   index,
   onRemove,
+  onCrop,
 }: {
   img: string;
   index: number;
   onRemove: () => void;
+  onCrop: () => void;
 }) {
   const controls = useDragControls();
 
@@ -65,8 +80,19 @@ function DraggableImage({
         type="button"
         onClick={onRemove}
         className="absolute top-2 right-2 z-20 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"
+        title="Eliminar imagen"
       >
         <X className="w-4 h-4" />
+      </button>
+
+      {/* Crop button */}
+      <button
+        type="button"
+        onClick={onCrop}
+        className="absolute top-2 right-11 z-20 w-7 h-7 rounded-full bg-white/90 text-gray-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md border border-gray-200"
+        title="Recortar imagen"
+      >
+        <Scissors className="w-3.5 h-3.5" />
       </button>
 
       {/* Position number */}
@@ -85,10 +111,96 @@ export default function AdminImageUpload({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [cropIndex, setCropIndex] = useState<number | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [cropAspectId, setCropAspectId] = useState("1:1");
+  const [cropping, setCropping] = useState(false);
+  const [cropError, setCropError] = useState<string | null>(null);
+
+  const activeCropImage = cropIndex != null ? images[cropIndex] || null : null;
+  const activeAspect = useMemo(
+    () => CROP_ASPECT_PRESETS.find((item) => item.id === cropAspectId) || CROP_ASPECT_PRESETS[0],
+    [cropAspectId]
+  );
 
   function handleRemove(index: number) {
     const updated = images.filter((_, i) => i !== index);
     onImagesChange(updated);
+  }
+
+  function openCropModal(index: number) {
+    setCropIndex(index);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCropAspectId("1:1");
+    setCroppedAreaPixels(null);
+    setCropError(null);
+    setError(null);
+  }
+
+  function closeCropModal() {
+    if (cropping) return;
+    setCropIndex(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    setCropError(null);
+  }
+
+  async function handleSaveCrop() {
+    if (cropIndex == null || !activeCropImage || !croppedAreaPixels) {
+      setCropError("No se pudo preparar el recorte.");
+      return;
+    }
+
+    setCropping(true);
+    setCropError(null);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/admin/images/crop", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl: activeCropImage,
+          crop: {
+            x: croppedAreaPixels.x,
+            y: croppedAreaPixels.y,
+            width: croppedAreaPixels.width,
+            height: croppedAreaPixels.height,
+          },
+          aspect: activeAspect.id,
+          targetLongEdge: 1600,
+        }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        croppedImageUrl?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo recortar la imagen.");
+      }
+
+      if (!data.croppedImageUrl) {
+        throw new Error("No se recibio URL de imagen recortada.");
+      }
+
+      const updated = [...images];
+      updated[cropIndex] = data.croppedImageUrl;
+      onImagesChange(updated);
+      closeCropModal();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al recortar imagen";
+      setCropError(message);
+    } finally {
+      setCropping(false);
+    }
   }
 
   function handleAddUrl() {
@@ -174,6 +286,7 @@ export default function AdminImageUpload({
             img={img}
             index={i}
             onRemove={() => handleRemove(i)}
+            onCrop={() => openCropModal(i)}
           />
         ))}
 
@@ -219,6 +332,123 @@ export default function AdminImageUpload({
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
         Max {maxImages} imagenes. JPEG, PNG o WebP. Max 5MB cada una.
       </p>
+
+      {cropIndex != null && activeCropImage && (
+        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-4xl rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+              <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                Editor de recorte
+              </h4>
+              <button
+                type="button"
+                onClick={closeCropModal}
+                disabled={cropping}
+                className="w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+                <div className="relative h-[420px] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+                  <Cropper
+                    image={activeCropImage}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={activeAspect.value}
+                    showGrid
+                    objectFit="contain"
+                    minZoom={1}
+                    maxZoom={3}
+                    zoomSpeed={0.1}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={(_, pixels) => setCroppedAreaPixels(pixels)}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+                      Proporcion
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {CROP_ASPECT_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setCropAspectId(preset.id)}
+                          className={`px-2.5 py-2 text-xs rounded-lg border transition-colors cursor-pointer ${
+                            cropAspectId === preset.id
+                              ? "border-rosa bg-rosa/10 text-rosa"
+                              : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+                      Zoom
+                    </label>
+                    <input
+                      type="range"
+                      min={1}
+                      max={3}
+                      step={0.01}
+                      value={zoom}
+                      onChange={(e) => setZoom(Number.parseFloat(e.target.value))}
+                      className="w-full accent-rosa cursor-pointer"
+                    />
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                      {zoom.toFixed(2)}x
+                    </p>
+                  </div>
+
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Arrastra para posicionar la prenda/modelo dentro del recorte final.
+                  </p>
+
+                  {cropError && (
+                    <p className="text-xs text-red-600 dark:text-red-400">
+                      {cropError}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeCropModal}
+                  disabled={cropping}
+                  className="px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveCrop}
+                  disabled={cropping}
+                  className="px-3 py-2 text-xs font-medium rounded-lg bg-rosa text-white hover:bg-rosa-dark transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
+                >
+                  {cropping ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Scissors className="w-3.5 h-3.5" />
+                  )}
+                  {cropping ? "Recortando..." : "Guardar recorte"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
