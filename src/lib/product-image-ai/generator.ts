@@ -2,7 +2,6 @@ import { createHash, randomInt } from "node:crypto";
 import jpeg from "jpeg-js";
 import { PNG } from "pngjs";
 import {
-  isSpecializedBackgroundRemovalConfigured,
   removeBackgroundSpecializedWithDiagnostics,
 } from "./background-removal";
 
@@ -115,6 +114,9 @@ const SAFE_MAX_TOTAL_REFERENCE_BYTES =
 const TRANSPARENCY_PASS_ENABLED =
   (process.env.GEMINI_IMAGE_TRANSPARENCY_PASS || "true").toLowerCase() !==
   "false";
+const LOCAL_CUTOUT_FALLBACK_ENABLED =
+  (process.env.GEMINI_IMAGE_LOCAL_CUTOUT_FALLBACK || "false").toLowerCase() ===
+  "true";
 
 const MODEL_PROFILES: ProductModelProfile[] = [
   {
@@ -700,6 +702,113 @@ function pngHasTransparentPixels(buffer: Buffer): boolean {
   }
 }
 
+function decodePng(buffer: Buffer): ReturnType<typeof PNG.sync.read> | null {
+  try {
+    return PNG.sync.read(buffer);
+  } catch {
+    return null;
+  }
+}
+
+function pngTransparencyQualityLooksHealthy(buffer: Buffer): boolean {
+  const decoded = decodePng(buffer);
+  if (!decoded) return false;
+
+  const { width, height, data } = decoded;
+  const totalPixels = width * height;
+  if (totalPixels < 100) return false;
+
+  let transparentCount = 0;
+  let opaqueCount = 0;
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 4;
+      const alpha = data[offset + 3];
+      if (alpha === 0) {
+        transparentCount += 1;
+        continue;
+      }
+      opaqueCount += 1;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+
+  if (opaqueCount === 0) return false;
+  const transparentRatio = transparentCount / totalPixels;
+  // Reject "almost opaque" PNGs where a few accidental transparent pixels exist.
+  if (transparentRatio < 0.02) return false;
+  if (minX > maxX || minY > maxY) return false;
+
+  const bboxWidth = maxX - minX + 1;
+  const bboxHeight = maxY - minY + 1;
+  if (bboxWidth < 16 || bboxHeight < 24) return false;
+
+  const sampleZeroRatio = (
+    startX: number,
+    endX: number,
+    startY: number,
+    endY: number
+  ): number => {
+    if (endX < startX || endY < startY) return 0;
+    let total = 0;
+    let zeros = 0;
+    for (let y = startY; y <= endY; y += 1) {
+      for (let x = startX; x <= endX; x += 1) {
+        total += 1;
+        const alpha = data[(y * width + x) * 4 + 3];
+        if (alpha === 0) zeros += 1;
+      }
+    }
+    return total > 0 ? zeros / total : 0;
+  };
+
+  const innerMarginX = Math.max(6, Math.min(48, Math.floor(bboxWidth * 0.12)));
+  const innerMarginY = Math.max(8, Math.min(56, Math.floor(bboxHeight * 0.1)));
+  const innerStartX = minX + innerMarginX;
+  const innerEndX = maxX - innerMarginX;
+  const innerStartY = minY + innerMarginY;
+  const innerEndY = maxY - innerMarginY;
+
+  const innerZeroRatio = sampleZeroRatio(
+    innerStartX,
+    innerEndX,
+    innerStartY,
+    innerEndY
+  );
+  if (innerZeroRatio > 0.28) return false;
+
+  const centerMarginX = Math.max(4, Math.floor(bboxWidth * 0.24));
+  const centerMarginTop = Math.max(6, Math.floor(bboxHeight * 0.2));
+  const centerMarginBottom = Math.max(6, Math.floor(bboxHeight * 0.22));
+  const centerStartX = minX + centerMarginX;
+  const centerEndX = maxX - centerMarginX;
+  const centerStartY = minY + centerMarginTop;
+  const centerEndY = maxY - centerMarginBottom;
+  const centerZeroRatio = sampleZeroRatio(
+    centerStartX,
+    centerEndX,
+    centerStartY,
+    centerEndY
+  );
+  if (centerZeroRatio > 0.14) return false;
+
+  return true;
+}
+
+function pngHasUsableTransparency(buffer: Buffer): boolean {
+  if (!pngHasAlphaChannel(buffer)) return false;
+  if (!pngHasTransparentPixels(buffer)) return false;
+  return pngTransparencyQualityLooksHealthy(buffer);
+}
+
 function quantizeColorChannel(value: number, step = 12): number {
   return Math.round(value / step) * step;
 }
@@ -825,7 +934,7 @@ function applyBorderBackgroundCutout(
   const pixelCount = width * height;
   const visited = new Uint8Array(pixelCount);
   const queue = new Int32Array(pixelCount);
-  const toleranceSq = 42 * 42;
+  const toleranceSq = 30 * 30;
   const minAlpha = 240;
   let head = 0;
   let tail = 0;
@@ -936,7 +1045,7 @@ function applyBorderBackgroundCutout(
   const output = new PNG({ width, height });
   output.data = data;
   const outputBuffer = PNG.sync.write(output);
-  if (!pngHasTransparentPixels(outputBuffer)) return null;
+  if (!pngHasUsableTransparency(outputBuffer)) return null;
   return {
     imageBuffer: outputBuffer,
     mimeType: "image/png",
@@ -946,8 +1055,7 @@ function applyBorderBackgroundCutout(
 function shouldRunTransparencyPass(mimeType: string, buffer: Buffer): boolean {
   if (!TRANSPARENCY_PASS_ENABLED) return false;
   if (!mimeType.includes("png")) return true;
-  if (!pngHasAlphaChannel(buffer)) return true;
-  return !pngHasTransparentPixels(buffer);
+  return !pngHasUsableTransparency(buffer);
 }
 
 async function runTransparencyPass({
@@ -987,10 +1095,7 @@ function lacksRequiredTransparency(mimeType: string, buffer: Buffer): boolean {
   if (!mimeType.includes("png")) {
     return true;
   }
-  if (!pngHasAlphaChannel(buffer)) {
-    return true;
-  }
-  return !pngHasTransparentPixels(buffer);
+  return !pngHasUsableTransparency(buffer);
 }
 
 async function runStrictTransparencyPass({
@@ -1072,46 +1177,50 @@ async function enforceTransparency({
     return strict;
   }
 
-  if (isSpecializedBackgroundRemovalConfigured()) {
-    try {
-      const specialized = await removeBackgroundSpecializedWithDiagnostics({
-        imageBuffer: strict.imageBuffer,
-        mimeType: strict.mimeType,
-      });
-      if (
-        specialized.result &&
-        !lacksRequiredTransparency(
-          specialized.result.mimeType,
-          specialized.result.imageBuffer
-        )
-      ) {
-        return {
-          imageBuffer: specialized.result.imageBuffer,
-          mimeType: specialized.result.mimeType,
-          textNotes: [
-            ...strict.textNotes,
-            `specialized_background_removal:${specialized.result.provider}`,
-          ],
-        };
-      }
-    } catch {
-      // Keep local fallback path when specialized providers fail.
+  try {
+    const specialized = await removeBackgroundSpecializedWithDiagnostics({
+      imageBuffer: strict.imageBuffer,
+      mimeType: strict.mimeType,
+    });
+    if (
+      specialized.result &&
+      !lacksRequiredTransparency(
+        specialized.result.mimeType,
+        specialized.result.imageBuffer
+      )
+    ) {
+      return {
+        imageBuffer: specialized.result.imageBuffer,
+        mimeType: specialized.result.mimeType,
+        textNotes: [
+          ...strict.textNotes,
+          `specialized_background_removal:${specialized.result.provider}`,
+        ],
+      };
+    }
+  } catch {
+    // Keep local fallback path when specialized providers fail.
+  }
+
+  if (LOCAL_CUTOUT_FALLBACK_ENABLED) {
+    const locallyCut =
+      applyBorderBackgroundCutout(strict.mimeType, strict.imageBuffer) ||
+      applyBorderBackgroundCutout(candidate.mimeType, candidate.imageBuffer) ||
+      applyBorderBackgroundCutout(initialImage.mimeType, initialImage.imageBuffer);
+    if (locallyCut) {
+      return {
+        imageBuffer: locallyCut.imageBuffer,
+        mimeType: locallyCut.mimeType,
+        textNotes: [...strict.textNotes, "local_background_cutout"],
+      };
     }
   }
 
-  const locallyCut =
-    applyBorderBackgroundCutout(strict.mimeType, strict.imageBuffer) ||
-    applyBorderBackgroundCutout(candidate.mimeType, candidate.imageBuffer) ||
-    applyBorderBackgroundCutout(initialImage.mimeType, initialImage.imageBuffer);
-  if (locallyCut) {
-    return {
-      imageBuffer: locallyCut.imageBuffer,
-      mimeType: locallyCut.mimeType,
-      textNotes: [...strict.textNotes, "local_background_cutout"],
-    };
-  }
-
-  return strict;
+  return {
+    imageBuffer: initialImage.imageBuffer,
+    mimeType: initialImage.mimeType,
+    textNotes: [...strict.textNotes, "transparency_fallback_original"],
+  };
 }
 
 async function generateWithFallback({

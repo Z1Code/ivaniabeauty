@@ -9,8 +9,7 @@ import {
   isProductImageGenerationConfigured,
 } from "@/lib/product-image-ai/generator";
 import {
-  getBackgroundRemovalConfiguration,
-  isSpecializedBackgroundRemovalConfigured,
+  getBackgroundRemovalConfigurationRuntime,
 } from "@/lib/product-image-ai/background-removal";
 
 export const maxDuration = 120;
@@ -131,13 +130,14 @@ export async function GET(
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
 
+  const bgConfig = await getBackgroundRemovalConfigurationRuntime();
+
   return NextResponse.json({
     productId: id,
     availableProfiles: getProductModelProfiles(),
     configured: isProductImageGenerationConfigured(),
-    specializedBackgroundRemovalConfigured:
-      isSpecializedBackgroundRemovalConfigured(),
-    backgroundRemovalConfiguration: getBackgroundRemovalConfiguration(),
+    specializedBackgroundRemovalConfigured: bgConfig.configured,
+    backgroundRemovalConfiguration: bgConfig,
   });
 }
 
@@ -282,6 +282,8 @@ export async function POST(
       createdAt: FieldValue.serverTimestamp(),
     });
 
+    const bgConfig = await getBackgroundRemovalConfigurationRuntime();
+
     return NextResponse.json({
       success: true,
       productId: id,
@@ -295,9 +297,8 @@ export async function POST(
       targetColor: targetColor || null,
       customPrompt: customPrompt || null,
       availableProfiles: getProductModelProfiles(),
-      specializedBackgroundRemovalConfigured:
-        isSpecializedBackgroundRemovalConfigured(),
-      backgroundRemovalConfiguration: getBackgroundRemovalConfiguration(),
+      specializedBackgroundRemovalConfigured: bgConfig.configured,
+      backgroundRemovalConfiguration: bgConfig,
     });
   } catch (error) {
     console.error("AI image generation error:", error);

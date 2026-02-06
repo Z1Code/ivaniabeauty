@@ -16,6 +16,7 @@ import {
   Instagram,
   Video,
   Sparkles,
+  KeyRound,
 } from "lucide-react";
 import { Type } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -59,6 +60,24 @@ interface PaymentSettings {
 
 interface ShopSectionsSettings {
   enabledSectionIds: string[];
+}
+
+interface AiProviderRowStatus {
+  hasEnv: boolean;
+  hasFirestore: boolean;
+  source: "env" | "firestore" | "none";
+}
+
+interface AiProvidersApiResponse {
+  configured: boolean;
+  providerOrder: string[];
+  configuredProviders: string[];
+  providers: {
+    removebg: AiProviderRowStatus;
+    clipdrop: AiProviderRowStatus;
+  };
+  success?: boolean;
+  error?: string;
 }
 
 const STORAGE_KEY_STORE = "ivania_settings_store";
@@ -127,6 +146,21 @@ export default function SettingsPage() {
   const [homeSections, setHomeSections] = useState<HomeSectionsSettings>(
     DEFAULT_HOME_SECTIONS_SETTINGS
   );
+  const [aiProviders, setAiProviders] = useState<AiProvidersApiResponse>({
+    configured: false,
+    providerOrder: ["removebg", "clipdrop"],
+    configuredProviders: [],
+    providers: {
+      removebg: { hasEnv: false, hasFirestore: false, source: "none" },
+      clipdrop: { hasEnv: false, hasFirestore: false, source: "none" },
+    },
+  });
+  const [removebgApiKeyInput, setRemovebgApiKeyInput] = useState("");
+  const [clipdropApiKeyInput, setClipdropApiKeyInput] = useState("");
+  const [providerOrderInput, setProviderOrderInput] = useState("removebg,clipdrop");
+  const [savingAiProviders, setSavingAiProviders] = useState(false);
+  const [aiProvidersMessage, setAiProvidersMessage] = useState<string | null>(null);
+  const [aiProvidersError, setAiProvidersError] = useState<string | null>(null);
 
   // Admin info (read-only)
   const [adminEmail] = useState("admin@ivaniabeauty.com");
@@ -223,6 +257,184 @@ export default function SettingsPage() {
     }));
   }, []);
 
+  const normalizeProviderOrderInput = useCallback((value: string): string[] => {
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+    for (const token of value.split(",")) {
+      const item = token.trim().toLowerCase();
+      if (!item) continue;
+      if (item !== "removebg" && item !== "clipdrop") continue;
+      if (seen.has(item)) continue;
+      seen.add(item);
+      normalized.push(item);
+    }
+    return normalized.length ? normalized : ["removebg", "clipdrop"];
+  }, []);
+
+  const loadAiProviders = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/settings/ai-providers", {
+        method: "GET",
+      });
+      const data = (await res.json().catch(() => ({}))) as AiProvidersApiResponse;
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo cargar configuracion IA.");
+      }
+      setAiProviders({
+        configured: Boolean(data.configured),
+        providerOrder: Array.isArray(data.providerOrder)
+          ? data.providerOrder
+          : ["removebg", "clipdrop"],
+        configuredProviders: Array.isArray(data.configuredProviders)
+          ? data.configuredProviders
+          : [],
+        providers: {
+          removebg: data.providers?.removebg || {
+            hasEnv: false,
+            hasFirestore: false,
+            source: "none",
+          },
+          clipdrop: data.providers?.clipdrop || {
+            hasEnv: false,
+            hasFirestore: false,
+            source: "none",
+          },
+        },
+      });
+      setProviderOrderInput(
+        Array.isArray(data.providerOrder) && data.providerOrder.length
+          ? data.providerOrder.join(",")
+          : "removebg,clipdrop"
+      );
+      setAiProvidersError(null);
+    } catch (error) {
+      setAiProvidersError(
+        error instanceof Error
+          ? error.message
+          : "Error cargando providers de IA."
+      );
+    }
+  }, []);
+
+  const saveAiProviders = useCallback(async () => {
+    setSavingAiProviders(true);
+    setAiProvidersMessage(null);
+    setAiProvidersError(null);
+    try {
+      const payload: Record<string, unknown> = {
+        providerOrder: normalizeProviderOrderInput(providerOrderInput),
+      };
+      if (removebgApiKeyInput.trim()) {
+        payload.removebgApiKey = removebgApiKeyInput.trim();
+      }
+      if (clipdropApiKeyInput.trim()) {
+        payload.clipdropApiKey = clipdropApiKeyInput.trim();
+      }
+
+      const res = await fetch("/api/admin/settings/ai-providers", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = (await res.json().catch(() => ({}))) as AiProvidersApiResponse;
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo guardar configuracion IA.");
+      }
+
+      setAiProviders({
+        configured: Boolean(data.configured),
+        providerOrder: Array.isArray(data.providerOrder)
+          ? data.providerOrder
+          : ["removebg", "clipdrop"],
+        configuredProviders: Array.isArray(data.configuredProviders)
+          ? data.configuredProviders
+          : [],
+        providers: {
+          removebg: data.providers?.removebg || {
+            hasEnv: false,
+            hasFirestore: false,
+            source: "none",
+          },
+          clipdrop: data.providers?.clipdrop || {
+            hasEnv: false,
+            hasFirestore: false,
+            source: "none",
+          },
+        },
+      });
+      setRemovebgApiKeyInput("");
+      setClipdropApiKeyInput("");
+      setAiProvidersMessage("Configuracion IA guardada.");
+    } catch (error) {
+      setAiProvidersError(
+        error instanceof Error
+          ? error.message
+          : "Error guardando providers de IA."
+      );
+    } finally {
+      setSavingAiProviders(false);
+    }
+  }, [
+    clipdropApiKeyInput,
+    normalizeProviderOrderInput,
+    providerOrderInput,
+    removebgApiKeyInput,
+  ]);
+
+  const clearAiProviderKey = useCallback(async (provider: "removebg" | "clipdrop") => {
+    setSavingAiProviders(true);
+    setAiProvidersMessage(null);
+    setAiProvidersError(null);
+    try {
+      const payload =
+        provider === "removebg"
+          ? { removebgApiKey: null }
+          : { clipdropApiKey: null };
+      const res = await fetch("/api/admin/settings/ai-providers", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = (await res.json().catch(() => ({}))) as AiProvidersApiResponse;
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo limpiar la key.");
+      }
+
+      setAiProviders({
+        configured: Boolean(data.configured),
+        providerOrder: Array.isArray(data.providerOrder)
+          ? data.providerOrder
+          : ["removebg", "clipdrop"],
+        configuredProviders: Array.isArray(data.configuredProviders)
+          ? data.configuredProviders
+          : [],
+        providers: {
+          removebg: data.providers?.removebg || {
+            hasEnv: false,
+            hasFirestore: false,
+            source: "none",
+          },
+          clipdrop: data.providers?.clipdrop || {
+            hasEnv: false,
+            hasFirestore: false,
+            source: "none",
+          },
+        },
+      });
+      setAiProvidersMessage(`Key de ${provider} limpiada.`);
+    } catch (error) {
+      setAiProvidersError(
+        error instanceof Error ? error.message : "No se pudo limpiar la key."
+      );
+    } finally {
+      setSavingAiProviders(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadAiProviders();
+  }, [loadAiProviders]);
+
   const saveSection = useCallback(
     async (section: string) => {
       setSavingSection(section);
@@ -316,6 +528,128 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-6">
+        {/* AI Provider Settings */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm transition-colors duration-300">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950 flex items-center justify-center">
+              <KeyRound className="w-5 h-5 text-rose-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">
+                Providers IA (Background Removal)
+              </h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Configura remove.bg y clipdrop para usarlos desde cualquier despliegue web.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                remove.bg
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Estado: {aiProviders.providers.removebg.source}
+              </p>
+            </div>
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                clipdrop
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Estado: {aiProviders.providers.clipdrop.source}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                Key remove.bg (opcional)
+              </label>
+              <input
+                type="password"
+                value={removebgApiKeyInput}
+                onChange={(e) => setRemovebgApiKeyInput(e.target.value)}
+                placeholder="Pega nueva key para actualizar"
+                className={inputClasses}
+              />
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={() => void clearAiProviderKey("removebg")}
+                  disabled={savingAiProviders}
+                  className="text-xs text-red-500 hover:text-red-600 disabled:opacity-50 cursor-pointer"
+                >
+                  Limpiar key remove.bg guardada
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                Key clipdrop (opcional)
+              </label>
+              <input
+                type="password"
+                value={clipdropApiKeyInput}
+                onChange={(e) => setClipdropApiKeyInput(e.target.value)}
+                placeholder="Pega nueva key para actualizar"
+                className={inputClasses}
+              />
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={() => void clearAiProviderKey("clipdrop")}
+                  disabled={savingAiProviders}
+                  className="text-xs text-red-500 hover:text-red-600 disabled:opacity-50 cursor-pointer"
+                >
+                  Limpiar key clipdrop guardada
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+              Orden de fallback
+            </label>
+            <input
+              type="text"
+              value={providerOrderInput}
+              onChange={(e) => setProviderOrderInput(e.target.value)}
+              placeholder="removebg,clipdrop"
+              className={inputClasses}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Usa valores separados por coma. Permitidos: removebg, clipdrop.
+            </p>
+          </div>
+
+          {aiProvidersMessage && (
+            <p className="text-sm text-emerald-600 dark:text-emerald-400 mb-3">
+              {aiProvidersMessage}
+            </p>
+          )}
+          {aiProvidersError && (
+            <p className="text-sm text-red-600 dark:text-red-400 mb-3">
+              {aiProvidersError}
+            </p>
+          )}
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => void saveAiProviders()}
+              disabled={savingAiProviders}
+              className="flex items-center gap-2 px-5 py-2.5 bg-rosa text-white rounded-xl hover:bg-rosa-dark transition-colors disabled:opacity-50 text-sm font-medium cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              {savingAiProviders ? "Guardando..." : "Guardar Providers IA"}
+            </button>
+          </div>
+        </div>
+
         {/* Appearance Settings */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm transition-colors duration-300">
           <div className="flex items-center gap-3 mb-5">

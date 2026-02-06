@@ -1,4 +1,8 @@
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb, isFirebaseConfigured } from "@/lib/firebase/admin";
+
 export type ProviderId = "removebg" | "clipdrop";
+export type ProviderSecretSource = "env" | "firestore" | "none";
 
 interface RemovalInput {
   imageBuffer: Buffer;
@@ -9,6 +13,20 @@ interface ProviderError {
   status?: number;
   code?: string;
   message: string;
+}
+
+interface StoredProviderSecrets {
+  removebgApiKey: string | null;
+  clipdropApiKey: string | null;
+  providerOrder: ProviderId[] | null;
+}
+
+interface ResolvedProviderSecrets {
+  removebgApiKey: string | null;
+  clipdropApiKey: string | null;
+  providerOrder: ProviderId[];
+  configuredProviders: ProviderId[];
+  sources: Record<ProviderId, ProviderSecretSource>;
 }
 
 export interface BackgroundRemovalResult {
@@ -33,6 +51,20 @@ export interface BackgroundRemovalConfiguration {
   configuredProviders: ProviderId[];
 }
 
+export interface BackgroundRemovalProviderStatus {
+  configured: boolean;
+  providerOrder: ProviderId[];
+  configuredProviders: ProviderId[];
+  providers: Record<
+    ProviderId,
+    {
+      hasEnv: boolean;
+      hasFirestore: boolean;
+      source: ProviderSecretSource;
+    }
+  >;
+}
+
 export interface BackgroundRemovalDiagnostics {
   configured: boolean;
   providerOrder: ProviderId[];
@@ -48,8 +80,19 @@ export interface SpecializedRemovalOutcome {
   diagnostics: BackgroundRemovalDiagnostics;
 }
 
+export interface UpdateBackgroundRemovalSecretsInput {
+  removebgApiKey?: string | null;
+  clipdropApiKey?: string | null;
+  providerOrder?: ProviderId[] | string[] | null;
+}
+
 const DEFAULT_PROVIDER_ORDER: ProviderId[] = ["removebg", "clipdrop"];
 const DEFAULT_TIMEOUT_MS = 20_000;
+const SECRETS_COLLECTION = "systemConfig";
+const SECRETS_DOC_ID = "aiProviderSecrets";
+const CACHE_TTL_MS = 60_000;
+
+let cachedSecrets: { value: StoredProviderSecrets; expiresAt: number } | null = null;
 
 function getTimeoutMs(
   name:
@@ -64,34 +107,124 @@ function getTimeoutMs(
   return Math.min(parsed, 60_000);
 }
 
-function pickConfiguredProviderOrder(): ProviderId[] {
-  const configured = (
-    process.env.BACKGROUND_REMOVAL_PROVIDER_ORDER || DEFAULT_PROVIDER_ORDER.join(",")
-  )
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-
+function parseProviderOrder(items: string[]): ProviderId[] {
   const order: ProviderId[] = [];
-  for (const item of configured) {
-    if (item === "removebg" && !order.includes("removebg")) {
+  for (const item of items) {
+    const normalized = item.trim().toLowerCase();
+    if (normalized === "removebg" && !order.includes("removebg")) {
       order.push("removebg");
     }
-    if (item === "clipdrop" && !order.includes("clipdrop")) {
+    if (normalized === "clipdrop" && !order.includes("clipdrop")) {
       order.push("clipdrop");
     }
   }
   return order.length ? order : [...DEFAULT_PROVIDER_ORDER];
 }
 
-function getRemoveBgApiKey(): string | null {
-  const key = process.env.REMOVEBG_API_KEY?.trim();
-  return key ? key : null;
+function pickEnvProviderOrder(): ProviderId[] {
+  const raw = process.env.BACKGROUND_REMOVAL_PROVIDER_ORDER;
+  if (!raw || !raw.trim()) return [...DEFAULT_PROVIDER_ORDER];
+  return parseProviderOrder(raw.split(","));
 }
 
-function getClipdropApiKey(): string | null {
-  const key = process.env.CLIPDROP_API_KEY?.trim();
-  return key ? key : null;
+function sanitizeApiKey(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function sanitizeStoredProviderOrder(value: unknown): ProviderId[] | null {
+  if (!Array.isArray(value)) return null;
+  const order = parseProviderOrder(
+    value.filter((item): item is string => typeof item === "string")
+  );
+  return order.length ? order : null;
+}
+
+function getRemoveBgApiKeyFromEnv(): string | null {
+  return sanitizeApiKey(process.env.REMOVEBG_API_KEY);
+}
+
+function getClipdropApiKeyFromEnv(): string | null {
+  return sanitizeApiKey(process.env.CLIPDROP_API_KEY);
+}
+
+function emptyStoredSecrets(): StoredProviderSecrets {
+  return {
+    removebgApiKey: null,
+    clipdropApiKey: null,
+    providerOrder: null,
+  };
+}
+
+function clearSecretsCache(): void {
+  cachedSecrets = null;
+}
+
+async function readStoredSecrets(): Promise<StoredProviderSecrets> {
+  if (!isFirebaseConfigured()) {
+    return emptyStoredSecrets();
+  }
+
+  const now = Date.now();
+  if (cachedSecrets && cachedSecrets.expiresAt > now) {
+    return cachedSecrets.value;
+  }
+
+  try {
+    const docSnap = await adminDb
+      .collection(SECRETS_COLLECTION)
+      .doc(SECRETS_DOC_ID)
+      .get();
+    if (!docSnap.exists) {
+      const empty = emptyStoredSecrets();
+      cachedSecrets = { value: empty, expiresAt: now + CACHE_TTL_MS };
+      return empty;
+    }
+
+    const data = docSnap.data() || {};
+    const parsed: StoredProviderSecrets = {
+      removebgApiKey: sanitizeApiKey(data.removebgApiKey),
+      clipdropApiKey: sanitizeApiKey(data.clipdropApiKey),
+      providerOrder: sanitizeStoredProviderOrder(data.providerOrder),
+    };
+    cachedSecrets = { value: parsed, expiresAt: now + CACHE_TTL_MS };
+    return parsed;
+  } catch {
+    return emptyStoredSecrets();
+  }
+}
+
+async function resolveProviderSecrets(): Promise<ResolvedProviderSecrets> {
+  const stored = await readStoredSecrets();
+
+  const removebgEnv = getRemoveBgApiKeyFromEnv();
+  const clipdropEnv = getClipdropApiKeyFromEnv();
+
+  const removebg = removebgEnv || stored.removebgApiKey;
+  const clipdrop = clipdropEnv || stored.clipdropApiKey;
+
+  const configuredProviders: ProviderId[] = [];
+  if (removebg) configuredProviders.push("removebg");
+  if (clipdrop) configuredProviders.push("clipdrop");
+
+  const providerOrder = (() => {
+    const envRaw = process.env.BACKGROUND_REMOVAL_PROVIDER_ORDER;
+    if (envRaw && envRaw.trim()) return pickEnvProviderOrder();
+    if (stored.providerOrder?.length) return stored.providerOrder;
+    return [...DEFAULT_PROVIDER_ORDER];
+  })();
+
+  return {
+    removebgApiKey: removebg,
+    clipdropApiKey: clipdrop,
+    providerOrder,
+    configuredProviders,
+    sources: {
+      removebg: removebgEnv ? "env" : stored.removebgApiKey ? "firestore" : "none",
+      clipdrop: clipdropEnv ? "env" : stored.clipdropApiKey ? "firestore" : "none",
+    },
+  };
 }
 
 function normalizeProviderError(error: unknown, fallbackCode: string): ProviderError {
@@ -155,10 +288,9 @@ async function removeWithRemoveBg({
   const formData = new FormData();
   formData.append("size", "auto");
   formData.append("format", "png");
-  const inputBytes = Uint8Array.from(imageBuffer);
   formData.append(
     "image_file",
-    new Blob([inputBytes], { type: mimeType || "image/png" }),
+    new Blob([Uint8Array.from(imageBuffer)], { type: mimeType || "image/png" }),
     "input.png"
   );
 
@@ -185,9 +317,8 @@ async function removeWithRemoveBg({
     );
   }
 
-  const outputBuffer = Buffer.from(await response.arrayBuffer());
   return {
-    imageBuffer: outputBuffer,
+    imageBuffer: Buffer.from(await response.arrayBuffer()),
     mimeType: contentType.includes("png") ? "image/png" : contentType,
     provider: "removebg",
   };
@@ -200,10 +331,9 @@ async function removeWithClipdrop({
   timeoutMs,
 }: RemovalInput & { apiKey: string; timeoutMs: number }): Promise<BackgroundRemovalResult> {
   const formData = new FormData();
-  const inputBytes = Uint8Array.from(imageBuffer);
   formData.append(
     "image_file",
-    new Blob([inputBytes], { type: mimeType || "image/png" }),
+    new Blob([Uint8Array.from(imageBuffer)], { type: mimeType || "image/png" }),
     "input.png"
   );
 
@@ -230,19 +360,18 @@ async function removeWithClipdrop({
     );
   }
 
-  const outputBuffer = Buffer.from(await response.arrayBuffer());
   return {
-    imageBuffer: outputBuffer,
+    imageBuffer: Buffer.from(await response.arrayBuffer()),
     mimeType: contentType.includes("png") ? "image/png" : contentType,
     provider: "clipdrop",
   };
 }
 
 export function getBackgroundRemovalConfiguration(): BackgroundRemovalConfiguration {
-  const providerOrder = pickConfiguredProviderOrder();
+  const providerOrder = pickEnvProviderOrder();
   const configuredProviders: ProviderId[] = [];
-  if (getRemoveBgApiKey()) configuredProviders.push("removebg");
-  if (getClipdropApiKey()) configuredProviders.push("clipdrop");
+  if (getRemoveBgApiKeyFromEnv()) configuredProviders.push("removebg");
+  if (getClipdropApiKeyFromEnv()) configuredProviders.push("clipdrop");
   return {
     configured: configuredProviders.length > 0,
     providerOrder,
@@ -254,16 +383,98 @@ export function isSpecializedBackgroundRemovalConfigured(): boolean {
   return getBackgroundRemovalConfiguration().configured;
 }
 
+export async function getBackgroundRemovalConfigurationRuntime(): Promise<BackgroundRemovalConfiguration> {
+  const resolved = await resolveProviderSecrets();
+  return {
+    configured: resolved.configuredProviders.length > 0,
+    providerOrder: resolved.providerOrder,
+    configuredProviders: resolved.configuredProviders,
+  };
+}
+
+export async function getBackgroundRemovalProviderStatus(): Promise<BackgroundRemovalProviderStatus> {
+  const resolved = await resolveProviderSecrets();
+  return {
+    configured: resolved.configuredProviders.length > 0,
+    providerOrder: resolved.providerOrder,
+    configuredProviders: resolved.configuredProviders,
+    providers: {
+      removebg: {
+        hasEnv: resolved.sources.removebg === "env",
+        hasFirestore: resolved.sources.removebg === "firestore",
+        source: resolved.sources.removebg,
+      },
+      clipdrop: {
+        hasEnv: resolved.sources.clipdrop === "env",
+        hasFirestore: resolved.sources.clipdrop === "firestore",
+        source: resolved.sources.clipdrop,
+      },
+    },
+  };
+}
+
+export async function upsertBackgroundRemovalSecrets(
+  input: UpdateBackgroundRemovalSecretsInput
+): Promise<BackgroundRemovalProviderStatus> {
+  if (!isFirebaseConfigured()) {
+    const error = new Error("Firebase is not configured for server-side secret storage");
+    (error as Error & { status?: number; code?: string }).status = 503;
+    (error as Error & { status?: number; code?: string }).code =
+      "FIREBASE_NOT_CONFIGURED";
+    throw error;
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+
+  if (Object.prototype.hasOwnProperty.call(input, "removebgApiKey")) {
+    updatePayload.removebgApiKey = sanitizeApiKey(input.removebgApiKey) || null;
+  }
+  if (Object.prototype.hasOwnProperty.call(input, "clipdropApiKey")) {
+    updatePayload.clipdropApiKey = sanitizeApiKey(input.clipdropApiKey) || null;
+  }
+  if (Object.prototype.hasOwnProperty.call(input, "providerOrder")) {
+    const order =
+      Array.isArray(input.providerOrder) &&
+      input.providerOrder.length > 0
+        ? parseProviderOrder(
+            input.providerOrder.filter(
+              (item): item is string => typeof item === "string"
+            )
+          )
+        : null;
+    updatePayload.providerOrder = order;
+  }
+
+  await adminDb
+    .collection(SECRETS_COLLECTION)
+    .doc(SECRETS_DOC_ID)
+    .set(updatePayload, { merge: true });
+
+  clearSecretsCache();
+  return getBackgroundRemovalProviderStatus();
+}
+
 export async function removeBackgroundSpecializedWithDiagnostics(
   input: RemovalInput
 ): Promise<SpecializedRemovalOutcome> {
-  const config = getBackgroundRemovalConfiguration();
+  const resolved = await resolveProviderSecrets();
+  const config: BackgroundRemovalConfiguration = {
+    configured: resolved.configuredProviders.length > 0,
+    providerOrder: resolved.providerOrder,
+    configuredProviders: resolved.configuredProviders,
+  };
   const attempts: BackgroundRemovalAttempt[] = [];
 
   for (const provider of config.providerOrder) {
     const startedAt = Date.now();
+    const apiKey =
+      provider === "removebg"
+        ? resolved.removebgApiKey
+        : resolved.clipdropApiKey;
 
-    if (!config.configuredProviders.includes(provider)) {
+    if (!apiKey) {
       const missing = buildMissingProviderError(provider);
       attempts.push({
         provider,
@@ -289,12 +500,12 @@ export async function removeBackgroundSpecializedWithDiagnostics(
         provider === "removebg"
           ? await removeWithRemoveBg({
               ...input,
-              apiKey: getRemoveBgApiKey() as string,
+              apiKey,
               timeoutMs: effectiveTimeout,
             })
           : await removeWithClipdrop({
               ...input,
-              apiKey: getClipdropApiKey() as string,
+              apiKey,
               timeoutMs: effectiveTimeout,
             });
 
