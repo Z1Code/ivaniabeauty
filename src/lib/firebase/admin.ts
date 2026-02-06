@@ -14,9 +14,13 @@ let adminAuth: Auth;
 let adminDb: Firestore;
 let adminStorage: Storage;
 
+const sanitizedProjectId = (process.env.FIREBASE_ADMIN_PROJECT_ID ||
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+  "").trim();
+
 function isFirebaseConfigured(): boolean {
   return !!(
-    process.env.FIREBASE_ADMIN_PROJECT_ID &&
+    sanitizedProjectId &&
     process.env.FIREBASE_ADMIN_CLIENT_EMAIL &&
     process.env.FIREBASE_ADMIN_PRIVATE_KEY &&
     !process.env.FIREBASE_ADMIN_PRIVATE_KEY.includes("your-private-key")
@@ -28,7 +32,7 @@ function initFirebaseAdmin() {
     app = getApps()[0];
   } else if (isFirebaseConfigured()) {
     const serviceAccount: ServiceAccount = {
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+      projectId: sanitizedProjectId,
       clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
       privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(
         /\\n/g,
@@ -37,6 +41,7 @@ function initFirebaseAdmin() {
     };
     app = initializeApp({
       credential: cert(serviceAccount),
+      projectId: sanitizedProjectId,
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
   } else {
