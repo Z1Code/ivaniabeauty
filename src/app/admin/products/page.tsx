@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Package } from "lucide-react";
+import { Plus, Search, Package, Sparkles, Loader2 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminBadge from "@/components/admin/AdminBadge";
@@ -44,6 +44,11 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [fitGuideStatus, setFitGuideStatus] = useState("");
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(
+    null
+  );
+  const [bulkSummary, setBulkSummary] = useState<string | null>(null);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -69,6 +74,67 @@ export default function AdminProductsPage() {
     const timeout = setTimeout(fetchProducts, 300);
     return () => clearTimeout(timeout);
   }, [fetchProducts]);
+
+  const runBulkAiGeneration = useCallback(async () => {
+    if (!products.length || bulkGenerating) return;
+    const total = products.length;
+    const confirmed = confirm(
+      `Se generaran imagenes IA para ${total} producto(s) con los filtros actuales. Continuar?`
+    );
+    if (!confirmed) return;
+
+    setBulkGenerating(true);
+    setBulkSummary(null);
+    setBulkProgress({ current: 0, total });
+
+    let success = 0;
+    let failed = 0;
+    let skipped = 0;
+
+    for (let index = 0; index < products.length; index++) {
+      const product = products[index];
+      setBulkProgress({ current: index + 1, total });
+
+      const sourceImageUrl =
+        Array.isArray(product.images) && product.images.length > 0
+          ? product.images[0]
+          : null;
+      if (!sourceImageUrl) {
+        skipped++;
+        continue;
+      }
+      if (sourceImageUrl.includes("/products/generated/")) {
+        skipped++;
+        continue;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/products/${product.id}/ai-image`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sourceImageUrl,
+            placeFirst: true,
+            maxImages: 8,
+          }),
+        });
+        if (!res.ok) {
+          failed++;
+          continue;
+        }
+        success++;
+      } catch {
+        failed++;
+      }
+    }
+
+    setBulkGenerating(false);
+    setBulkProgress(null);
+    setBulkSummary(
+      `Proceso completado. Exitos: ${success}, Fallidos: ${failed}, Omitidos (sin imagen base): ${skipped}.`
+    );
+    await fetchProducts();
+  }, [bulkGenerating, fetchProducts, products]);
 
   const columns = [
     {
@@ -193,13 +259,27 @@ export default function AdminProductsPage() {
           { label: "Productos" },
         ]}
         action={
-          <button
-            onClick={() => router.push("/admin/products/new")}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rosa text-white text-sm font-semibold hover:bg-rosa-dark transition-colors shadow-sm cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            Nuevo Producto
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={runBulkAiGeneration}
+              disabled={bulkGenerating || loading || products.length === 0}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-rosa/30 text-rosa text-sm font-semibold hover:bg-rosa/10 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              {bulkGenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {bulkGenerating ? "Generando..." : "Autogenerar IA (filtrados)"}
+            </button>
+            <button
+              onClick={() => router.push("/admin/products/new")}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rosa text-white text-sm font-semibold hover:bg-rosa-dark transition-colors shadow-sm cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              Nuevo Producto
+            </button>
+          </div>
         }
       />
 
@@ -239,6 +319,17 @@ export default function AdminProductsPage() {
           <option value="failed">Fallida</option>
         </select>
       </div>
+
+      {bulkProgress && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          Generando IA {bulkProgress.current}/{bulkProgress.total}...
+        </p>
+      )}
+      {bulkSummary && (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-3">
+          {bulkSummary}
+        </p>
+      )}
 
       {/* Table */}
       {loading ? (

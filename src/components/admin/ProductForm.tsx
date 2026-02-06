@@ -1,8 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, Trash2, Plus, X, Eye, RefreshCw, Pencil } from "lucide-react";
+import {
+  Save,
+  Loader2,
+  Trash2,
+  Plus,
+  X,
+  Eye,
+  RefreshCw,
+  Pencil,
+  Sparkles,
+} from "lucide-react";
 import AdminPageHeader from "./AdminPageHeader";
 import AdminBilingualInput from "./AdminBilingualInput";
 import AdminImageUpload from "./AdminImageUpload";
@@ -76,6 +86,30 @@ interface FitGuideApiResponse {
   metricKeys: string[];
   rows: FitGuideRow[];
   measurements: SizeChartMeasurement[] | null;
+}
+
+interface AiImageGenerationResponse {
+  success?: boolean;
+  generatedImageUrl?: string;
+  modelUsed?: string;
+  images?: string[];
+  sourceImageUrls?: string[];
+  colorReferenceImageUrl?: string | null;
+  targetColor?: string | null;
+  customPrompt?: string | null;
+  availableProfiles?: AiImageProfile[];
+  profile?: {
+    id?: string;
+    label?: string;
+    description?: string;
+  };
+  error?: string;
+}
+
+interface AiImageProfile {
+  id: string;
+  label: string;
+  description: string;
 }
 
 type EditableFitGuideRow = {
@@ -182,6 +216,29 @@ export default function ProductForm({
   const [analyzingFitGuide, setAnalyzingFitGuide] = useState(false);
   const [savingFitGuideDraft, setSavingFitGuideDraft] = useState(false);
   const [confirmingFitGuide, setConfirmingFitGuide] = useState(false);
+  const [generatingAiImage, setGeneratingAiImage] = useState(false);
+  const [aiSourceImageUrls, setAiSourceImageUrls] = useState<string[]>(
+    initialData?.images?.[0] ? [initialData.images[0]] : []
+  );
+  const [aiColorReferenceImageUrl, setAiColorReferenceImageUrl] = useState("");
+  const [uploadingAiColorReferenceImage, setUploadingAiColorReferenceImage] =
+    useState(false);
+  const [aiColorReferenceError, setAiColorReferenceError] = useState<
+    string | null
+  >(null);
+  const [aiGenerationSummary, setAiGenerationSummary] = useState<string | null>(
+    null
+  );
+  const [aiGenerationError, setAiGenerationError] = useState<string | null>(
+    null
+  );
+  const [aiTargetColor, setAiTargetColor] = useState("");
+  const [aiCustomPrompt, setAiCustomPrompt] = useState("");
+  const [aiPreferredProfileId, setAiPreferredProfileId] = useState("");
+  const [aiAvailableProfiles, setAiAvailableProfiles] = useState<AiImageProfile[]>(
+    []
+  );
+  const aiColorReferenceInputRef = useRef<HTMLInputElement | null>(null);
 
   const [form, setForm] = useState<ProductFormData>({
     nameEn: initialData?.nameEn || "",
@@ -469,6 +526,191 @@ export default function ProductForm({
     if (!isEditing || !initialData?.id) return;
     void loadFitGuide();
   }, [initialData?.id, isEditing, loadFitGuide]);
+
+  useEffect(() => {
+    if (!form.images.length) {
+      setAiSourceImageUrls([]);
+      return;
+    }
+    setAiSourceImageUrls((prev) => {
+      const filtered = prev.filter((url) => form.images.includes(url));
+      if (filtered.length) return filtered;
+      return [form.images[0]];
+    });
+  }, [form.images]);
+
+  useEffect(() => {
+    if (!isEditing || !initialData?.id) return;
+
+    const controller = new AbortController();
+    const loadProfiles = async () => {
+      try {
+        const res = await fetch(`/api/admin/products/${initialData.id}/ai-image`, {
+          method: "GET",
+          signal: controller.signal,
+        });
+        const data = (await res.json()) as {
+          availableProfiles?: AiImageProfile[];
+        };
+        if (!res.ok) return;
+        if (Array.isArray(data.availableProfiles)) {
+          setAiAvailableProfiles(data.availableProfiles);
+        }
+      } catch {
+        // Ignore. Generation endpoint will still return profiles on success.
+      }
+    };
+
+    void loadProfiles();
+    return () => controller.abort();
+  }, [initialData?.id, isEditing]);
+
+  function toggleAiSourceImage(url: string) {
+    setAiSourceImageUrls((prev) =>
+      prev.includes(url) ? prev.filter((item) => item !== url) : [...prev, url]
+    );
+  }
+
+  function selectAllAiSourceImages() {
+    setAiSourceImageUrls(form.images);
+  }
+
+  function clearAiSourceImages() {
+    setAiSourceImageUrls([]);
+  }
+
+  function resetAiAdjustments() {
+    setAiCustomPrompt("");
+    setAiPreferredProfileId("");
+    setAiTargetColor("");
+    setAiColorReferenceImageUrl("");
+    setAiColorReferenceError(null);
+  }
+
+  async function handleAiColorReferenceUpload(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setAiColorReferenceError("El archivo debe ser una imagen.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAiColorReferenceError("La imagen de color no puede superar 5MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setUploadingAiColorReferenceImage(true);
+    setAiColorReferenceError(null);
+    try {
+      const formData = new FormData();
+      formData.append("files", file);
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        urls?: string[];
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo subir la referencia de color.");
+      }
+      const uploadedUrl =
+        Array.isArray(data.urls) && data.urls.length ? data.urls[0] : null;
+      if (!uploadedUrl) {
+        throw new Error("No se recibio URL para la referencia de color.");
+      }
+      setAiColorReferenceImageUrl(uploadedUrl);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Error al subir referencia de color";
+      setAiColorReferenceError(message);
+    } finally {
+      setUploadingAiColorReferenceImage(false);
+      e.target.value = "";
+    }
+  }
+
+  async function generateAiProductImage() {
+    if (!initialData?.id) return;
+    if (!aiSourceImageUrls.length) {
+      setAiGenerationError(
+        "Selecciona al menos una imagen base para generar la foto profesional."
+      );
+      setError(
+        "Selecciona al menos una imagen base para generar la foto profesional."
+      );
+      return;
+    }
+
+    setGeneratingAiImage(true);
+    setAiGenerationSummary(null);
+    setAiGenerationError(null);
+    setError("");
+
+    try {
+      const res = await fetch(`/api/admin/products/${initialData.id}/ai-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceImageUrl: aiSourceImageUrls[0],
+          sourceImageUrls: aiSourceImageUrls,
+          colorReferenceImageUrl: aiColorReferenceImageUrl || undefined,
+          preferredProfileId: aiPreferredProfileId || undefined,
+          targetColor: aiTargetColor.trim() || undefined,
+          customPrompt: aiCustomPrompt || undefined,
+          placeFirst: true,
+          maxImages: 8,
+        }),
+      });
+
+      const data = (await res.json()) as AiImageGenerationResponse;
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo generar la imagen con IA");
+      }
+
+      if (Array.isArray(data.availableProfiles) && data.availableProfiles.length) {
+        setAiAvailableProfiles(data.availableProfiles);
+      }
+      if (data.colorReferenceImageUrl !== undefined) {
+        setAiColorReferenceImageUrl(data.colorReferenceImageUrl || "");
+      }
+      if (Array.isArray(data.images)) {
+        updateField("images", data.images);
+      } else if (data.generatedImageUrl) {
+        updateField("images", [
+          data.generatedImageUrl,
+          ...form.images.filter((img) => img !== data.generatedImageUrl),
+        ]);
+      }
+
+      const profileLabel = data.profile?.label || "Modelo aleatoria";
+      const modelUsed = data.modelUsed ? ` (${data.modelUsed})` : "";
+      const colorNote = data.targetColor ? ` | Color: ${data.targetColor}` : "";
+      const sourceNote = ` | Ref: ${aiSourceImageUrls.length}`;
+      const colorRefNote = data.colorReferenceImageUrl
+        ? " | Color por imagen"
+        : "";
+      setAiGenerationSummary(
+        `${profileLabel}${modelUsed}${sourceNote}${colorNote}${colorRefNote}`
+      );
+      setAiGenerationError(null);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Error al generar imagen con IA";
+      setAiGenerationError(message);
+      setError(message);
+    } finally {
+      setGeneratingAiImage(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -797,6 +1039,263 @@ export default function ProductForm({
               images={form.images}
               onImagesChange={(imgs) => updateField("images", imgs)}
             />
+            {isEditing && initialData?.id && (
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                    Generador IA de portada
+                  </h4>
+                  <span className="text-[11px] px-2 py-1 rounded-full bg-rosa/10 text-rosa dark:bg-rosa/20 dark:text-rosa-light font-medium">
+                    Fondo transparente
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Genera una foto comercial con una modelo aleatoria (10 perfiles) usando la prenda de la imagen base.
+                </p>
+
+                {form.images.length > 0 ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                        Imagenes base para IA (puedes elegir varias)
+                      </label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {form.images.map((img, idx) => {
+                          const selected = aiSourceImageUrls.includes(img);
+                          return (
+                            <button
+                              key={`${img}-${idx}`}
+                              type="button"
+                              onClick={() => toggleAiSourceImage(img)}
+                              className={cn(
+                                "relative rounded-lg border-2 overflow-hidden aspect-square cursor-pointer transition-all",
+                                selected
+                                  ? "border-rosa ring-2 ring-rosa/30"
+                                  : "border-gray-200 dark:border-gray-700 hover:border-rosa/50"
+                              )}
+                              title={`Imagen ${idx + 1}`}
+                            >
+                              <img
+                                src={img}
+                                alt={`Referencia IA ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                }}
+                              />
+                              <span className="absolute bottom-1 left-1 text-[10px] px-1.5 py-0.5 rounded-full bg-black/60 text-white">
+                                {idx + 1}
+                              </span>
+                              <span
+                                className={cn(
+                                  "absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full",
+                                  selected
+                                    ? "bg-rosa text-white"
+                                    : "bg-white/80 text-gray-600"
+                                )}
+                              >
+                                {selected ? "OK" : "Off"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={selectAllAiSourceImages}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                        >
+                          Seleccionar todas
+                        </button>
+                        <button
+                          type="button"
+                          onClick={clearAiSourceImages}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                        >
+                          Limpiar
+                        </button>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                          {aiSourceImageUrls.length} seleccionada(s)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                          Perfil de modelo
+                        </label>
+                        <select
+                          value={aiPreferredProfileId}
+                          onChange={(e) => setAiPreferredProfileId(e.target.value)}
+                          className={inputClasses + " text-xs"}
+                        >
+                          <option value="">Aleatorio (10 modelos)</option>
+                          {aiAvailableProfiles.map((profile) => (
+                            <option key={profile.id} value={profile.id}>
+                              {profile.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                          Color objetivo de prenda
+                        </label>
+                        <input
+                          type="text"
+                          list="ai-color-list"
+                          value={aiTargetColor}
+                          onChange={(e) => setAiTargetColor(e.target.value)}
+                          placeholder="Opcional. Dejalo vacio si usaras referencia por imagen."
+                          className={inputClasses + " text-xs"}
+                        />
+                        <datalist id="ai-color-list">
+                          {form.colors.map((color) => (
+                            <option key={color} value={color} />
+                          ))}
+                        </datalist>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-300">
+                        Imagen de referencia de color (opcional)
+                      </label>
+                      <select
+                        value={aiColorReferenceImageUrl}
+                        onChange={(e) => {
+                          setAiColorReferenceImageUrl(e.target.value || "");
+                          setAiColorReferenceError(null);
+                        }}
+                        className={inputClasses + " text-xs"}
+                      >
+                        <option value="">Sin imagen de color</option>
+                        {aiColorReferenceImageUrl &&
+                          !form.images.includes(aiColorReferenceImageUrl) && (
+                            <option value={aiColorReferenceImageUrl}>
+                              Imagen subida personalizada
+                            </option>
+                          )}
+                        {form.images.map((img, idx) => (
+                          <option key={`${img}-color-${idx}`} value={img}>
+                            Usar imagen {idx + 1} como referencia de color
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => aiColorReferenceInputRef.current?.click()}
+                          disabled={uploadingAiColorReferenceImage}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          {uploadingAiColorReferenceImage
+                            ? "Subiendo..."
+                            : "Subir imagen de color"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAiColorReferenceImageUrl("");
+                            setAiColorReferenceError(null);
+                          }}
+                          disabled={uploadingAiColorReferenceImage}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          Quitar referencia
+                        </button>
+                        <input
+                          ref={aiColorReferenceInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={handleAiColorReferenceUpload}
+                          className="hidden"
+                        />
+                      </div>
+                      {aiColorReferenceImageUrl && (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={aiColorReferenceImageUrl}
+                            alt="Referencia de color"
+                            className="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
+                            loading="lazy"
+                          />
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2">
+                            Referencia de color activa
+                          </p>
+                        </div>
+                      )}
+                      {aiColorReferenceError && (
+                        <p className="text-[11px] text-red-600 dark:text-red-400">
+                          {aiColorReferenceError}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                        Ajustes extra del prompt (opcional)
+                      </label>
+                      <textarea
+                        value={aiCustomPrompt}
+                        onChange={(e) => setAiCustomPrompt(e.target.value)}
+                        rows={3}
+                        maxLength={1200}
+                        placeholder="Ej: Mantener mangas largas, evitar brillos excesivos, pose frontal totalmente recta."
+                        className={inputClasses + " resize-y min-h-[88px] text-xs"}
+                      />
+                      <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                        {aiCustomPrompt.length}/1200
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={generateAiProductImage}
+                        disabled={generatingAiImage || aiSourceImageUrls.length === 0}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rosa/10 text-rosa hover:bg-rosa/20 transition-colors text-sm font-medium cursor-pointer disabled:opacity-50"
+                      >
+                        {generatingAiImage ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
+                        {generatingAiImage
+                          ? "Generando imagen profesional..."
+                          : "Autogenerar imagen profesional"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resetAiAdjustments}
+                        disabled={generatingAiImage}
+                        className="px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        Limpiar ajustes
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Agrega al menos una imagen para usarla como referencia.
+                  </p>
+                )}
+
+                {aiGenerationSummary && (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                    Imagen generada correctamente con {aiGenerationSummary}. Se agrego como primera imagen del producto.
+                  </p>
+                )}
+                {aiGenerationError && (
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    {aiGenerationError}
+                  </p>
+                )}
+              </div>
+            )}
           </section>
 
           {/* Fit Guide Image */}

@@ -72,9 +72,11 @@ export default function ProductCard({ product, className }: ProductCardProps) {
   const addItem = useCart((s) => s.addItem);
   const openCart = useCart((s) => s.openCart);
   const { slug, price, originalPrice, badge, colors } = product;
+  const primaryImage = product.images[0] || "";
 
   const name = getLocalizedField(product.name, language);
   const localBadge = getLocalizedField(badge, language);
+  const isAiGeneratedImage = primaryImage.includes("/products/generated/");
 
   const [filling, setFilling] = useState(false);
   const [added, setAdded] = useState(false);
@@ -135,7 +137,14 @@ export default function ProductCard({ product, className }: ProductCardProps) {
           className="block flex-shrink-0 relative"
           tabIndex={-1}
         >
-          <div className="relative aspect-[3/4] overflow-hidden bg-[#f9f7f5]">
+          <div
+            className={cn(
+              "relative aspect-[3/4] overflow-hidden",
+              isAiGeneratedImage
+                ? "bg-white"
+                : "bg-[#f9f7f5]"
+            )}
+          >
             {/* Badge - elegant style with neutral bg and colored border */}
             {localBadge && (
               <span
@@ -169,11 +178,16 @@ export default function ProductCard({ product, className }: ProductCardProps) {
             )}
 
             {/* Product image */}
-            {product.images[0] && !imgError ? (
+            {primaryImage && !imgError ? (
               <img
-                src={product.images[0]}
+                src={primaryImage}
                 alt={name}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out will-change-transform group-hover:scale-[1.06]"
+                className={cn(
+                  "absolute inset-0 w-full h-full transition-transform duration-700 ease-out will-change-transform",
+                  isAiGeneratedImage
+                    ? "object-contain p-1.5 group-hover:scale-[1.01]"
+                    : "object-cover group-hover:scale-[1.06]"
+                )}
                 loading="lazy"
                 onError={() => setImgError(true)}
               />
@@ -184,7 +198,14 @@ export default function ProductCard({ product, className }: ProductCardProps) {
             )}
 
             {/* Hover gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none" />
+            <div
+              className={cn(
+                "absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-0 transition-opacity duration-400 pointer-events-none",
+                isAiGeneratedImage
+                  ? "from-black/8 group-hover:opacity-100"
+                  : "from-black/15 group-hover:opacity-100"
+              )}
+            />
 
             {/* Quick View hint (desktop only) */}
             <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 pointer-events-none hidden sm:flex">

@@ -1,9 +1,4 @@
 import { createHash } from "node:crypto";
-import {
-  GoogleGenerativeAI,
-  SchemaType,
-  type GenerationConfig,
-} from "@google/generative-ai";
 import type { FitGuideStatus, SizeChartMeasurement } from "@/lib/firebase/types";
 import {
   normalizeRows,
@@ -52,6 +47,25 @@ interface ImagePayload {
   hash: string;
 }
 
+interface GeminiApiError {
+  code?: number;
+  status?: string;
+  message?: string;
+}
+
+interface GeminiApiPart {
+  text?: string;
+}
+
+interface GeminiApiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: GeminiApiPart[];
+    };
+  }>;
+  error?: GeminiApiError;
+}
+
 const MODEL_CANDIDATES = [
   process.env.GEMINI_MODEL,
   "gemini-2.5-flash",
@@ -60,33 +74,33 @@ const MODEL_CANDIDATES = [
   "gemini-1.5-flash",
 ].filter((value): value is string => Boolean(value && value.trim()));
 
-const MODEL_CONFIG: GenerationConfig = {
+const MODEL_CONFIG = {
   temperature: 0.15,
   responseMimeType: "application/json",
   responseSchema: {
-    type: SchemaType.OBJECT,
+    type: "OBJECT",
     properties: {
       rows: {
-        type: SchemaType.ARRAY,
+        type: "ARRAY",
         items: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
-            size: { type: SchemaType.STRING },
-            waist: { type: SchemaType.STRING, nullable: true },
-            hip: { type: SchemaType.STRING, nullable: true },
-            bust: { type: SchemaType.STRING, nullable: true },
-            length: { type: SchemaType.STRING, nullable: true },
+            size: { type: "STRING" },
+            waist: { type: "STRING", nullable: true },
+            hip: { type: "STRING", nullable: true },
+            bust: { type: "STRING", nullable: true },
+            length: { type: "STRING", nullable: true },
             extra_metrics: {
-              type: SchemaType.ARRAY,
+              type: "ARRAY",
               nullable: true,
               items: {
-                type: SchemaType.OBJECT,
+                type: "OBJECT",
                 properties: {
-                  key: { type: SchemaType.STRING },
-                  value: { type: SchemaType.STRING, nullable: true },
-                  confidence: { type: SchemaType.NUMBER, nullable: true },
+                  key: { type: "STRING" },
+                  value: { type: "STRING", nullable: true },
+                  confidence: { type: "NUMBER", nullable: true },
                   is_body_measurement: {
-                    type: SchemaType.BOOLEAN,
+                    type: "BOOLEAN",
                     nullable: true,
                   },
                 },
@@ -97,16 +111,16 @@ const MODEL_CONFIG: GenerationConfig = {
         },
       },
       notes: {
-        type: SchemaType.ARRAY,
+        type: "ARRAY",
         nullable: true,
-        items: { type: SchemaType.STRING },
+        items: { type: "STRING" },
       },
-      assumed_unit: { type: SchemaType.STRING, nullable: true },
-      confidence: { type: SchemaType.NUMBER, nullable: true },
+      assumed_unit: { type: "STRING", nullable: true },
+      confidence: { type: "NUMBER", nullable: true },
     },
     required: ["rows"],
   },
-};
+} as const;
 
 const VISION_PROMPT = `You are extracting garment fit-guide measurements from a table image.
 
@@ -135,12 +149,6 @@ function getGeminiApiKey(): string | null {
     process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
     null;
   return key && key.trim().length > 0 ? key.trim() : null;
-}
-
-function getGeminiClient(): GoogleGenerativeAI | null {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) return null;
-  return new GoogleGenerativeAI(apiKey);
 }
 
 export function isGeminiConfigured(): boolean {
@@ -207,8 +215,9 @@ function combineConfidence(
 
 function isModelNotFoundError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
-  const maybe = error as { status?: number; message?: string };
+  const maybe = error as { status?: number; code?: string; message?: string };
   if (maybe.status === 404) return true;
+  if (String(maybe.code || "").toUpperCase() === "NOT_FOUND") return true;
   const message = String(maybe.message || "").toLowerCase();
   return (
     message.includes("not found") &&
@@ -216,8 +225,80 @@ function isModelNotFoundError(error: unknown): boolean {
   );
 }
 
+async function callGeminiModel(
+  apiKey: string,
+  modelName: string,
+  image: ImagePayload
+): Promise<string> {
+  const payload = {
+    contents: [
+      {
+        parts: [
+          { text: VISION_PROMPT },
+          {
+            inlineData: {
+              data: image.base64,
+              mimeType: image.mimeType,
+            },
+          },
+        ],
+      },
+    ],
+    generationConfig: MODEL_CONFIG,
+  };
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+      modelName
+    )}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const responseText = await response.text();
+  let responseJson: GeminiApiResponse | null = null;
+  try {
+    responseJson = responseText
+      ? (JSON.parse(responseText) as GeminiApiResponse)
+      : null;
+  } catch {
+    responseJson = null;
+  }
+
+  if (!response.ok) {
+    const message =
+      responseJson?.error?.message ||
+      `Gemini request failed (${response.status})`;
+    const error = new Error(message) as Error & {
+      status?: number;
+      code?: string;
+    };
+    error.status = response.status;
+    error.code = responseJson?.error?.status || undefined;
+    throw error;
+  }
+
+  const candidates = responseJson?.candidates || [];
+  for (const candidate of candidates) {
+    const parts = candidate.content?.parts || [];
+    for (const part of parts) {
+      if (part.text && part.text.trim()) {
+        return part.text;
+      }
+    }
+  }
+
+  throw new Error("Gemini returned an empty response");
+}
+
 async function generateWithFallbackModel(
-  genAI: GoogleGenerativeAI,
+  apiKey: string,
   image: ImagePayload
 ): Promise<{ text: string; modelUsed: string }> {
   const tried = new Set<string>();
@@ -229,20 +310,7 @@ async function generateWithFallbackModel(
     tried.add(normalizedModel);
 
     try {
-      const model = genAI.getGenerativeModel({
-        model: normalizedModel,
-        generationConfig: MODEL_CONFIG,
-      });
-      const result = await model.generateContent([
-        VISION_PROMPT,
-        {
-          inlineData: {
-            data: image.base64,
-            mimeType: image.mimeType,
-          },
-        },
-      ]);
-      const text = result.response.text();
+      const text = await callGeminiModel(apiKey, normalizedModel, image);
       if (!text) {
         throw new Error("Gemini returned an empty response");
       }
@@ -266,13 +334,13 @@ async function generateWithFallbackModel(
 export async function extractFitGuideFromImage(
   sourceImageUrl: string
 ): Promise<ExtractFitGuideResult> {
-  const genAI = getGeminiClient();
-  if (!genAI) {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
     throw new Error("Gemini API key is not configured");
   }
 
   const image = await fetchImageAsPayload(sourceImageUrl);
-  const { text, modelUsed } = await generateWithFallbackModel(genAI, image);
+  const { text, modelUsed } = await generateWithFallbackModel(apiKey, image);
 
   const parsed = safeParseJSON(text);
   const unit = inferUnit(parsed.assumed_unit);
