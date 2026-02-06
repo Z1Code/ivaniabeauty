@@ -8,6 +8,10 @@ import {
   getProductModelProfiles,
   isProductImageGenerationConfigured,
 } from "@/lib/product-image-ai/generator";
+import {
+  getBackgroundRemovalConfiguration,
+  isSpecializedBackgroundRemovalConfigured,
+} from "@/lib/product-image-ai/background-removal";
 
 export const maxDuration = 120;
 
@@ -131,6 +135,9 @@ export async function GET(
     productId: id,
     availableProfiles: getProductModelProfiles(),
     configured: isProductImageGenerationConfigured(),
+    specializedBackgroundRemovalConfigured:
+      isSpecializedBackgroundRemovalConfigured(),
+    backgroundRemovalConfiguration: getBackgroundRemovalConfiguration(),
   });
 }
 
@@ -288,6 +295,9 @@ export async function POST(
       targetColor: targetColor || null,
       customPrompt: customPrompt || null,
       availableProfiles: getProductModelProfiles(),
+      specializedBackgroundRemovalConfigured:
+        isSpecializedBackgroundRemovalConfigured(),
+      backgroundRemovalConfiguration: getBackgroundRemovalConfiguration(),
     });
   } catch (error) {
     console.error("AI image generation error:", error);

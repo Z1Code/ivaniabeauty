@@ -11,11 +11,12 @@ import {
   Eye,
   RefreshCw,
   Pencil,
-  Sparkles,
 } from "lucide-react";
 import AdminPageHeader from "./AdminPageHeader";
 import AdminBilingualInput from "./AdminBilingualInput";
 import AdminImageUpload from "./AdminImageUpload";
+import AiMagicGenerateButton from "./AiMagicGenerateButton";
+import AiGenerationFullscreenOverlay from "./AiGenerationFullscreenOverlay";
 import { cn, getColorHex } from "@/lib/utils";
 import type { FitGuideRow, FitGuideStatus, SizeChartMeasurement } from "@/lib/firebase/types";
 import { metricToCmText, normalizeSizeList } from "@/lib/fit-guide/utils";
@@ -97,6 +98,12 @@ interface AiImageGenerationResponse {
   colorReferenceImageUrl?: string | null;
   targetColor?: string | null;
   customPrompt?: string | null;
+  specializedBackgroundRemovalConfigured?: boolean;
+  backgroundRemovalConfiguration?: {
+    configured?: boolean;
+    providerOrder?: string[];
+    configuredProviders?: string[];
+  };
   availableProfiles?: AiImageProfile[];
   profile?: {
     id?: string;
@@ -110,6 +117,16 @@ interface AiImageProfile {
   id: string;
   label: string;
   description: string;
+}
+
+interface AiImageSetupResponse {
+  availableProfiles?: AiImageProfile[];
+  specializedBackgroundRemovalConfigured?: boolean;
+  backgroundRemovalConfiguration?: {
+    configured?: boolean;
+    providerOrder?: string[];
+    configuredProviders?: string[];
+  };
 }
 
 type EditableFitGuideRow = {
@@ -238,6 +255,9 @@ export default function ProductForm({
   const [aiAvailableProfiles, setAiAvailableProfiles] = useState<AiImageProfile[]>(
     []
   );
+  const [aiBgRemovalConfigured, setAiBgRemovalConfigured] = useState(false);
+  const [aiBgRemovalConfiguredProviders, setAiBgRemovalConfiguredProviders] =
+    useState<string[]>([]);
   const aiColorReferenceInputRef = useRef<HTMLInputElement | null>(null);
 
   const [form, setForm] = useState<ProductFormData>({
@@ -549,12 +569,19 @@ export default function ProductForm({
           method: "GET",
           signal: controller.signal,
         });
-        const data = (await res.json()) as {
-          availableProfiles?: AiImageProfile[];
-        };
+        const data = (await res.json()) as AiImageSetupResponse;
         if (!res.ok) return;
         if (Array.isArray(data.availableProfiles)) {
           setAiAvailableProfiles(data.availableProfiles);
+        }
+        const bgConfig = data.backgroundRemovalConfiguration;
+        if (typeof data.specializedBackgroundRemovalConfigured === "boolean") {
+          setAiBgRemovalConfigured(data.specializedBackgroundRemovalConfigured);
+        } else if (typeof bgConfig?.configured === "boolean") {
+          setAiBgRemovalConfigured(bgConfig.configured);
+        }
+        if (Array.isArray(bgConfig?.configuredProviders)) {
+          setAiBgRemovalConfiguredProviders(bgConfig.configuredProviders);
         }
       } catch {
         // Ignore. Generation endpoint will still return profiles on success.
@@ -679,6 +706,15 @@ export default function ProductForm({
       if (Array.isArray(data.availableProfiles) && data.availableProfiles.length) {
         setAiAvailableProfiles(data.availableProfiles);
       }
+      const bgConfig = data.backgroundRemovalConfiguration;
+      if (typeof data.specializedBackgroundRemovalConfigured === "boolean") {
+        setAiBgRemovalConfigured(data.specializedBackgroundRemovalConfigured);
+      } else if (typeof bgConfig?.configured === "boolean") {
+        setAiBgRemovalConfigured(bgConfig.configured);
+      }
+      if (Array.isArray(bgConfig?.configuredProviders)) {
+        setAiBgRemovalConfiguredProviders(bgConfig.configuredProviders);
+      }
       if (data.colorReferenceImageUrl !== undefined) {
         setAiColorReferenceImageUrl(data.colorReferenceImageUrl || "");
       }
@@ -695,11 +731,21 @@ export default function ProductForm({
       const modelUsed = data.modelUsed ? ` (${data.modelUsed})` : "";
       const colorNote = data.targetColor ? ` | Color: ${data.targetColor}` : "";
       const sourceNote = ` | Ref: ${aiSourceImageUrls.length}`;
+      const bgConfigured =
+        typeof data.specializedBackgroundRemovalConfigured === "boolean"
+          ? data.specializedBackgroundRemovalConfigured
+          : Boolean(bgConfig?.configured);
+      const configuredProviders = Array.isArray(bgConfig?.configuredProviders)
+        ? bgConfig.configuredProviders
+        : [];
+      const bgNote = bgConfigured
+        ? ` | Fondo pro: ${configuredProviders.join(", ") || "activo"}`
+        : " | Fondo pro: fallback local";
       const colorRefNote = data.colorReferenceImageUrl
         ? " | Color por imagen"
         : "";
       setAiGenerationSummary(
-        `${profileLabel}${modelUsed}${sourceNote}${colorNote}${colorRefNote}`
+        `${profileLabel}${modelUsed}${sourceNote}${bgNote}${colorNote}${colorRefNote}`
       );
       setAiGenerationError(null);
     } catch (err) {
@@ -786,6 +832,7 @@ export default function ProductForm({
 
   return (
     <form onSubmit={handleSubmit}>
+      <AiGenerationFullscreenOverlay open={generatingAiImage} />
       <AdminPageHeader
         title={isEditing ? "Editar Producto" : "Nuevo Producto"}
         breadcrumbs={[
@@ -1252,22 +1299,25 @@ export default function ProductForm({
                       </p>
                     </div>
 
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/40 px-3 py-2">
+                      <p className="text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                        Motor de recorte de fondo:
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                        {aiBgRemovalConfigured
+                          ? `Activo (${aiBgRemovalConfiguredProviders.join(", ") || "proveedor externo"}).`
+                          : "No configurado (se usa fallback local de transparencia)."}
+                      </p>
+                    </div>
+
                     <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
+                      <AiMagicGenerateButton
+                        loading={generatingAiImage}
+                        disabled={aiSourceImageUrls.length === 0}
                         onClick={generateAiProductImage}
-                        disabled={generatingAiImage || aiSourceImageUrls.length === 0}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rosa/10 text-rosa hover:bg-rosa/20 transition-colors text-sm font-medium cursor-pointer disabled:opacity-50"
-                      >
-                        {generatingAiImage ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-4 h-4" />
-                        )}
-                        {generatingAiImage
-                          ? "Generando imagen profesional..."
-                          : "Autogenerar imagen profesional"}
-                      </button>
+                        loadingLabel="Generando imagen profesional"
+                        idleLabel="Autogenerar imagen profesional"
+                      />
                       <button
                         type="button"
                         onClick={resetAiAdjustments}
@@ -1277,6 +1327,11 @@ export default function ProductForm({
                         Limpiar ajustes
                       </button>
                     </div>
+                    {generatingAiImage && (
+                      <p className="text-[11px] text-rosa-dark/90 dark:text-rosa-light/90 animate-pulse">
+                        Preparando modelo, prenda y acabado comercial. Esto puede tardar unos segundos.
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-amber-600 dark:text-amber-400">

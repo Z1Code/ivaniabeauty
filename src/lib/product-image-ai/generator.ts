@@ -1,4 +1,10 @@
 import { createHash, randomInt } from "node:crypto";
+import jpeg from "jpeg-js";
+import { PNG } from "pngjs";
+import {
+  isSpecializedBackgroundRemovalConfigured,
+  removeBackgroundSpecializedWithDiagnostics,
+} from "./background-removal";
 
 type OutputFormat = "png" | "webp" | "jpeg";
 type Quality = "low" | "medium" | "high" | "auto";
@@ -372,23 +378,42 @@ function buildPrompt({
       ? customPrompt.trim().slice(0, 1200)
       : "";
 
-  return `Create a premium ecommerce studio photo from the input references.
+  return `You are an expert ecommerce fashion photographer and retoucher.
+Generate one premium studio product image from the provided references.
 
-Use the garment from all reference images as the exact product and keep all garment construction details, seams, closures, silhouette, and color tones accurate.
-Treat the first garment reference image as the primary source and use additional garment references only to recover missing details.
-If the reference already includes a person, keep garment identity but replace the person with this model profile: ${profile.description}.
+Source fidelity rules (mandatory):
+- Use the garment from all references as the exact same product.
+- Treat reference image #1 as canonical and use other references only to recover missing details.
+- Preserve exact construction details: panel cuts, seams, stitch lines, hook/zip closure rows, strap width/placement, leg length, edge trims, lace motifs, and compression zones.
+- Preserve exact garment color family and tone. Do not shift hue or saturation beyond realistic studio lighting.
+- Preserve textile realism: weave, micro-wrinkles, material sheen, and fabric thickness must look physically plausible.
+- Do not redesign, simplify, or invent new garment features.
+- If a person appears in reference, replace only the person using this model profile while keeping garment identity unchanged: ${profile.description}.
 
-Composition and styling requirements:
-- One adult female model, full body visible, centered, looking at camera with a confident neutral pose.
-- Hair and makeup must look polished and commercial.
-- The garment must look smooth, perfectly fitted, and high-end.
-- Soft professional studio lighting, realistic anatomy, realistic skin texture, sharp textile details.
-- Leave breathing room around silhouette for storefront card usage.
-- No text, no logos, no watermark, no props, no extra objects.
-- Background must be fully transparent with clean alpha edges around the model and garment.
-- Return the final output as a transparent PNG.
+Model, pose, and framing rules:
+- Exactly one adult female model, full body visible from head to feet, centered.
+- Frontal ecommerce pose, neutral confident expression, arms relaxed with slight separation from torso.
+- Keep anatomy natural and realistic: correct hands/fingers, shoulders, hips, limbs, and body proportions.
+- Keep garment fit flattering but realistic; no extreme body warping.
+- Maintain clean composition with padding around silhouette for storefront card cropping.
 
-Output goal: high-resolution marketing-ready product image suitable for storefront cards.
+Lighting and camera rules:
+- High-end studio look, soft key + fill lighting, controlled highlights, minimal harsh shadows.
+- Sharp focus on garment texture and closures; avoid blur and over-smoothing.
+- Photorealistic skin texture and face detail; avoid plastic skin.
+- No cinematic color grading, no stylized filters.
+
+Output constraints (mandatory):
+- Background must be truly transparent (real alpha), with clean edges around hair, body, and garment.
+- Return a transparent PNG suitable for ecommerce listing cards.
+- No text, logos, watermark, props, furniture, extra people, mirrored duplicates, or collage layout.
+- No checkerboard, no fake transparency pattern, no solid studio backdrop in final output.
+
+Quality checklist before returning:
+- Garment details match references and remain structurally consistent.
+- Model anatomy looks natural (especially hands and feet).
+- Product edges are clean with no jagged halos.
+- Final render is marketing-ready, high-detail, and catalog quality.
 
 ${contextParts.join("\n")}
 ${sanitizedCustomPrompt ? `\nUser adjustment instructions:\n${sanitizedCustomPrompt}` : ""}`.trim();
@@ -419,8 +444,12 @@ function isNoImageDataError(error: unknown): boolean {
   const maybe = error as { code?: string; message?: string };
   const code = String(maybe.code || "").toLowerCase();
   if (code.includes("no_image_data")) return true;
+  if (code.includes("no_transparency")) return true;
   const message = String(maybe.message || "").toLowerCase();
-  return message.includes("did not return image data");
+  return (
+    message.includes("did not return image data") ||
+    message.includes("without real transparency")
+  );
 }
 
 function isImageSafetyError(error: unknown): boolean {
@@ -657,10 +686,268 @@ function pngHasAlphaChannel(buffer: Buffer): boolean {
   return buffer.includes(Buffer.from("tRNS", "ascii"));
 }
 
+function pngHasTransparentPixels(buffer: Buffer): boolean {
+  try {
+    const decoded = PNG.sync.read(buffer);
+    for (let index = 3; index < decoded.data.length; index += 4) {
+      if (decoded.data[index] < 255) {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function quantizeColorChannel(value: number, step = 12): number {
+  return Math.round(value / step) * step;
+}
+
+function colorDistanceSquared(
+  data: Buffer,
+  pixelOffset: number,
+  color: readonly [number, number, number]
+): number {
+  const dr = data[pixelOffset] - color[0];
+  const dg = data[pixelOffset + 1] - color[1];
+  const db = data[pixelOffset + 2] - color[2];
+  return dr * dr + dg * dg + db * db;
+}
+
+function collectDominantBorderColors(decoded: {
+  width: number;
+  height: number;
+  data: Buffer;
+}): Array<[number, number, number]> {
+  const { width, height, data } = decoded;
+  if (width < 2 || height < 2) return [];
+
+  const borderPixelIndexes: number[] = [];
+  for (let x = 0; x < width; x += 1) {
+    borderPixelIndexes.push(x);
+    borderPixelIndexes.push((height - 1) * width + x);
+  }
+  for (let y = 1; y < height - 1; y += 1) {
+    borderPixelIndexes.push(y * width);
+    borderPixelIndexes.push(y * width + (width - 1));
+  }
+
+  const buckets = new Map<
+    string,
+    { count: number; rSum: number; gSum: number; bSum: number }
+  >();
+
+  for (const pixelIndex of borderPixelIndexes) {
+    const offset = pixelIndex * 4;
+    if (data[offset + 3] < 240) continue;
+
+    const r = data[offset];
+    const g = data[offset + 1];
+    const b = data[offset + 2];
+    const key = `${quantizeColorChannel(r)},${quantizeColorChannel(
+      g
+    )},${quantizeColorChannel(b)}`;
+    const bucket = buckets.get(key);
+    if (!bucket) {
+      buckets.set(key, { count: 1, rSum: r, gSum: g, bSum: b });
+      continue;
+    }
+    bucket.count += 1;
+    bucket.rSum += r;
+    bucket.gSum += g;
+    bucket.bSum += b;
+  }
+
+  const minBucketSize = Math.max(8, Math.floor(borderPixelIndexes.length * 0.04));
+  return [...buckets.values()]
+    .filter((bucket) => bucket.count >= minBucketSize)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4)
+    .map((bucket) => [
+      Math.round(bucket.rSum / bucket.count),
+      Math.round(bucket.gSum / bucket.count),
+      Math.round(bucket.bSum / bucket.count),
+    ]);
+}
+
+function decodeImageForBorderCutout(
+  mimeType: string,
+  buffer: Buffer
+): { width: number; height: number; data: Buffer } | null {
+  if (mimeType.includes("png")) {
+    try {
+      const decoded = PNG.sync.read(buffer);
+      return {
+        width: decoded.width,
+        height: decoded.height,
+        data: Buffer.from(decoded.data),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  if (mimeType.includes("jpeg") || mimeType.includes("jpg")) {
+    try {
+      const decoded = jpeg.decode(buffer, {
+        useTArray: true,
+        formatAsRGBA: true,
+      });
+      return {
+        width: decoded.width,
+        height: decoded.height,
+        data: Buffer.from(decoded.data),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function applyBorderBackgroundCutout(
+  mimeType: string,
+  buffer: Buffer
+): { imageBuffer: Buffer; mimeType: string } | null {
+  const decoded = decodeImageForBorderCutout(mimeType, buffer);
+  if (!decoded) {
+    return null;
+  }
+
+  const { width, height, data } = decoded;
+  if (width < 32 || height < 32) return null;
+
+  const backgroundColors = collectDominantBorderColors(decoded);
+  if (!backgroundColors.length) return null;
+
+  const pixelCount = width * height;
+  const visited = new Uint8Array(pixelCount);
+  const queue = new Int32Array(pixelCount);
+  const toleranceSq = 42 * 42;
+  const minAlpha = 240;
+  let head = 0;
+  let tail = 0;
+
+  const isBackgroundPixel = (pixelIndex: number): boolean => {
+    const offset = pixelIndex * 4;
+    if (data[offset + 3] < minAlpha) return false;
+    for (const color of backgroundColors) {
+      if (colorDistanceSquared(data, offset, color) <= toleranceSq) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const push = (pixelIndex: number): void => {
+    if (visited[pixelIndex]) return;
+    visited[pixelIndex] = 1;
+    queue[tail] = pixelIndex;
+    tail += 1;
+  };
+
+  for (let x = 0; x < width; x += 1) {
+    const topIndex = x;
+    const bottomIndex = (height - 1) * width + x;
+    if (isBackgroundPixel(topIndex)) push(topIndex);
+    if (isBackgroundPixel(bottomIndex)) push(bottomIndex);
+  }
+  for (let y = 1; y < height - 1; y += 1) {
+    const leftIndex = y * width;
+    const rightIndex = y * width + (width - 1);
+    if (isBackgroundPixel(leftIndex)) push(leftIndex);
+    if (isBackgroundPixel(rightIndex)) push(rightIndex);
+  }
+
+  while (head < tail) {
+    const pixelIndex = queue[head];
+    head += 1;
+
+    const x = pixelIndex % width;
+    const y = Math.floor(pixelIndex / width);
+
+    if (x > 0) {
+      const left = pixelIndex - 1;
+      if (!visited[left] && isBackgroundPixel(left)) push(left);
+    }
+    if (x + 1 < width) {
+      const right = pixelIndex + 1;
+      if (!visited[right] && isBackgroundPixel(right)) push(right);
+    }
+    if (y > 0) {
+      const up = pixelIndex - width;
+      if (!visited[up] && isBackgroundPixel(up)) push(up);
+    }
+    if (y + 1 < height) {
+      const down = pixelIndex + width;
+      if (!visited[down] && isBackgroundPixel(down)) push(down);
+    }
+  }
+
+  const removedPixels = tail;
+  const minRemovedPixels = Math.floor(pixelCount * 0.02);
+  const maxRemovedPixels = Math.floor(pixelCount * 0.995);
+  if (removedPixels < minRemovedPixels || removedPixels > maxRemovedPixels) {
+    return null;
+  }
+
+  for (let pixelIndex = 0; pixelIndex < pixelCount; pixelIndex += 1) {
+    if (!visited[pixelIndex]) continue;
+    data[pixelIndex * 4 + 3] = 0;
+  }
+
+  // Feather subject boundary by softening alpha on pixels touching removed background.
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const pixelIndex = y * width + x;
+      if (visited[pixelIndex]) continue;
+      const alphaOffset = pixelIndex * 4 + 3;
+      if (data[alphaOffset] === 0) continue;
+
+      let neighborBackgroundCount = 0;
+      for (let ny = y - 1; ny <= y + 1; ny += 1) {
+        if (ny < 0 || ny >= height) continue;
+        for (let nx = x - 1; nx <= x + 1; nx += 1) {
+          if (nx < 0 || nx >= width) continue;
+          if (nx === x && ny === y) continue;
+          const neighborIndex = ny * width + nx;
+          if (visited[neighborIndex]) {
+            neighborBackgroundCount += 1;
+          }
+        }
+      }
+      if (neighborBackgroundCount === 0) continue;
+
+      const currentAlpha = data[alphaOffset];
+      const softenedAlpha =
+        neighborBackgroundCount >= 4
+          ? 150
+          : neighborBackgroundCount >= 2
+            ? 190
+            : 220;
+      if (currentAlpha > softenedAlpha) {
+        data[alphaOffset] = softenedAlpha;
+      }
+    }
+  }
+
+  const output = new PNG({ width, height });
+  output.data = data;
+  const outputBuffer = PNG.sync.write(output);
+  if (!pngHasTransparentPixels(outputBuffer)) return null;
+  return {
+    imageBuffer: outputBuffer,
+    mimeType: "image/png",
+  };
+}
+
 function shouldRunTransparencyPass(mimeType: string, buffer: Buffer): boolean {
   if (!TRANSPARENCY_PASS_ENABLED) return false;
   if (!mimeType.includes("png")) return true;
-  return !pngHasAlphaChannel(buffer);
+  if (!pngHasAlphaChannel(buffer)) return true;
+  return !pngHasTransparentPixels(buffer);
 }
 
 async function runTransparencyPass({
@@ -677,7 +964,8 @@ async function runTransparencyPass({
   const passPrompt = `Remove the entire background from this image and keep only the model with the garment.
 Return a high-quality transparent PNG with clean and precise alpha edges.
 Do not alter body pose, facial expression, garment details, color, or proportions.
-No text, no shadows, no props, no extra objects.`;
+No text, no shadows, no props, no extra objects.
+Keep original sharpness and texture detail; do not apply beauty smoothing or style changes.`;
 
   const sourceImage: SourceImagePayload = {
     buffer: imageBuffer,
@@ -699,7 +987,10 @@ function lacksRequiredTransparency(mimeType: string, buffer: Buffer): boolean {
   if (!mimeType.includes("png")) {
     return true;
   }
-  return !pngHasAlphaChannel(buffer);
+  if (!pngHasAlphaChannel(buffer)) {
+    return true;
+  }
+  return !pngHasTransparentPixels(buffer);
 }
 
 async function runStrictTransparencyPass({
@@ -717,7 +1008,8 @@ async function runStrictTransparencyPass({
 If there is a checkerboard, textured, studio, or any solid background, remove it completely.
 The output must be a transparent PNG with real alpha channel (RGBA), not a fake checkerboard.
 Keep body pose, face, garment shape, seams, and color exactly the same.
-No text, no watermark, no props, no extra objects.`;
+No text, no watermark, no props, no extra objects.
+Preserve edge detail around hair, straps, and lace without blurring.`;
 
   const sourceImage: SourceImagePayload = {
     buffer: imageBuffer,
@@ -757,24 +1049,69 @@ async function enforceTransparency({
       mimeType: initialImage.mimeType,
     });
   } catch {
-    return initialImage;
+    candidate = initialImage;
   }
 
   if (!lacksRequiredTransparency(candidate.mimeType, candidate.imageBuffer)) {
     return candidate;
   }
 
+  let strict = candidate;
   try {
-      const strict = await runStrictTransparencyPass({
-        apiKey,
-        modelName,
-        imageBuffer: candidate.imageBuffer,
-        mimeType: candidate.mimeType,
-      });
-    return strict;
+    strict = await runStrictTransparencyPass({
+      apiKey,
+      modelName,
+      imageBuffer: candidate.imageBuffer,
+      mimeType: candidate.mimeType,
+    });
   } catch {
-    return candidate;
+    strict = candidate;
   }
+
+  if (!lacksRequiredTransparency(strict.mimeType, strict.imageBuffer)) {
+    return strict;
+  }
+
+  if (isSpecializedBackgroundRemovalConfigured()) {
+    try {
+      const specialized = await removeBackgroundSpecializedWithDiagnostics({
+        imageBuffer: strict.imageBuffer,
+        mimeType: strict.mimeType,
+      });
+      if (
+        specialized.result &&
+        !lacksRequiredTransparency(
+          specialized.result.mimeType,
+          specialized.result.imageBuffer
+        )
+      ) {
+        return {
+          imageBuffer: specialized.result.imageBuffer,
+          mimeType: specialized.result.mimeType,
+          textNotes: [
+            ...strict.textNotes,
+            `specialized_background_removal:${specialized.result.provider}`,
+          ],
+        };
+      }
+    } catch {
+      // Keep local fallback path when specialized providers fail.
+    }
+  }
+
+  const locallyCut =
+    applyBorderBackgroundCutout(strict.mimeType, strict.imageBuffer) ||
+    applyBorderBackgroundCutout(candidate.mimeType, candidate.imageBuffer) ||
+    applyBorderBackgroundCutout(initialImage.mimeType, initialImage.imageBuffer);
+  if (locallyCut) {
+    return {
+      imageBuffer: locallyCut.imageBuffer,
+      mimeType: locallyCut.mimeType,
+      textNotes: [...strict.textNotes, "local_background_cutout"],
+    };
+  }
+
+  return strict;
 }
 
 async function generateWithFallback({
