@@ -29,6 +29,23 @@ function sanitizeGalleryImages(
   return deduped;
 }
 
+function sanitizeImageSourceMap(
+  value: unknown,
+  images: string[]
+): Record<string, string> {
+  if (!value || typeof value !== "object") return {};
+  const allowed = new Set(images);
+  const next: Record<string, string> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!allowed.has(key)) continue;
+    if (typeof raw !== "string") continue;
+    const sourceUrl = raw.trim();
+    if (!sourceUrl || sourceUrl === key) continue;
+    next[key] = sourceUrl;
+  }
+  return next;
+}
+
 // GET: List all products (admin view - includes inactive)
 export async function GET(request: Request) {
   const admin = await getAdminSession();
@@ -44,6 +61,22 @@ export async function GET(request: Request) {
 
     let query: FirebaseFirestore.Query = adminDb
       .collection("products")
+      .select(
+        "nameEn",
+        "nameEs",
+        "slug",
+        "sku",
+        "price",
+        "originalPrice",
+        "category",
+        "stockQuantity",
+        "isActive",
+        "images",
+        "sizeChartImageUrl",
+        "createdAt",
+        "updatedAt",
+        "sortOrder"
+      )
       .orderBy("sortOrder", "asc");
 
     if (category) {
@@ -52,7 +85,7 @@ export async function GET(request: Request) {
 
     const [snapshot, fitGuidesSnap] = await Promise.all([
       query.get(),
-      adminDb.collection("sizeCharts").get(),
+      adminDb.collection("sizeCharts").select("status", "warnings").get(),
     ]);
     const fitGuideMap = new Map(
       fitGuidesSnap.docs.map((doc) => [doc.id, doc.data() as SizeChartDoc])
@@ -106,6 +139,26 @@ export async function POST(request: Request) {
     const body = await request.json();
     const sizeChartImageUrl = toOptionalImageUrl(body.sizeChartImageUrl);
     const images = sanitizeGalleryImages(body.images, sizeChartImageUrl);
+    const requestedProductPageImageSourceUrl = toOptionalImageUrl(
+      body.productPageImageSourceUrl
+    );
+    const requestedProductPageImageUrl = toOptionalImageUrl(body.productPageImageUrl);
+    const productPageImageSourceUrl =
+      requestedProductPageImageSourceUrl && images.includes(requestedProductPageImageSourceUrl)
+        ? requestedProductPageImageSourceUrl
+        : images[0] || null;
+    const productPageImageUrl =
+      requestedProductPageImageUrl && productPageImageSourceUrl
+        ? requestedProductPageImageUrl
+        : null;
+    const imageCropSourceMap = sanitizeImageSourceMap(
+      body.imageCropSourceMap,
+      images
+    );
+    const imageEnhanceSourceMap = sanitizeImageSourceMap(
+      body.imageEnhanceSourceMap,
+      images
+    );
 
     // Validate required fields
     if (!body.nameEn || !body.nameEs || !body.slug || body.price == null) {
@@ -151,7 +204,11 @@ export async function POST(request: Request) {
       materials: body.materials || "",
       care: body.care || "",
       images,
+      imageCropSourceMap,
+      imageEnhanceSourceMap,
       sizeChartImageUrl,
+      productPageImageUrl,
+      productPageImageSourceUrl,
       rating: 0,
       reviewCount: 0,
       inStock: body.inStock !== false,

@@ -30,24 +30,35 @@ export default function useAdminTheme() {
   const [themeId, setThemeId] = useState<AdminThemeId>(DEFAULT_THEME);
   const [fontId, setFontId] = useState<AdminFontId>(DEFAULT_FONT);
 
-  // Initialize from localStorage
+  // Initialize from localStorage (async) to avoid sync setState in effect body.
   useEffect(() => {
-    const storedDark = localStorage.getItem(DARK_KEY);
-    if (storedDark === "true") {
-      setIsDark(true);
-      document.documentElement.classList.add("dark");
-    }
+    const rafId = window.requestAnimationFrame(() => {
+      const storedDark = localStorage.getItem(DARK_KEY);
+      if (storedDark === "true") {
+        setIsDark(true);
+        document.documentElement.classList.add("dark");
+      }
 
-    const storedTheme = localStorage.getItem(THEME_KEY) as AdminThemeId | null;
-    if (storedTheme) {
-      setThemeId(storedTheme);
-    }
+      const storedTheme = localStorage.getItem(THEME_KEY) as AdminThemeId | null;
+      if (storedTheme) {
+        setThemeId(storedTheme);
+      }
 
-    const storedFont = localStorage.getItem(FONT_KEY) as AdminFontId | null;
-    if (storedFont) {
-      setFontId(storedFont);
-    }
+      const storedFont = localStorage.getItem(FONT_KEY) as AdminFontId | null;
+      if (storedFont) {
+        setFontId(storedFont);
+      }
+    });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
   }, []);
+
+  // Keep heading font CSS var in sync with current font choice.
+  useEffect(() => {
+    applyFont(fontId);
+  }, [fontId]);
 
   // Listen for cross-tab (storage) and same-tab (custom event) changes
   useEffect(() => {

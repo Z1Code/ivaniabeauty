@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Cropper, { type Area } from "react-easy-crop";
 import {
   Save,
   Loader2,
@@ -23,6 +24,11 @@ import { metricToCmText, normalizeSizeList } from "@/lib/fit-guide/utils";
 
 const ALL_COLORS = ["cocoa", "negro", "beige", "brown", "rosado", "pink"];
 const ALL_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "2XL", "XXXL", "3XL", "4XL", "5XL"];
+const HD_ENHANCE_SCALE_FACTOR = 4;
+const HD_ENHANCE_MAX_LONG_EDGE = 4096;
+const CROP_TARGET_LONG_EDGE = 4096;
+const PRODUCT_PAGE_CROP_TARGET_LONG_EDGE = 2400;
+const AI_GENERATION_COMPLETION_OVERLAY_MS = 1800;
 const CATEGORIES = [
   { value: "fajas", label: "Fajas" },
   { value: "cinturillas", label: "Cinturillas" },
@@ -72,6 +78,10 @@ interface ProductFormData {
   isActive: boolean;
   sortOrder: string;
   sizeChartImageUrl: string | null;
+  productPageImageUrl: string | null;
+  productPageImageSourceUrl: string | null;
+  imageCropSourceMap: Record<string, string>;
+  imageEnhanceSourceMap: Record<string, string>;
 }
 
 interface ProductFormProps {
@@ -91,13 +101,24 @@ interface FitGuideApiResponse {
 
 interface AiImageGenerationResponse {
   success?: boolean;
+  partialSuccess?: boolean;
   generatedImageUrl?: string;
+  generatedImageUrls?: string[];
+  generatedAngles?: string[];
+  failedAngles?: Array<{
+    angle?: string;
+    message?: string;
+    status?: number | null;
+    code?: string | null;
+  }>;
   modelUsed?: string;
   images?: string[];
   sourceImageUrls?: string[];
   colorReferenceImageUrl?: string | null;
   targetColor?: string | null;
   customPrompt?: string | null;
+  targetAngle?: string | null;
+  requestedAngles?: string[];
   specializedBackgroundRemovalConfigured?: boolean;
   backgroundRemovalConfiguration?: {
     configured?: boolean;
@@ -105,6 +126,7 @@ interface AiImageGenerationResponse {
     configuredProviders?: string[];
   };
   availableProfiles?: AiImageProfile[];
+  availableAngles?: AiImageAngleOption[];
   profile?: {
     id?: string;
     label?: string;
@@ -121,6 +143,7 @@ interface AiImageProfile {
 
 interface AiImageSetupResponse {
   availableProfiles?: AiImageProfile[];
+  availableAngles?: AiImageAngleOption[];
   specializedBackgroundRemovalConfigured?: boolean;
   backgroundRemovalConfiguration?: {
     configured?: boolean;
@@ -129,10 +152,87 @@ interface AiImageSetupResponse {
   };
 }
 
+interface AiImageAngleOption {
+  id: string;
+  label: string;
+  description: string;
+}
+
+interface CropApiResponse {
+  success?: boolean;
+  croppedImageUrl?: string;
+  error?: string;
+}
+
+interface EnhanceApiResponse {
+  success?: boolean;
+  enhancedImageUrl?: string;
+  fallbackRegenerated?: boolean;
+  transparencyValidated?: boolean;
+  transparencyRepairApplied?: boolean;
+  transparencyRepairProvider?: string | null;
+  transparencyRepairStage?: string | null;
+  fallbackReason?: string | null;
+  fallbackModelUsed?: string | null;
+  fallbackTargetAngle?: string | null;
+  error?: string;
+}
+
+interface PersistImageStatePayload {
+  images: string[];
+  imageCropSourceMap: Record<string, string>;
+  imageEnhanceSourceMap: Record<string, string>;
+}
+
+type CropEditorMode = "gallery" | "product_page";
+
 type EditableFitGuideRow = {
   size: string;
   [metricKey: string]: string | null;
 };
+
+const DEFAULT_AI_ANGLE_OPTIONS: AiImageAngleOption[] = [
+  {
+    id: "front",
+    label: "Frontal",
+    description: "Vista frontal recta de catalogo",
+  },
+  {
+    id: "front_three_quarter_left",
+    label: "3/4 Izquierdo",
+    description: "Rotacion suave hacia la izquierda",
+  },
+  {
+    id: "front_three_quarter_right",
+    label: "3/4 Derecho",
+    description: "Rotacion suave hacia la derecha",
+  },
+  {
+    id: "left_profile",
+    label: "Perfil Izquierdo",
+    description: "Vista lateral izquierda",
+  },
+  {
+    id: "right_profile",
+    label: "Perfil Derecho",
+    description: "Vista lateral derecha",
+  },
+  {
+    id: "back",
+    label: "Espalda",
+    description: "Vista trasera completa",
+  },
+];
+
+const CROP_ASPECT_PRESETS: Array<{
+  id: string;
+  label: string;
+  aspect: number;
+}> = [
+  { id: "3:4", label: "3:4", aspect: 3 / 4 },
+  { id: "4:5", label: "4:5", aspect: 4 / 5 },
+  { id: "1:1", label: "1:1", aspect: 1 },
+];
 
 function slugify(text: string): string {
   return text
@@ -213,6 +313,82 @@ function cmTextToInchesText(value: string | null): string | null {
   return minIn === maxIn ? String(minIn) : `${minIn}-${maxIn}`;
 }
 
+function sanitizeImageSourceMap(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object") return {};
+  const entries = Object.entries(value as Record<string, unknown>);
+  const next: Record<string, string> = {};
+  for (const [key, raw] of entries) {
+    if (typeof key !== "string" || !key.trim()) continue;
+    if (typeof raw !== "string") continue;
+    const imageUrl = key.trim();
+    const sourceUrl = raw.trim();
+    if (!imageUrl || !sourceUrl) continue;
+    next[imageUrl] = sourceUrl;
+  }
+  return next;
+}
+
+function sanitizeOptionalImageUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function looksLikeAiGeneratedStorageUrl(url: string): boolean {
+  const normalized = url.toLowerCase();
+  return (
+    normalized.includes("/products/generated/") ||
+    normalized.includes("/products/enhanced/")
+  );
+}
+
+function inferAiAngleFromImageUrl(url: string): string | null {
+  const normalized = url.toLowerCase();
+  const angleCandidates = [
+    "front_three_quarter_left",
+    "front_three_quarter_right",
+    "left_profile",
+    "right_profile",
+    "back",
+    "front",
+  ];
+  for (const angle of angleCandidates) {
+    if (
+      normalized.includes(`-${angle}-`) ||
+      normalized.includes(`_${angle}_`) ||
+      normalized.includes(`/${angle}-`) ||
+      normalized.includes(`/${angle}_`)
+    ) {
+      return angle;
+    }
+  }
+  return null;
+}
+
+function resolveMappedSource(
+  imageUrl: string,
+  maps: Array<Record<string, string>>
+): string {
+  let current = imageUrl;
+  const seen = new Set<string>();
+  for (let i = 0; i < 24; i += 1) {
+    if (seen.has(current)) break;
+    seen.add(current);
+
+    let next: string | null = null;
+    for (const map of maps) {
+      const mapped = map[current];
+      if (typeof mapped === "string" && mapped.trim() && mapped !== current) {
+        next = mapped;
+        break;
+      }
+    }
+    if (!next) break;
+    current = next;
+  }
+  return current;
+}
+
 export default function ProductForm({
   initialData,
   isEditing,
@@ -220,6 +396,7 @@ export default function ProductForm({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState("");
 
   // Fit-guide states
   const [fitGuideRows, setFitGuideRows] = useState<EditableFitGuideRow[]>([]);
@@ -249,16 +426,44 @@ export default function ProductForm({
   const [aiGenerationError, setAiGenerationError] = useState<string | null>(
     null
   );
+  const [aiGenerationCompletedOverlayOpen, setAiGenerationCompletedOverlayOpen] =
+    useState(false);
   const [aiTargetColor, setAiTargetColor] = useState("");
   const [aiCustomPrompt, setAiCustomPrompt] = useState("");
   const [aiPreferredProfileId, setAiPreferredProfileId] = useState("");
   const [aiAvailableProfiles, setAiAvailableProfiles] = useState<AiImageProfile[]>(
     []
   );
+  const [aiAvailableAngles, setAiAvailableAngles] = useState<AiImageAngleOption[]>(
+    DEFAULT_AI_ANGLE_OPTIONS
+  );
+  const [aiSelectedAngles, setAiSelectedAngles] = useState<string[]>(["front"]);
+  const [aiGeneratedImageUrls, setAiGeneratedImageUrls] = useState<string[]>([]);
+  const [enhancingImageUrls, setEnhancingImageUrls] = useState<string[]>([]);
+  const [aiEnhanceFallbackBadgeMap, setAiEnhanceFallbackBadgeMap] = useState<
+    Record<string, boolean>
+  >({});
+  const [enhancingAllAiImages, setEnhancingAllAiImages] = useState(false);
+  const [enhanceAllProgress, setEnhanceAllProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
   const [aiBgRemovalConfigured, setAiBgRemovalConfigured] = useState(false);
   const [aiBgRemovalConfiguredProviders, setAiBgRemovalConfiguredProviders] =
     useState<string[]>([]);
+  const [cropMode, setCropMode] = useState<CropEditorMode>("gallery");
+  const [cropIndex, setCropIndex] = useState<number | null>(null);
+  const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [cropZoom, setCropZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [cropAspectId, setCropAspectId] = useState("3:4");
+  const [cropping, setCropping] = useState(false);
+  const [cropError, setCropError] = useState<string | null>(null);
   const aiColorReferenceInputRef = useRef<HTMLInputElement | null>(null);
+  const aiGenerationCompletionTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   const [form, setForm] = useState<ProductFormData>({
     nameEn: initialData?.nameEn || "",
@@ -290,6 +495,10 @@ export default function ProductForm({
     isActive: initialData?.isActive !== false,
     sortOrder: initialData?.sortOrder?.toString() || "0",
     sizeChartImageUrl: initialData?.sizeChartImageUrl || null,
+    productPageImageUrl: initialData?.productPageImageUrl || null,
+    productPageImageSourceUrl: initialData?.productPageImageSourceUrl || null,
+    imageCropSourceMap: sanitizeImageSourceMap(initialData?.imageCropSourceMap),
+    imageEnhanceSourceMap: sanitizeImageSourceMap(initialData?.imageEnhanceSourceMap),
   });
 
   const sizesLockedByFitGuide = fitGuideStatus === "confirmed";
@@ -314,6 +523,62 @@ export default function ProductForm({
         (size) => !normalizedProductSizes.includes(size)
       ),
     [normalizedGuideSizes, normalizedProductSizes]
+  );
+  const activeCropAspect = useMemo(
+    () =>
+      CROP_ASPECT_PRESETS.find((item) => item.id === cropAspectId) ||
+      CROP_ASPECT_PRESETS[0],
+    [cropAspectId]
+  );
+  const availableCropAspects = useMemo(
+    () =>
+      cropMode === "product_page"
+        ? CROP_ASPECT_PRESETS.filter((item) => item.id === "1:1")
+        : CROP_ASPECT_PRESETS,
+    [cropMode]
+  );
+  const aiEnhanceCandidateUrls = useMemo(() => {
+    if (!form.images.length) return [];
+    const cropMap = sanitizeImageSourceMap(form.imageCropSourceMap);
+    const enhanceMap = sanitizeImageSourceMap(form.imageEnhanceSourceMap);
+    const mapChain = [cropMap, enhanceMap];
+    const generatedSet = new Set(aiGeneratedImageUrls);
+    const candidates = new Set<string>();
+
+    for (const imageUrl of form.images) {
+      if (typeof imageUrl !== "string" || !imageUrl.trim()) continue;
+      const sourceRoot = resolveMappedSource(imageUrl, mapChain);
+      if (
+        looksLikeAiGeneratedStorageUrl(imageUrl) ||
+        looksLikeAiGeneratedStorageUrl(sourceRoot) ||
+        generatedSet.has(imageUrl)
+      ) {
+        candidates.add(imageUrl);
+      }
+    }
+
+    return Array.from(candidates);
+  }, [
+    form.images,
+    form.imageCropSourceMap,
+    form.imageEnhanceSourceMap,
+    aiGeneratedImageUrls,
+  ]);
+  const aiPreviewImageUrls = useMemo(
+    () =>
+      aiGeneratedImageUrls.length > 0
+        ? aiGeneratedImageUrls
+        : aiEnhanceCandidateUrls,
+    [aiGeneratedImageUrls, aiEnhanceCandidateUrls]
+  );
+  const productPagePreviewImage = useMemo(() => {
+    if (form.productPageImageUrl && form.productPageImageUrl.trim()) {
+      return form.productPageImageUrl.trim();
+    }
+    return form.images[0] || null;
+  }, [form.productPageImageUrl, form.images]);
+  const hasCustomProductPageCrop = Boolean(
+    form.productPageImageUrl && form.productPageImageUrl.trim()
   );
 
   function updateField<K extends keyof ProductFormData>(
@@ -560,6 +825,69 @@ export default function ProductForm({
   }, [form.images]);
 
   useEffect(() => {
+    setForm((prev) => {
+      const currentCropMap = sanitizeImageSourceMap(prev.imageCropSourceMap);
+      const currentEnhanceMap = sanitizeImageSourceMap(prev.imageEnhanceSourceMap);
+      const allowed = new Set(prev.images);
+      const filteredCropEntries = Object.entries(currentCropMap).filter(([imageUrl]) =>
+        allowed.has(imageUrl)
+      );
+      const filteredEnhanceEntries = Object.entries(currentEnhanceMap).filter(([imageUrl]) =>
+        allowed.has(imageUrl)
+      );
+      const cropSame = filteredCropEntries.length === Object.keys(currentCropMap).length;
+      const enhanceSame =
+        filteredEnhanceEntries.length === Object.keys(currentEnhanceMap).length;
+      if (cropSame && enhanceSame) {
+        return prev;
+      }
+      return {
+        ...prev,
+        imageCropSourceMap: Object.fromEntries(filteredCropEntries),
+        imageEnhanceSourceMap: Object.fromEntries(filteredEnhanceEntries),
+      };
+    });
+  }, [form.images]);
+
+  useEffect(() => {
+    setAiEnhanceFallbackBadgeMap((prev) => {
+      const allowed = new Set(form.images);
+      const filtered = Object.fromEntries(
+        Object.entries(prev).filter(([imageUrl]) => allowed.has(imageUrl))
+      );
+      if (Object.keys(filtered).length === Object.keys(prev).length) {
+        return prev;
+      }
+      return filtered;
+    });
+  }, [form.images]);
+
+  useEffect(() => {
+    setForm((prev) => {
+      if (!prev.images.length) {
+        if (!prev.productPageImageUrl && !prev.productPageImageSourceUrl) {
+          return prev;
+        }
+        return {
+          ...prev,
+          productPageImageUrl: null,
+          productPageImageSourceUrl: null,
+        };
+      }
+
+      const currentSource = sanitizeOptionalImageUrl(prev.productPageImageSourceUrl);
+      if (!currentSource) return prev;
+      if (prev.images.includes(currentSource)) return prev;
+
+      return {
+        ...prev,
+        productPageImageUrl: null,
+        productPageImageSourceUrl: null,
+      };
+    });
+  }, [form.images]);
+
+  useEffect(() => {
     if (!isEditing || !initialData?.id) return;
 
     const controller = new AbortController();
@@ -573,6 +901,15 @@ export default function ProductForm({
         if (!res.ok) return;
         if (Array.isArray(data.availableProfiles)) {
           setAiAvailableProfiles(data.availableProfiles);
+        }
+        if (Array.isArray(data.availableAngles) && data.availableAngles.length) {
+          const loadedAngles = data.availableAngles;
+          setAiAvailableAngles(loadedAngles);
+          setAiSelectedAngles((prev) => {
+            const allowed = new Set(loadedAngles.map((angle) => angle.id));
+            const filtered = prev.filter((angle) => allowed.has(angle));
+            return filtered.length ? filtered : [loadedAngles[0].id];
+          });
         }
         const bgConfig = data.backgroundRemovalConfiguration;
         if (typeof data.specializedBackgroundRemovalConfigured === "boolean") {
@@ -592,6 +929,15 @@ export default function ProductForm({
     return () => controller.abort();
   }, [initialData?.id, isEditing]);
 
+  useEffect(() => {
+    return () => {
+      if (aiGenerationCompletionTimerRef.current) {
+        clearTimeout(aiGenerationCompletionTimerRef.current);
+        aiGenerationCompletionTimerRef.current = null;
+      }
+    };
+  }, []);
+
   function toggleAiSourceImage(url: string) {
     setAiSourceImageUrls((prev) =>
       prev.includes(url) ? prev.filter((item) => item !== url) : [...prev, url]
@@ -606,12 +952,508 @@ export default function ProductForm({
     setAiSourceImageUrls([]);
   }
 
+  function openProductPageCropEditor() {
+    const sourceImageUrl =
+      sanitizeOptionalImageUrl(form.productPageImageSourceUrl) ||
+      form.images[0] ||
+      null;
+    if (!sourceImageUrl) {
+      setError("No hay imagen base para recortar la vista de producto.");
+      return;
+    }
+
+    setCropMode("product_page");
+    setCropIndex(null);
+    setCropImageUrl(sourceImageUrl);
+    setCrop({ x: 0, y: 0 });
+    setCropZoom(1);
+    setCroppedAreaPixels(null);
+    setCropAspectId("1:1");
+    setCropError(null);
+  }
+
+  async function resetProductPageCropToFullImage() {
+    const nextSource = form.images[0] || null;
+    setForm((prev) => ({
+      ...prev,
+      productPageImageUrl: null,
+      productPageImageSourceUrl: nextSource,
+    }));
+
+    if (isEditing && initialData?.id) {
+      const response = await fetch(`/api/admin/products/${initialData.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productPageImageUrl: null,
+          productPageImageSourceUrl: nextSource,
+        }),
+      });
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(
+          data.error ||
+            "Se restablecio localmente, pero no se pudo guardar la vista de producto."
+        );
+      }
+    }
+
+    setSaveSuccess("Vista de producto restablecida a imagen completa.");
+  }
+
+  function openCropEditor(imageUrl: string, imagePool: string[] = form.images) {
+    const index = imagePool.findIndex((item) => item === imageUrl);
+    if (index < 0) {
+      setCropError("No se encontro la imagen para recortar.");
+      return;
+    }
+    const sourceMap = sanitizeImageSourceMap(form.imageCropSourceMap);
+    const cropSourceUrl = sourceMap[imageUrl] || imageUrl;
+    setCropMode("gallery");
+    setCropIndex(index);
+    setCropImageUrl(cropSourceUrl);
+    setCrop({ x: 0, y: 0 });
+    setCropZoom(1);
+    setCroppedAreaPixels(null);
+    setCropAspectId("3:4");
+    setCropError(null);
+  }
+
+  function closeCropEditor() {
+    if (cropping) return;
+    setCropMode("gallery");
+    setCropIndex(null);
+    setCropImageUrl(null);
+    setCrop({ x: 0, y: 0 });
+    setCropZoom(1);
+    setCroppedAreaPixels(null);
+    setCropAspectId("3:4");
+    setCropError(null);
+  }
+
+  async function applyCropToCurrentImage() {
+    if (!cropImageUrl || !croppedAreaPixels) {
+      setCropError("No se pudo preparar el recorte.");
+      return;
+    }
+
+    setCropping(true);
+    setCropError(null);
+    try {
+      const requestedLongEdge =
+        cropMode === "product_page"
+          ? PRODUCT_PAGE_CROP_TARGET_LONG_EDGE
+          : CROP_TARGET_LONG_EDGE;
+      const response = await fetch("/api/admin/images/crop", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl: cropImageUrl,
+          crop: {
+            x: croppedAreaPixels.x,
+            y: croppedAreaPixels.y,
+            width: croppedAreaPixels.width,
+            height: croppedAreaPixels.height,
+          },
+          aspect: activeCropAspect.id,
+          targetLongEdge: requestedLongEdge,
+        }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as CropApiResponse;
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo recortar la imagen.");
+      }
+      if (!data.croppedImageUrl) {
+        throw new Error("El recorte no devolvio una URL valida.");
+      }
+      const croppedUrl = data.croppedImageUrl;
+
+      if (cropMode === "product_page") {
+        const sourceImageUrl = cropImageUrl;
+        setForm((prev) => ({
+          ...prev,
+          productPageImageUrl: croppedUrl,
+          productPageImageSourceUrl: sourceImageUrl,
+        }));
+
+        if (isEditing && initialData?.id) {
+          const persistResponse = await fetch(`/api/admin/products/${initialData.id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              productPageImageUrl: croppedUrl,
+              productPageImageSourceUrl: sourceImageUrl,
+            }),
+          });
+          if (!persistResponse.ok) {
+            const persistData = (await persistResponse
+              .json()
+              .catch(() => ({}))) as { error?: string };
+            throw new Error(
+              persistData.error ||
+                "El recorte se aplico localmente, pero no se pudo guardar la vista de producto."
+            );
+          }
+        }
+
+        setSaveSuccess("Recorte de vista de producto guardado.");
+        closeCropEditor();
+        return;
+      }
+
+      if (cropIndex == null) {
+        throw new Error("No se encontro la imagen original para reemplazar.");
+      }
+      const previousUrl = form.images[cropIndex];
+      if (!previousUrl) {
+        throw new Error("No se encontro la imagen original para reemplazar.");
+      }
+      const currentMap = sanitizeImageSourceMap(form.imageCropSourceMap);
+      const rootSourceUrl = currentMap[previousUrl] || cropImageUrl || previousUrl;
+
+      let persistPayload: PersistImageStatePayload | null = null;
+      setForm((prev) => {
+        const nextImages = [...prev.images];
+        const pinnedIndex =
+          cropIndex < nextImages.length && nextImages[cropIndex] === previousUrl
+            ? cropIndex
+            : nextImages.indexOf(previousUrl);
+        if (pinnedIndex < 0) {
+          return prev;
+        }
+        nextImages[pinnedIndex] = croppedUrl;
+
+        const nextCropMap = sanitizeImageSourceMap(prev.imageCropSourceMap);
+        delete nextCropMap[previousUrl];
+        if (rootSourceUrl && rootSourceUrl !== croppedUrl) {
+          nextCropMap[croppedUrl] = rootSourceUrl;
+        }
+
+        const nextEnhanceMap = sanitizeImageSourceMap(prev.imageEnhanceSourceMap);
+        delete nextEnhanceMap[previousUrl];
+
+        const allowedImageSet = new Set(nextImages);
+        persistPayload = {
+          images: nextImages,
+          imageCropSourceMap: Object.fromEntries(
+            Object.entries(nextCropMap).filter(([imageUrl, sourceUrl]) => {
+              if (!allowedImageSet.has(imageUrl)) return false;
+              return Boolean(sourceUrl && sourceUrl.trim() && sourceUrl !== imageUrl);
+            })
+          ),
+          imageEnhanceSourceMap: Object.fromEntries(
+            Object.entries(nextEnhanceMap).filter(([imageUrl, sourceUrl]) => {
+              if (!allowedImageSet.has(imageUrl)) return false;
+              return Boolean(sourceUrl && sourceUrl.trim() && sourceUrl !== imageUrl);
+            })
+          ),
+        };
+
+        return {
+          ...prev,
+          images: nextImages,
+          imageCropSourceMap: nextCropMap,
+          imageEnhanceSourceMap: nextEnhanceMap,
+        };
+      });
+
+      if (persistPayload && isEditing && initialData?.id) {
+        const persistResponse = await fetch(`/api/admin/products/${initialData.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(persistPayload),
+        });
+        if (!persistResponse.ok) {
+          const persistData = (await persistResponse
+            .json()
+            .catch(() => ({}))) as { error?: string };
+          throw new Error(
+            persistData.error ||
+              "El recorte se aplico localmente, pero no se pudo guardar en el producto."
+          );
+        }
+      }
+
+      setAiGeneratedImageUrls((prev) =>
+        prev.map((url) => (url === previousUrl ? croppedUrl : url))
+      );
+      setAiEnhanceFallbackBadgeMap((prev) => {
+        if (!prev[previousUrl]) return prev;
+        const next = { ...prev };
+        delete next[previousUrl];
+        next[croppedUrl] = true;
+        return next;
+      });
+      setAiSourceImageUrls((prev) =>
+        prev.map((url) => (url === previousUrl ? croppedUrl : url))
+      );
+      if (aiColorReferenceImageUrl === previousUrl) {
+        setAiColorReferenceImageUrl(croppedUrl);
+      }
+
+      if (isEditing && initialData?.id) {
+        setSaveSuccess("Recorte aplicado y guardado.");
+      }
+      closeCropEditor();
+    } catch (err) {
+      setCropError(
+        err instanceof Error ? err.message : "Error al recortar imagen."
+      );
+    } finally {
+      setCropping(false);
+    }
+  }
+
+  async function enhanceImageQuality(
+    imageUrl: string,
+    options: { silent?: boolean } = {}
+  ): Promise<boolean> {
+    const silent = options.silent === true;
+    if (enhancingImageUrls.includes(imageUrl)) {
+      return false;
+    }
+
+    const imageIndex = form.images.findIndex((item) => item === imageUrl);
+    if (imageIndex < 0) {
+      if (!silent) {
+        setError("No se encontro la imagen para regenerar en HD 4K.");
+      }
+      return false;
+    }
+
+    const enhanceMap = sanitizeImageSourceMap(form.imageEnhanceSourceMap);
+    const baseEnhanceSource = enhanceMap[imageUrl] || imageUrl;
+    const cropMapSnapshot = sanitizeImageSourceMap(form.imageCropSourceMap);
+    const fallbackBaseSource = resolveMappedSource(baseEnhanceSource, [
+      cropMapSnapshot,
+      enhanceMap,
+    ]);
+    const fallbackSourceImageUrls = aiSourceImageUrls.filter(
+      (url): url is string => typeof url === "string" && Boolean(url.trim())
+    );
+    if (!fallbackSourceImageUrls.length && fallbackBaseSource.trim()) {
+      fallbackSourceImageUrls.push(fallbackBaseSource);
+    }
+    const inferredTargetAngle =
+      inferAiAngleFromImageUrl(fallbackBaseSource) ||
+      inferAiAngleFromImageUrl(imageUrl);
+    const shouldUseAiFallbackRegeneration = Boolean(
+      isEditing &&
+        initialData?.id &&
+        (looksLikeAiGeneratedStorageUrl(imageUrl) ||
+          looksLikeAiGeneratedStorageUrl(fallbackBaseSource))
+    );
+
+    setEnhancingImageUrls((prev) => [...prev, imageUrl]);
+    if (!silent) {
+      setAiGenerationError(null);
+      setError("");
+    }
+
+    try {
+      const response = await fetch("/api/admin/images/enhance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl: baseEnhanceSource,
+          scaleFactor: HD_ENHANCE_SCALE_FACTOR,
+          maxLongEdge: HD_ENHANCE_MAX_LONG_EDGE,
+          fallbackRegeneration: shouldUseAiFallbackRegeneration
+            ? {
+                enabled: true,
+                productId: initialData?.id || null,
+                sourceImageUrl: fallbackSourceImageUrls[0] || undefined,
+                sourceImageUrls: fallbackSourceImageUrls,
+                colorReferenceImageUrl: aiColorReferenceImageUrl || undefined,
+                preferredProfileId: aiPreferredProfileId || undefined,
+                customPrompt: aiCustomPrompt.trim() || undefined,
+                targetColor: aiTargetColor.trim() || undefined,
+                targetAngle: inferredTargetAngle || undefined,
+              }
+            : undefined,
+        }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as EnhanceApiResponse;
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo regenerar la imagen en HD 4K.");
+      }
+      if (!data.enhancedImageUrl) {
+        throw new Error("La regeneracion HD 4K no devolvio una URL valida.");
+      }
+
+      const enhancedUrl = data.enhancedImageUrl;
+      const cropMap = sanitizeImageSourceMap(form.imageCropSourceMap);
+      const cropRoot = cropMap[imageUrl] || null;
+
+      setForm((prev) => {
+        const nextImages = [...prev.images];
+        const pinnedIndex = nextImages.findIndex((item) => item === imageUrl);
+        if (pinnedIndex < 0) return prev;
+        nextImages[pinnedIndex] = enhancedUrl;
+
+        const nextCropMap = sanitizeImageSourceMap(prev.imageCropSourceMap);
+        if (nextCropMap[imageUrl]) {
+          delete nextCropMap[imageUrl];
+        }
+        if (cropRoot && cropRoot !== enhancedUrl) {
+          nextCropMap[enhancedUrl] = cropRoot;
+        }
+
+        const nextEnhanceMap = sanitizeImageSourceMap(prev.imageEnhanceSourceMap);
+        delete nextEnhanceMap[imageUrl];
+        if (baseEnhanceSource && baseEnhanceSource !== enhancedUrl) {
+          nextEnhanceMap[enhancedUrl] = baseEnhanceSource;
+        }
+
+        return {
+          ...prev,
+          images: nextImages,
+          imageCropSourceMap: nextCropMap,
+          imageEnhanceSourceMap: nextEnhanceMap,
+        };
+      });
+
+      setAiGeneratedImageUrls((prev) =>
+        prev.map((url) => (url === imageUrl ? enhancedUrl : url))
+      );
+      setAiEnhanceFallbackBadgeMap((prev) => {
+        const next = { ...prev };
+        delete next[imageUrl];
+        if (data.fallbackRegenerated) {
+          next[enhancedUrl] = true;
+        }
+        return next;
+      });
+      setAiSourceImageUrls((prev) =>
+        prev.map((url) => (url === imageUrl ? enhancedUrl : url))
+      );
+      if (aiColorReferenceImageUrl === imageUrl) {
+        setAiColorReferenceImageUrl(enhancedUrl);
+      }
+      if (!silent) {
+        if (data.fallbackRegenerated) {
+          setSaveSuccess(
+            "Imagen regenerada desde cero + HD 4K con transparencia validada."
+          );
+        } else if (data.transparencyRepairApplied) {
+          const provider = data.transparencyRepairProvider
+            ? data.transparencyRepairProvider.toUpperCase()
+            : "PROVIDER";
+          setSaveSuccess(
+            `Imagen regenerada en HD 4K y transparencia corregida con ${provider}.`
+          );
+        } else if (data.transparencyValidated) {
+          setSaveSuccess("Imagen regenerada en HD 4K con transparencia validada.");
+        } else {
+          setSaveSuccess("Imagen regenerada en HD 4K.");
+        }
+      }
+      return true;
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Error al regenerar imagen en HD 4K.";
+      if (!silent) {
+        setAiGenerationError(message);
+        setError(message);
+      }
+      return false;
+    } finally {
+      setEnhancingImageUrls((prev) => prev.filter((url) => url !== imageUrl));
+    }
+  }
+
+  async function enhanceAllAiGeneratedImages() {
+    const candidates = [...aiEnhanceCandidateUrls];
+    if (!candidates.length || enhancingAllAiImages) {
+      return;
+    }
+
+    setEnhancingAllAiImages(true);
+    setEnhanceAllProgress({ current: 0, total: candidates.length });
+    setAiGenerationError(null);
+    setError("");
+    setSaveSuccess("");
+
+    let successCount = 0;
+    try {
+      for (let index = 0; index < candidates.length; index += 1) {
+        const imageUrl = candidates[index];
+        setEnhanceAllProgress({ current: index + 1, total: candidates.length });
+        const ok = await enhanceImageQuality(imageUrl, { silent: true });
+        if (ok) successCount += 1;
+      }
+    } finally {
+      setEnhancingAllAiImages(false);
+      setEnhanceAllProgress(null);
+    }
+
+    const failedCount = candidates.length - successCount;
+    if (failedCount === 0) {
+      setSaveSuccess(
+        `Imagenes IA regeneradas en HD 4K (${successCount}/${candidates.length}).`
+      );
+      return;
+    }
+    if (successCount > 0) {
+      setSaveSuccess(
+        `Regeneracion HD 4K parcial (${successCount}/${candidates.length}).`
+      );
+      setAiGenerationError(
+        `No se pudieron mejorar ${failedCount} imagen(es). Puedes reintentar.`
+      );
+      return;
+    }
+
+    const message = "No se pudo regenerar en HD 4K ninguna imagen IA.";
+    setAiGenerationError(message);
+    setError(message);
+  }
+
+  function toggleAiAngle(angleId: string) {
+    setAiSelectedAngles((prev) => {
+      if (prev.includes(angleId)) {
+        const next = prev.filter((item) => item !== angleId);
+        return next.length ? next : [angleId];
+      }
+      return [...prev, angleId];
+    });
+  }
+
+  function applyAiAnglePreset(preset: "single" | "catalog" | "full") {
+    if (preset === "single") {
+      setAiSelectedAngles(["front"]);
+      return;
+    }
+    if (preset === "catalog") {
+      setAiSelectedAngles(["front", "left_profile", "back"]);
+      return;
+    }
+    setAiSelectedAngles(
+      DEFAULT_AI_ANGLE_OPTIONS.map((option) => option.id)
+    );
+  }
+
   function resetAiAdjustments() {
     setAiCustomPrompt("");
     setAiPreferredProfileId("");
     setAiTargetColor("");
     setAiColorReferenceImageUrl("");
     setAiColorReferenceError(null);
+    setAiSelectedAngles(["front"]);
   }
 
   async function handleAiColorReferenceUpload(
@@ -676,10 +1518,24 @@ export default function ProductForm({
       );
       return;
     }
+    const selectedAngles = aiSelectedAngles.filter((angleId) =>
+      aiAvailableAngles.some((angle) => angle.id === angleId)
+    );
+    if (!selectedAngles.length) {
+      setAiGenerationError("Selecciona al menos un angulo para generar.");
+      setError("Selecciona al menos un angulo para generar.");
+      return;
+    }
 
     setGeneratingAiImage(true);
+    if (aiGenerationCompletionTimerRef.current) {
+      clearTimeout(aiGenerationCompletionTimerRef.current);
+      aiGenerationCompletionTimerRef.current = null;
+    }
+    setAiGenerationCompletedOverlayOpen(false);
     setAiGenerationSummary(null);
     setAiGenerationError(null);
+    setAiGeneratedImageUrls([]);
     setError("");
 
     try {
@@ -693,6 +1549,7 @@ export default function ProductForm({
           preferredProfileId: aiPreferredProfileId || undefined,
           targetColor: aiTargetColor.trim() || undefined,
           customPrompt: aiCustomPrompt || undefined,
+          angles: selectedAngles,
           placeFirst: true,
           maxImages: 8,
         }),
@@ -706,6 +1563,15 @@ export default function ProductForm({
       if (Array.isArray(data.availableProfiles) && data.availableProfiles.length) {
         setAiAvailableProfiles(data.availableProfiles);
       }
+      if (Array.isArray(data.availableAngles) && data.availableAngles.length) {
+        const loadedAngles = data.availableAngles;
+        setAiAvailableAngles(loadedAngles);
+        setAiSelectedAngles((prev) => {
+          const allowed = new Set(loadedAngles.map((angle) => angle.id));
+          const filtered = prev.filter((angle) => allowed.has(angle));
+          return filtered.length ? filtered : [loadedAngles[0].id];
+        });
+      }
       const bgConfig = data.backgroundRemovalConfiguration;
       if (typeof data.specializedBackgroundRemovalConfigured === "boolean") {
         setAiBgRemovalConfigured(data.specializedBackgroundRemovalConfigured);
@@ -718,19 +1584,45 @@ export default function ProductForm({
       if (data.colorReferenceImageUrl !== undefined) {
         setAiColorReferenceImageUrl(data.colorReferenceImageUrl || "");
       }
+      const generatedUrls = Array.isArray(data.generatedImageUrls)
+        ? data.generatedImageUrls.filter((url): url is string => Boolean(url))
+        : data.generatedImageUrl
+          ? [data.generatedImageUrl]
+          : [];
+
+      let nextImages = form.images;
       if (Array.isArray(data.images)) {
+        nextImages = data.images;
         updateField("images", data.images);
       } else if (data.generatedImageUrl) {
-        updateField("images", [
+        nextImages = [
           data.generatedImageUrl,
           ...form.images.filter((img) => img !== data.generatedImageUrl),
-        ]);
+        ];
+        updateField("images", nextImages);
       }
+      setAiGeneratedImageUrls(generatedUrls);
 
       const profileLabel = data.profile?.label || "Modelo aleatoria";
       const modelUsed = data.modelUsed ? ` (${data.modelUsed})` : "";
       const colorNote = data.targetColor ? ` | Color: ${data.targetColor}` : "";
       const sourceNote = ` | Ref: ${aiSourceImageUrls.length}`;
+      const generatedAngles = Array.isArray(data.generatedAngles)
+        ? data.generatedAngles
+        : selectedAngles;
+      const angleNote = generatedAngles.length
+        ? ` | Angulos: ${generatedAngles.join(", ")}`
+        : "";
+      const failedAngles = Array.isArray(data.failedAngles)
+        ? data.failedAngles.filter((item) => item?.angle)
+        : [];
+      const failedNote =
+        failedAngles.length > 0
+          ? ` | Fallaron: ${failedAngles
+              .map((item) => item.angle)
+              .filter(Boolean)
+              .join(", ")}`
+          : "";
       const bgConfigured =
         typeof data.specializedBackgroundRemovalConfigured === "boolean"
           ? data.specializedBackgroundRemovalConfigured
@@ -745,9 +1637,14 @@ export default function ProductForm({
         ? " | Color por imagen"
         : "";
       setAiGenerationSummary(
-        `${profileLabel}${modelUsed}${sourceNote}${bgNote}${colorNote}${colorRefNote}`
+        `${profileLabel}${modelUsed}${sourceNote}${angleNote}${bgNote}${colorNote}${colorRefNote}${failedNote}`
       );
       setAiGenerationError(null);
+      setAiGenerationCompletedOverlayOpen(true);
+      aiGenerationCompletionTimerRef.current = setTimeout(() => {
+        setAiGenerationCompletedOverlayOpen(false);
+        aiGenerationCompletionTimerRef.current = null;
+      }, AI_GENERATION_COMPLETION_OVERLAY_MS);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Error al generar imagen con IA";
@@ -761,6 +1658,7 @@ export default function ProductForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setSaveSuccess("");
     setSaving(true);
 
     try {
@@ -768,10 +1666,42 @@ export default function ProductForm({
       const sanitizedGalleryImages = form.images.filter(
         (image) => image && image !== cleanedSizeChartImageUrl
       );
+      const rawCropSourceMap = sanitizeImageSourceMap(form.imageCropSourceMap);
+      const rawEnhanceSourceMap = sanitizeImageSourceMap(form.imageEnhanceSourceMap);
+      const allowedImageSet = new Set(sanitizedGalleryImages);
+      const imageCropSourceMap = Object.fromEntries(
+        Object.entries(rawCropSourceMap).filter(([imageUrl, sourceUrl]) => {
+          if (!allowedImageSet.has(imageUrl)) return false;
+          return Boolean(sourceUrl && sourceUrl.trim() && sourceUrl !== imageUrl);
+        })
+      );
+      const imageEnhanceSourceMap = Object.fromEntries(
+        Object.entries(rawEnhanceSourceMap).filter(([imageUrl, sourceUrl]) => {
+          if (!allowedImageSet.has(imageUrl)) return false;
+          return Boolean(sourceUrl && sourceUrl.trim() && sourceUrl !== imageUrl);
+        })
+      );
+      const rawProductPageImageUrl = sanitizeOptionalImageUrl(form.productPageImageUrl);
+      const rawProductPageImageSourceUrl = sanitizeOptionalImageUrl(
+        form.productPageImageSourceUrl
+      );
+      const productPageImageSourceUrl =
+        rawProductPageImageSourceUrl &&
+        allowedImageSet.has(rawProductPageImageSourceUrl)
+          ? rawProductPageImageSourceUrl
+          : sanitizedGalleryImages[0] || null;
+      const productPageImageUrl =
+        rawProductPageImageUrl && productPageImageSourceUrl
+          ? rawProductPageImageUrl
+          : null;
 
       const payload = {
         ...form,
         images: sanitizedGalleryImages,
+        imageCropSourceMap,
+        imageEnhanceSourceMap,
+        productPageImageUrl,
+        productPageImageSourceUrl,
         price: parseFloat(form.price),
         originalPrice: form.originalPrice
           ? parseFloat(form.originalPrice)
@@ -797,9 +1727,25 @@ export default function ProductForm({
         body: JSON.stringify(payload),
       });
 
+      const data = (await res.json().catch(() => ({}))) as {
+        id?: string;
+        error?: string;
+      };
+
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || "Error al guardar");
+      }
+
+      if (isEditing && initialData?.id) {
+        setSaveSuccess("Cambios guardados.");
+        router.refresh();
+        return;
+      }
+
+      if (data.id) {
+        router.push(`/admin/products/${data.id}`);
+        router.refresh();
+        return;
       }
 
       router.push("/admin/products");
@@ -832,7 +1778,139 @@ export default function ProductForm({
 
   return (
     <form onSubmit={handleSubmit}>
-      <AiGenerationFullscreenOverlay open={generatingAiImage} />
+      <AiGenerationFullscreenOverlay
+        open={generatingAiImage || aiGenerationCompletedOverlayOpen}
+        title={
+          generatingAiImage
+            ? "Creando imagen IA de estudio"
+            : "Proceso IA finalizado"
+        }
+        subtitle={
+          generatingAiImage
+            ? "Estamos preparando una composicion comercial premium con fondo transparente y acabado de catalogo."
+            : "La generacion de imagenes para la prenda finalizo correctamente."
+        }
+      />
+      {cropIndex != null && cropImageUrl && (
+        <div className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-[2px] p-4 md:p-8">
+          <div className="mx-auto h-full max-w-6xl rounded-2xl border border-white/20 bg-white dark:bg-gray-950 shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  {cropMode === "product_page"
+                    ? "Recorte para pagina de producto"
+                    : "Editor de recorte"}
+                </h4>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {cropMode === "product_page"
+                    ? "Define el encuadre de la imagen principal al abrir el producto."
+                    : "Ajusta encuadre final antes de guardar el producto."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeCropEditor}
+                disabled={cropping}
+                className="px-2.5 py-1.5 rounded-md text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 p-4">
+              <div className="relative min-h-[380px] rounded-xl overflow-hidden bg-[#0E1018]">
+                <Cropper
+                  image={cropImageUrl}
+                  crop={crop}
+                  zoom={cropZoom}
+                  aspect={activeCropAspect.aspect}
+                  onCropChange={setCrop}
+                  onZoomChange={setCropZoom}
+                  onCropComplete={(_, areaPixels) =>
+                    setCroppedAreaPixels(areaPixels as Area)
+                  }
+                  objectFit="contain"
+                  showGrid
+                />
+              </div>
+
+              <div className="space-y-4 overflow-y-auto">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+                    Proporcion
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableCropAspects.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setCropAspectId(preset.id)}
+                        className={cn(
+                          "px-2.5 py-1.5 rounded-md text-[11px] border transition-colors cursor-pointer",
+                          cropAspectId === preset.id
+                            ? "border-rosa bg-rosa/10 text-rosa-dark dark:text-rosa-light"
+                            : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        )}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+                    Zoom
+                  </label>
+                  <input
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.01}
+                    value={cropZoom}
+                    onChange={(e) => setCropZoom(Number(e.target.value))}
+                    className="w-full accent-rosa"
+                  />
+                  <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                    {cropZoom.toFixed(2)}x
+                  </p>
+                </div>
+
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {cropMode === "product_page"
+                    ? "Arrastra para centrar como se vera en la portada de la pagina del producto."
+                    : "Arrastra para posicionar la modelo/prenda dentro del recorte final."}
+                </p>
+                {cropError && (
+                  <p className="text-[11px] text-red-600 dark:text-red-400">
+                    {cropError}
+                  </p>
+                )}
+
+                <div className="pt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={closeCropEditor}
+                    disabled={cropping}
+                    className="px-3 py-2 rounded-md text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyCropToCurrentImage}
+                    disabled={cropping}
+                    className="px-3 py-2 rounded-md text-xs font-medium bg-rosa text-white hover:bg-rosa-dark transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+                  >
+                    {cropping ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                    {cropping ? "Recortando..." : "Guardar recorte"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <AdminPageHeader
         title={isEditing ? "Editar Producto" : "Nuevo Producto"}
         breadcrumbs={[
@@ -872,6 +1950,11 @@ export default function ProductForm({
       {error && (
         <div className="mb-6 p-3 rounded-xl bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
           {error}
+        </div>
+      )}
+      {saveSuccess && (
+        <div className="mb-6 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-sm">
+          {saveSuccess}
         </div>
       )}
 
@@ -1085,7 +2168,80 @@ export default function ProductForm({
             <AdminImageUpload
               images={form.images}
               onImagesChange={(imgs) => updateField("images", imgs)}
+              onCropImage={(img) => openCropEditor(img)}
+              onEnhanceImage={(img) => {
+                void enhanceImageQuality(img);
+              }}
+              enhancingImageUrls={enhancingImageUrls}
             />
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  Vista al abrir producto
+                </h4>
+                <span
+                  className={cn(
+                    "text-[11px] px-2 py-1 rounded-full font-medium",
+                    hasCustomProductPageCrop
+                      ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"
+                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                  )}
+                >
+                  {hasCustomProductPageCrop ? "Recorte personalizado" : "Imagen completa (default)"}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Este recorte solo afecta la imagen principal de la pagina del producto.
+              </p>
+              {productPagePreviewImage ? (
+                <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-3 items-start">
+                  <div className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                    <img
+                      src={productPagePreviewImage}
+                      alt="Vista previa de pagina de producto"
+                      className={cn(
+                        "w-full h-full",
+                        hasCustomProductPageCrop ? "object-cover" : "object-contain p-2"
+                      )}
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={openProductPageCropEditor}
+                      disabled={!form.images.length || cropping}
+                      className="px-3 py-2 rounded-lg text-xs font-medium border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      Recortar para pagina producto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void resetProductPageCropToFullImage().catch((err) => {
+                          const message =
+                            err instanceof Error
+                              ? err.message
+                              : "No se pudo restablecer la vista de producto.";
+                          setError(message);
+                        });
+                      }}
+                      disabled={!hasCustomProductPageCrop}
+                      className="px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      Usar imagen completa
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Agrega al menos una imagen para configurar la vista de producto.
+                </p>
+              )}
+            </div>
             {isEditing && initialData?.id && (
               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
                 <div className="flex items-center justify-between gap-2">
@@ -1208,6 +2364,61 @@ export default function ProductForm({
                     </div>
 
                     <div className="space-y-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300">
+                          Angulos a generar (consistencia bloqueada)
+                        </label>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => applyAiAnglePreset("single")}
+                            className="px-2 py-1 rounded-md text-[10px] font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                          >
+                            Solo frontal
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyAiAnglePreset("catalog")}
+                            className="px-2 py-1 rounded-md text-[10px] font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                          >
+                            Pack catalogo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyAiAnglePreset("full")}
+                            className="px-2 py-1 rounded-md text-[10px] font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                          >
+                            Pack completo
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {aiAvailableAngles.map((angle) => {
+                          const selected = aiSelectedAngles.includes(angle.id);
+                          return (
+                            <button
+                              key={angle.id}
+                              type="button"
+                              onClick={() => toggleAiAngle(angle.id)}
+                              className={cn(
+                                "px-2.5 py-1.5 rounded-lg border text-[11px] transition-colors cursor-pointer",
+                                selected
+                                  ? "border-rosa bg-rosa/10 text-rosa-dark dark:text-rosa-light"
+                                  : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                              )}
+                              title={angle.description}
+                            >
+                              {angle.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                        Se usan los mismos rasgos de modelo, escala de prenda y encuadre entre angulos.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-300">
                         Imagen de referencia de color (opcional)
                       </label>
@@ -1316,7 +2527,11 @@ export default function ProductForm({
                         disabled={aiSourceImageUrls.length === 0}
                         onClick={generateAiProductImage}
                         loadingLabel="Generando imagen profesional"
-                        idleLabel="Autogenerar imagen profesional"
+                        idleLabel={
+                          aiSelectedAngles.length > 1
+                            ? `Generar pack (${aiSelectedAngles.length} angulos)`
+                            : "Autogenerar imagen profesional"
+                        }
                       />
                       <button
                         type="button"
@@ -1329,8 +2544,105 @@ export default function ProductForm({
                     </div>
                     {generatingAiImage && (
                       <p className="text-[11px] text-rosa-dark/90 dark:text-rosa-light/90 animate-pulse">
-                        Preparando modelo, prenda y acabado comercial. Esto puede tardar unos segundos.
+                        Preparando modelo, prenda y consistencia entre angulos. Esto puede tardar unos segundos.
                       </p>
+                    )}
+                    {aiPreviewImageUrls.length > 0 && (
+                      <div className="space-y-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-300">
+                            Imagenes IA generadas (recorte final)
+                          </label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                              Se abre automaticamente el primer recorte.
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => void enhanceAllAiGeneratedImages()}
+                              disabled={
+                                generatingAiImage ||
+                                cropping ||
+                                enhancingAllAiImages ||
+                                enhancingImageUrls.length > 0 ||
+                                aiEnhanceCandidateUrls.length === 0
+                              }
+                              className="px-2.5 py-1.5 rounded-md text-[11px] font-medium border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              {enhancingAllAiImages
+                                ? `HD 4K todas (${enhanceAllProgress?.current ?? 0}/${enhanceAllProgress?.total ?? aiEnhanceCandidateUrls.length})`
+                                : `Regenerar HD 4K todas (${aiEnhanceCandidateUrls.length})`}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {aiPreviewImageUrls.map((imageUrl, idx) => {
+                            const showHd4kBadge = imageUrl
+                              .toLowerCase()
+                              .includes("/products/enhanced/");
+                            const showFallbackBadge = Boolean(
+                              aiEnhanceFallbackBadgeMap[imageUrl]
+                            );
+                            return (
+                              <div
+                                key={`${imageUrl}-${idx}`}
+                                className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900"
+                              >
+                                <div className="relative aspect-[3/4] w-full bg-gray-50 dark:bg-gray-800">
+                                  {(showHd4kBadge || showFallbackBadge) && (
+                                    <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1">
+                                      {showHd4kBadge && (
+                                        <span className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-600/90 text-white">
+                                          HD 4K
+                                        </span>
+                                      )}
+                                      {showFallbackBadge && (
+                                        <span className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-600/90 text-white">
+                                          IA Fallback
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                <img
+                                  src={imageUrl}
+                                  alt={`Generada IA ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = "none";
+                                  }}
+                                />
+                                </div>
+                                <div className="p-2">
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => openCropEditor(imageUrl)}
+                                      disabled={generatingAiImage || cropping}
+                                      className="w-full px-2 py-1.5 rounded-md text-[11px] font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+                                    >
+                                      Recortar
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => void enhanceImageQuality(imageUrl)}
+                                      disabled={
+                                        generatingAiImage ||
+                                        enhancingImageUrls.includes(imageUrl)
+                                      }
+                                      className="w-full px-2 py-1.5 rounded-md text-[11px] font-medium border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors cursor-pointer disabled:opacity-50"
+                                    >
+                                      {enhancingImageUrls.includes(imageUrl)
+                                        ? "HD 4K..."
+                                        : "Regenerar HD 4K"}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
                 ) : (

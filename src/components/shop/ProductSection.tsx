@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { memo, useRef } from "react";
 import {
   motion,
   AnimatePresence,
-  useReducedMotion,
   useInView,
 } from "framer-motion";
 import { PackageOpen } from "lucide-react";
@@ -76,13 +75,12 @@ function SectionTitle({ text }: { text: string }) {
   );
 }
 
-export default function ProductSection({
+function ProductSection({
   section,
   products,
   isActive = false,
 }: ProductSectionProps) {
   const { t } = useTranslation();
-  const shouldReduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement | null>(null);
 
   return (
@@ -106,7 +104,7 @@ export default function ProductSection({
               <motion.div
                 key={product.id}
                 className="h-full"
-                initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{
@@ -115,7 +113,7 @@ export default function ProductSection({
                   ease: [0.25, 0.46, 0.45, 0.94],
                 }}
               >
-                <ProductCard product={product} />
+                <ProductCard product={product} imagePriority={isActive && index < 2} />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -137,3 +135,5 @@ export default function ProductSection({
     </section>
   );
 }
+
+export default memo(ProductSection);

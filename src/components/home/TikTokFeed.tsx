@@ -29,11 +29,9 @@ const FALLBACK_GRADIENTS = [
 
 function VideoCard({
   video,
-  index,
   fallbackGradient,
 }: {
   video: TikTokVideo | null;
-  index: number;
   fallbackGradient: string;
 }) {
   const [imgError, setImgError] = useState(false);
@@ -52,6 +50,7 @@ function VideoCard({
         {showThumbnail ? (
           <>
             {/* Real TikTok Thumbnail */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={video.thumbnail}
               alt={video.title || "TikTok video"}
@@ -184,7 +183,6 @@ export default function TikTokFeed() {
             >
               <VideoCard
                 video={video}
-                index={i}
                 fallbackGradient={FALLBACK_GRADIENTS[i % FALLBACK_GRADIENTS.length]}
               />
             </ScrollReveal>

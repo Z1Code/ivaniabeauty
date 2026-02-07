@@ -30,6 +30,23 @@ function sanitizeGalleryImages(
   return deduped;
 }
 
+function sanitizeImageSourceMap(
+  value: unknown,
+  images: string[]
+): Record<string, string> {
+  if (!value || typeof value !== "object") return {};
+  const allowed = new Set(images);
+  const next: Record<string, string> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!allowed.has(key)) continue;
+    if (typeof raw !== "string") continue;
+    const sourceUrl = raw.trim();
+    if (!sourceUrl || sourceUrl === key) continue;
+    next[key] = sourceUrl;
+  }
+  return next;
+}
+
 // GET: Get a single product by ID
 export async function GET(
   _request: Request,
@@ -165,6 +182,10 @@ export async function PUT(
       "isActive",
       "sortOrder",
       "sizeChartImageUrl",
+      "productPageImageUrl",
+      "productPageImageSourceUrl",
+      "imageCropSourceMap",
+      "imageEnhanceSourceMap",
     ];
 
     for (const field of allowedFields) {
@@ -182,14 +203,81 @@ export async function PUT(
       ? toOptionalImageUrl(body.sizeChartImageUrl)
       : previousImageUrl;
     const hasImagesInPayload = Object.prototype.hasOwnProperty.call(body, "images");
+    const hasCropMapInPayload = Object.prototype.hasOwnProperty.call(
+      body,
+      "imageCropSourceMap"
+    );
+    const hasEnhanceMapInPayload = Object.prototype.hasOwnProperty.call(
+      body,
+      "imageEnhanceSourceMap"
+    );
+    const hasProductPageImageInPayload = Object.prototype.hasOwnProperty.call(
+      body,
+      "productPageImageUrl"
+    );
+    const hasProductPageSourceInPayload = Object.prototype.hasOwnProperty.call(
+      body,
+      "productPageImageSourceUrl"
+    );
     const sourceImages = hasImagesInPayload ? body.images : existingData.images;
     const sanitizedImages = sanitizeGalleryImages(sourceImages, nextImageUrl);
+    const effectiveCropMapSource = hasCropMapInPayload
+      ? body.imageCropSourceMap
+      : existingData.imageCropSourceMap;
+    const effectiveEnhanceMapSource = hasEnhanceMapInPayload
+      ? body.imageEnhanceSourceMap
+      : existingData.imageEnhanceSourceMap;
+    const sanitizedCropSourceMap = sanitizeImageSourceMap(
+      effectiveCropMapSource,
+      sanitizedImages
+    );
+    const sanitizedEnhanceSourceMap = sanitizeImageSourceMap(
+      effectiveEnhanceMapSource,
+      sanitizedImages
+    );
+    const requestedProductPageSourceUrl = hasProductPageSourceInPayload
+      ? toOptionalImageUrl(body.productPageImageSourceUrl)
+      : toOptionalImageUrl(existingData.productPageImageSourceUrl);
+    const resolvedProductPageSourceUrl =
+      requestedProductPageSourceUrl &&
+      sanitizedImages.includes(requestedProductPageSourceUrl)
+        ? requestedProductPageSourceUrl
+        : sanitizedImages[0] || null;
+    const requestedProductPageImageUrl = hasProductPageImageInPayload
+      ? toOptionalImageUrl(body.productPageImageUrl)
+      : toOptionalImageUrl(existingData.productPageImageUrl);
+    const shouldResetProductPageImage =
+      requestedProductPageImageUrl &&
+      requestedProductPageSourceUrl &&
+      requestedProductPageSourceUrl !== resolvedProductPageSourceUrl &&
+      !hasProductPageImageInPayload;
+    const resolvedProductPageImageUrl =
+      requestedProductPageImageUrl &&
+      resolvedProductPageSourceUrl &&
+      !shouldResetProductPageImage
+        ? requestedProductPageImageUrl
+        : null;
 
     if (hasImageUrlInPayload) {
       updateData.sizeChartImageUrl = nextImageUrl;
     }
     if (hasImagesInPayload || hasImageUrlInPayload) {
       updateData.images = sanitizedImages;
+    }
+    if (hasCropMapInPayload || hasImagesInPayload || hasImageUrlInPayload) {
+      updateData.imageCropSourceMap = sanitizedCropSourceMap;
+    }
+    if (hasEnhanceMapInPayload || hasImagesInPayload || hasImageUrlInPayload) {
+      updateData.imageEnhanceSourceMap = sanitizedEnhanceSourceMap;
+    }
+    if (
+      hasProductPageImageInPayload ||
+      hasProductPageSourceInPayload ||
+      hasImagesInPayload ||
+      hasImageUrlInPayload
+    ) {
+      updateData.productPageImageUrl = resolvedProductPageImageUrl;
+      updateData.productPageImageSourceUrl = resolvedProductPageSourceUrl;
     }
 
     // Ensure numeric fields

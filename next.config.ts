@@ -11,6 +11,16 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "storage.googleapis.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "ivania-beauty.firebasestorage.app",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "*.googleusercontent.com",
         pathname: "/**",
       },

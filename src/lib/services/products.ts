@@ -23,6 +23,7 @@ export interface Product {
   care: string;
   images: string[];
   sizeChartImageUrl: string | null;
+  productPageImageUrl: string | null;
   rating: number;
   reviewCount: number;
   inStock: boolean;
@@ -39,6 +40,10 @@ function transformProduct(
   const sizeChartImageUrl =
     typeof data.sizeChartImageUrl === "string" && data.sizeChartImageUrl.trim()
       ? data.sizeChartImageUrl
+      : null;
+  const productPageImageUrl =
+    typeof data.productPageImageUrl === "string" && data.productPageImageUrl.trim()
+      ? data.productPageImageUrl
       : null;
   const images = Array.isArray(data.images)
     ? data.images
@@ -78,6 +83,7 @@ function transformProduct(
     care: data.care || "",
     images,
     sizeChartImageUrl,
+    productPageImageUrl,
     rating: Number(data.rating) || 0,
     reviewCount: Number(data.reviewCount) || 0,
     inStock: data.inStock !== false,
@@ -140,6 +146,38 @@ export async function getProductBySlug(
     const productsData = (await import("@/data/products.json")).default;
     const product = (productsData as unknown as Product[]).find(
       (p) => p.slug === slug
+    );
+    return product || null;
+  }
+}
+
+/**
+ * Get a single active product by Firestore document id.
+ * Falls back to JSON data if Firestore is not configured.
+ */
+export async function getProductById(
+  id: string
+): Promise<Product | null> {
+  if (!isFirebaseConfigured()) {
+    const productsData = (await import("@/data/products.json")).default;
+    const product = (productsData as unknown as Product[]).find(
+      (p) => p.id === id
+    );
+    return product || null;
+  }
+
+  try {
+    const doc = await adminDb.collection("products").doc(id).get();
+    if (!doc.exists) return null;
+
+    const data = doc.data();
+    if (!data || data.isActive === false) return null;
+    return transformProduct(doc.id, data);
+  } catch (err) {
+    console.warn("Falling back to JSON for product id:", id, err);
+    const productsData = (await import("@/data/products.json")).default;
+    const product = (productsData as unknown as Product[]).find(
+      (p) => p.id === id
     );
     return product || null;
   }

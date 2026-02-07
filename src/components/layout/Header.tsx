@@ -43,6 +43,9 @@ export default function Header() {
 
   // Show white text when on a page with a dark hero and not scrolled
   const heroWhite = DARK_HERO_PAGES.includes(pathname) && !scrolled;
+  const commerceHeaderSurface =
+    "border-b border-rosa-light/45 bg-perla/95 supports-[backdrop-filter]:bg-perla/88 backdrop-blur-xl";
+  const defaultHeaderSurface = "glass-rosa";
 
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 50);
@@ -85,7 +88,9 @@ export default function Header() {
     <>
       <motion.header
         ref={headerRef}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 glass-rosa ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          isPrimaryCommerce ? commerceHeaderSurface : defaultHeaderSurface
+        } ${
           scrolled ? "shadow-lg shadow-rosa/10" : ""
         }`}
         initial={{ y: -100 }}

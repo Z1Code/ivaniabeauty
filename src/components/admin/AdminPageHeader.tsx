@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
@@ -14,7 +15,7 @@ interface AdminPageHeaderProps {
   action?: React.ReactNode;
 }
 
-export default function AdminPageHeader({
+function AdminPageHeaderComponent({
   title,
   breadcrumbs,
   action,
@@ -52,3 +53,7 @@ export default function AdminPageHeader({
     </div>
   );
 }
+
+const AdminPageHeader = memo(AdminPageHeaderComponent);
+
+export default AdminPageHeader;

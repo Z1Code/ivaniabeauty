@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProductBySlug } from "@/lib/services/products";
+import { getProductById, getProductBySlug } from "@/lib/services/products";
 
 // GET: Public endpoint - returns a single product by slug/productId
 export async function GET(
@@ -16,7 +16,8 @@ export async function GET(
       );
     }
 
-    const product = await getProductBySlug(productId);
+    const productBySlug = await getProductBySlug(productId);
+    const product = productBySlug ?? (await getProductById(productId));
 
     if (!product) {
       return NextResponse.json(

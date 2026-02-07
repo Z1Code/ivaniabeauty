@@ -5,7 +5,10 @@ import { getAdminSession } from "@/lib/firebase/auth-helpers";
 import { adminDb, adminStorage, isFirebaseConfigured } from "@/lib/firebase/admin";
 import {
   generateProfessionalProductImage,
+  getProductImageAngleOptions,
   getProductModelProfiles,
+  normalizeProductImageAngles,
+  type ProductImageAngle,
   isProductImageGenerationConfigured,
 } from "@/lib/product-image-ai/generator";
 import {
@@ -30,6 +33,8 @@ interface GenerationRequestBody {
   preferredProfileId?: string;
   customPrompt?: string;
   targetColor?: string;
+  targetAngle?: string;
+  angles?: string[];
   placeFirst?: boolean;
   maxImages?: number;
 }
@@ -42,10 +47,18 @@ function getGeminiEnvPresence() {
       process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim()
     ),
     GEMINI_IMAGE_MODEL: Boolean(process.env.GEMINI_IMAGE_MODEL?.trim()),
+    GEMINI_IMAGE_FALLBACK_MODELS: Boolean(
+      process.env.GEMINI_IMAGE_FALLBACK_MODELS?.trim()
+    ),
   };
 
   const missingKeyCandidates = Object.entries(presence)
-    .filter(([name, isSet]) => !isSet && name !== "GEMINI_IMAGE_MODEL")
+    .filter(
+      ([name, isSet]) =>
+        !isSet &&
+        name !== "GEMINI_IMAGE_MODEL" &&
+        name !== "GEMINI_IMAGE_FALLBACK_MODELS"
+    )
     .map(([name]) => name);
 
   return {
@@ -135,6 +148,7 @@ export async function GET(
   return NextResponse.json({
     productId: id,
     availableProfiles: getProductModelProfiles(),
+    availableAngles: getProductImageAngleOptions(),
     configured: isProductImageGenerationConfigured(),
     specializedBackgroundRemovalConfigured: bgConfig.configured,
     backgroundRemovalConfiguration: bgConfig,
@@ -215,39 +229,138 @@ export async function POST(
       );
     }
     const colorReferenceImageUrl = sanitizeUrl(body.colorReferenceImageUrl);
-
-    const generation = await generateProfessionalProductImage({
-      sourceImageUrl: sourceImageUrls[0],
-      sourceImageUrls,
-      colorReferenceImageUrl: colorReferenceImageUrl || undefined,
-      productName: product.nameEs || product.nameEn,
-      productCategory: product.category,
-      productColors: Array.isArray(product.colors) ? product.colors : [],
-      preferredProfileId: sanitizeUrl(body.preferredProfileId) || undefined,
-      customPrompt: customPrompt || undefined,
-      targetColor: targetColor || undefined,
-    });
-
     const bucket = adminStorage.bucket();
-    const ext = extensionFromMimeType(generation.mimeType);
-    const fileName = `products/generated/${id}/${Date.now()}-${randomUUID()}.${ext}`;
-    const file = bucket.file(fileName);
+    const requestedAngles = normalizeProductImageAngles(
+      Array.isArray(body.angles) && body.angles.length > 0
+        ? body.angles
+        : body.targetAngle
+          ? [body.targetAngle]
+          : [],
+      ["front"]
+    );
+    const generationBatchId = randomUUID();
+    const angleErrors: Array<{
+      angle: ProductImageAngle;
+      message: string;
+      status: number | null;
+      code: string | null;
+    }> = [];
+    const generatedEntries: Array<{
+      angle: ProductImageAngle;
+      imageUrl: string;
+      generation: Awaited<ReturnType<typeof generateProfessionalProductImage>>;
+      consistencyReferenceImageUrl: string | null;
+    }> = [];
+    let lockedProfileId = sanitizeUrl(body.preferredProfileId) || undefined;
+    let consistencyAnchorUrl: string | null = null;
 
-    await file.save(generation.imageBuffer, {
-      metadata: {
-        contentType: generation.mimeType,
-      },
-    });
-    await file.makePublic();
+    for (const angle of requestedAngles) {
+      try {
+        const generation = await generateProfessionalProductImage({
+          sourceImageUrl: sourceImageUrls[0],
+          sourceImageUrls,
+          colorReferenceImageUrl: colorReferenceImageUrl || undefined,
+          consistencyReferenceImageUrl: consistencyAnchorUrl || undefined,
+          productName: product.nameEs || product.nameEn,
+          productCategory: product.category,
+          productColors: Array.isArray(product.colors) ? product.colors : [],
+          preferredProfileId: lockedProfileId,
+          customPrompt: customPrompt || undefined,
+          targetColor: targetColor || undefined,
+          targetAngle: angle,
+        });
+        if (!lockedProfileId) {
+          lockedProfileId = generation.profile.id;
+        }
 
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+        const ext = extensionFromMimeType(generation.mimeType);
+        const fileName = `products/generated/${id}/${Date.now()}-${angle}-${randomUUID()}.${ext}`;
+        const file = bucket.file(fileName);
+
+        await file.save(generation.imageBuffer, {
+          metadata: {
+            contentType: generation.mimeType,
+          },
+        });
+        await file.makePublic();
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+
+        await adminDb.collection("productImageGenerations").add({
+          productId: id,
+          generationBatchId,
+          generatedImageUrl: publicUrl,
+          sourceImageUrl: sourceImageUrls[0],
+          sourceImageUrls,
+          sourceImageHash: generation.sourceImageHash,
+          sourceImageHashes: generation.sourceImageHashes,
+          colorReferenceImageUrl: colorReferenceImageUrl || null,
+          colorReferenceImageHash: generation.colorReferenceImageHash,
+          consistencyReferenceImageUrl: consistencyAnchorUrl,
+          consistencyReferenceImageHash: generation.consistencyReferenceImageHash,
+          profileId: generation.profile.id,
+          profileLabel: generation.profile.label,
+          profileDescription: generation.profile.description,
+          modelUsed: generation.modelUsed,
+          outputFormat: generation.outputFormat,
+          quality: generation.quality,
+          inputFidelity: generation.inputFidelity,
+          targetAngle: generation.targetAngle,
+          requestedAngles,
+          prompt: generation.prompt,
+          revisedPrompt: generation.revisedPrompt,
+          targetColor: targetColor || null,
+          customPrompt: customPrompt || null,
+          createdBy: admin.uid,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+
+        generatedEntries.push({
+          angle,
+          imageUrl: publicUrl,
+          generation,
+          consistencyReferenceImageUrl: consistencyAnchorUrl,
+        });
+
+        if (!consistencyAnchorUrl) {
+          consistencyAnchorUrl = publicUrl;
+        }
+      } catch (error) {
+        const typed = error as Error & { status?: number; code?: string };
+        angleErrors.push({
+          angle,
+          message:
+            error instanceof Error
+              ? error.message
+              : `Unknown generation error for angle ${angle}`,
+          status: typeof typed.status === "number" ? typed.status : null,
+          code: typeof typed.code === "string" ? typed.code : null,
+        });
+      }
+    }
+
+    if (!generatedEntries.length) {
+      const detail = angleErrors
+        .map((item) => `${item.angle}: ${item.message}`)
+        .join(" | ");
+      const error = new Error(
+        `Failed to generate any requested angle. ${detail || "No successful generations."}`
+      ) as Error & { status?: number; code?: string; attempts?: unknown };
+      error.status = 502;
+      error.code = "ANGLE_SET_GENERATION_FAILED";
+      error.attempts = angleErrors;
+      throw error;
+    }
+
+    const generatedImageUrls = generatedEntries.map((entry) => entry.imageUrl);
     const placeFirst = body.placeFirst !== false;
     const sourceSizeChart = sanitizeUrl(product.sizeChartImageUrl);
 
-    const withoutDuplicate = existingImages.filter((url) => url !== publicUrl);
+    const withoutDuplicate = existingImages.filter(
+      (url) => !generatedImageUrls.includes(url)
+    );
     const orderedImages = placeFirst
-      ? [publicUrl, ...withoutDuplicate]
-      : [...withoutDuplicate, publicUrl];
+      ? [...generatedImageUrls, ...withoutDuplicate]
+      : [...withoutDuplicate, ...generatedImageUrls];
     const filteredImages = sourceSizeChart
       ? orderedImages.filter((url) => url !== sourceSizeChart)
       : orderedImages;
@@ -258,45 +371,29 @@ export async function POST(
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    await adminDb.collection("productImageGenerations").add({
-      productId: id,
-      generatedImageUrl: publicUrl,
-      sourceImageUrl: sourceImageUrls[0],
-      sourceImageUrls,
-      sourceImageHash: generation.sourceImageHash,
-      sourceImageHashes: generation.sourceImageHashes,
-      colorReferenceImageUrl: colorReferenceImageUrl || null,
-      colorReferenceImageHash: generation.colorReferenceImageHash,
-      profileId: generation.profile.id,
-      profileLabel: generation.profile.label,
-      profileDescription: generation.profile.description,
-      modelUsed: generation.modelUsed,
-      outputFormat: generation.outputFormat,
-      quality: generation.quality,
-      inputFidelity: generation.inputFidelity,
-      prompt: generation.prompt,
-      revisedPrompt: generation.revisedPrompt,
-      targetColor: targetColor || null,
-      customPrompt: customPrompt || null,
-      createdBy: admin.uid,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-
     const bgConfig = await getBackgroundRemovalConfigurationRuntime();
+    const primary = generatedEntries[0];
 
     return NextResponse.json({
       success: true,
+      partialSuccess: angleErrors.length > 0,
       productId: id,
-      generatedImageUrl: publicUrl,
-      profile: generation.profile,
-      modelUsed: generation.modelUsed,
+      generatedImageUrl: primary.imageUrl,
+      generatedImageUrls,
+      generatedAngles: generatedEntries.map((entry) => entry.angle),
+      failedAngles: angleErrors,
+      profile: primary.generation.profile,
+      modelUsed: primary.generation.modelUsed,
       images: limitedImages,
       sourceImageUrl: sourceImageUrls[0],
       sourceImageUrls,
       colorReferenceImageUrl: colorReferenceImageUrl || null,
       targetColor: targetColor || null,
       customPrompt: customPrompt || null,
+      targetAngle: primary.generation.targetAngle,
+      requestedAngles,
       availableProfiles: getProductModelProfiles(),
+      availableAngles: getProductImageAngleOptions(),
       specializedBackgroundRemovalConfigured: bgConfig.configured,
       backgroundRemovalConfiguration: bgConfig,
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminTable from "@/components/admin/AdminTable";
@@ -35,11 +35,12 @@ export default function OrdersClient({ orders }: { orders: OrderRow[] }) {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState("");
 
-  const filtered = statusFilter
-    ? orders.filter((o) => o.status === statusFilter)
-    : orders;
+  const filtered = useMemo(
+    () => (statusFilter ? orders.filter((o) => o.status === statusFilter) : orders),
+    [orders, statusFilter]
+  );
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       key: "orderNumber",
       header: "Pedido",
@@ -85,7 +86,7 @@ export default function OrdersClient({ orders }: { orders: OrderRow[] }) {
         <span className="text-gray-500 capitalize">{o.paymentMethod}</span>
       ),
     },
-  ];
+  ], []);
 
   return (
     <>

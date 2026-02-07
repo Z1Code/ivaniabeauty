@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, ArrowLeft, Image } from "lucide-react";
+import { Save, ArrowLeft, ImageIcon } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminBilingualInput from "@/components/admin/AdminBilingualInput";
 
@@ -141,7 +141,7 @@ export default function NewBannerPage() {
                 </label>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center">
-                    <Image className="w-4 h-4 text-gray-400" />
+                    <ImageIcon className="w-4 h-4 text-gray-400" />
                   </div>
                   <input
                     type="url"
@@ -153,6 +153,7 @@ export default function NewBannerPage() {
                 </div>
                 {imageUrl && (
                   <div className="mt-3 w-full max-w-xs h-24 rounded-xl overflow-hidden bg-gray-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={imageUrl}
                       alt="Preview"

@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Droplets, ShieldCheck, CircleDot, Shirt } from "lucide-react";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { useTranslation } from "@/hooks/useTranslation";

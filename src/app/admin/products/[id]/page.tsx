@@ -46,6 +46,16 @@ export default async function EditProductPage({
     isActive: data.isActive !== false,
     sortOrder: data.sortOrder?.toString() || "0",
     sizeChartImageUrl: data.sizeChartImageUrl || null,
+    productPageImageUrl: data.productPageImageUrl || null,
+    productPageImageSourceUrl: data.productPageImageSourceUrl || null,
+    imageCropSourceMap:
+      data.imageCropSourceMap && typeof data.imageCropSourceMap === "object"
+        ? (data.imageCropSourceMap as Record<string, string>)
+        : {},
+    imageEnhanceSourceMap:
+      data.imageEnhanceSourceMap && typeof data.imageEnhanceSourceMap === "object"
+        ? (data.imageEnhanceSourceMap as Record<string, string>)
+        : {},
   };
 
   return <ProductForm initialData={initialData} isEditing />;

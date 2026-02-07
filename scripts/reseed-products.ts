@@ -106,7 +106,6 @@ async function deleteCollection(collectionPath: string): Promise<number> {
   const collectionRef = db.collection(collectionPath);
   let totalDeleted = 0;
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const snapshot = await collectionRef.limit(500).get();
 

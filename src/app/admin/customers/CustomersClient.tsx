@@ -37,7 +37,7 @@ export default function CustomersClient({
     );
   }, [customers, search]);
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       key: "name",
       header: "Nombre",
@@ -88,7 +88,7 @@ export default function CustomersClient({
         </span>
       ),
     },
-  ];
+  ], []);
 
   return (
     <>

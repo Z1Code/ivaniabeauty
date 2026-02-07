@@ -59,6 +59,7 @@ interface ProductData {
   reviewCount: number;
   inStock: boolean;
   sizeChartImageUrl?: string | null;
+  productPageImageUrl?: string | null;
 }
 
 interface SizeChartDisplayCell {
@@ -255,6 +256,26 @@ function ProductDetail({ product }: { product: ProductData }) {
 
   const selectedGalleryImage =
     galleryImages[selectedImageIndex] || galleryImages[0] || null;
+  const selectedMainImage = useMemo(() => {
+    const customProductPageImage =
+      typeof product.productPageImageUrl === "string" &&
+      product.productPageImageUrl.trim()
+        ? product.productPageImageUrl.trim()
+        : null;
+    if (selectedImageIndex === 0 && customProductPageImage) {
+      return customProductPageImage;
+    }
+    return selectedGalleryImage;
+  }, [product.productPageImageUrl, selectedGalleryImage, selectedImageIndex]);
+  const mainImageClasses = useMemo(
+    () =>
+      typeof product.productPageImageUrl === "string" &&
+      product.productPageImageUrl.trim() &&
+      selectedImageIndex === 0
+        ? "absolute inset-0 w-full h-full object-cover"
+        : "absolute inset-0 w-full h-full object-contain p-3",
+    [product.productPageImageUrl, selectedImageIndex]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -418,12 +439,12 @@ function ProductDetail({ product }: { product: ProductData }) {
         >
           {/* --- main image --- */}
           <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-rosa-light/30 to-arena group cursor-zoom-in">
-            {selectedGalleryImage ? (
+            {selectedMainImage ? (
               <motion.img
-                key={selectedGalleryImage}
-                src={selectedGalleryImage}
+                key={selectedMainImage}
+                src={selectedMainImage}
                 alt={`${localName} - ${selectedImageIndex + 1}`}
-                className="absolute inset-0 w-full h-full object-cover"
+                className={mainImageClasses}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}

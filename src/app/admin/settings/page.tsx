@@ -116,7 +116,6 @@ const HERO_INTENSITY_LABELS: Record<
 };
 
 export default function SettingsPage() {
-  const [loading, setLoading] = useState(true);
   const [savingSection, setSavingSection] = useState<string | null>(null);
   const { isDark, toggleDark, themeId, setTheme, fontId, setFont } = useAdminTheme();
 
@@ -202,7 +201,6 @@ export default function SettingsPage() {
       DEFAULT_HOME_SECTIONS_SETTINGS
     );
     setHomeSections(sanitizeHomeSectionsSettings(storedHomeSections));
-    setLoading(false);
   }, []);
 
   const toggleShopSection = useCallback((sectionId: string) => {
@@ -485,23 +483,6 @@ export default function SettingsPage() {
     },
     [store, shipping, payments, shopSections.enabledSectionIds, homeSections]
   );
-
-  if (loading) {
-    return (
-      <>
-        <AdminPageHeader
-          title="Configuracion"
-          breadcrumbs={[
-            { label: "Dashboard", href: "/admin" },
-            { label: "Configuracion" },
-          ]}
-        />
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-rosa border-t-transparent rounded-full animate-spin mx-auto" />
-        </div>
-      </>
-    );
-  }
 
   return (
     <>

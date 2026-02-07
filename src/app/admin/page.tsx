@@ -5,8 +5,24 @@ import DashboardClient from "./DashboardClient";
 export default async function AdminDashboard() {
   await requireAdmin();
 
+  const lowStockPromise = adminDb
+    .collection("products")
+    .where("stockQuantity", "<=", 10)
+    .where("isActive", "==", true)
+    .limit(5)
+    .get()
+    .catch(() => null);
+
   // Fetch dashboard data from Firestore - all counts + recent orders in parallel
-  const [productsSnap, ordersSnap, customersSnap, reviewsSnap, ordersCountSnap, revenueSnap] =
+  const [
+    productsSnap,
+    ordersSnap,
+    customersSnap,
+    reviewsSnap,
+    ordersCountSnap,
+    revenueSnap,
+    lowStockSnap,
+  ] =
     await Promise.all([
       adminDb.collection("products").where("isActive", "==", true).count().get(),
       adminDb.collection("orders").orderBy("createdAt", "desc").limit(5).get(),
@@ -20,6 +36,7 @@ export default async function AdminDashboard() {
       adminDb.collection("orders").count().get(),
       // Only fetch total + status fields for revenue calculation (not full documents)
       adminDb.collection("orders").select("total", "status").get(),
+      lowStockPromise,
     ]);
 
   const totalProducts = productsSnap.data().count;
@@ -53,31 +70,20 @@ export default async function AdminDashboard() {
     // If no orders collection yet, that's fine
   }
 
-  // Get low stock products
-  let lowStockProducts: Array<{
+  const lowStockProducts: Array<{
     id: string;
     name: string;
     stockQuantity: number;
-  }> = [];
-  try {
-    const lowStockSnap = await adminDb
-      .collection("products")
-      .where("stockQuantity", "<=", 10)
-      .where("isActive", "==", true)
-      .limit(5)
-      .get();
-
-    lowStockProducts = lowStockSnap.docs.map((doc) => {
+  }> = lowStockSnap
+    ? lowStockSnap.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
         name: data.nameEs || data.nameEn || "---",
         stockQuantity: data.stockQuantity || 0,
       };
-    });
-  } catch {
-    // Products may not have stockQuantity yet
-  }
+    })
+    : [];
 
   return (
     <DashboardClient

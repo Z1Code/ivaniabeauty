@@ -1,4 +1,5 @@
 import { createHash, randomInt } from "node:crypto";
+import sharp from "sharp";
 import jpeg from "jpeg-js";
 import { PNG } from "pngjs";
 import {
@@ -59,16 +60,40 @@ export interface ProductModelProfile {
   description: string;
 }
 
+export type ProductImageAngle =
+  | "front"
+  | "front_three_quarter_left"
+  | "front_three_quarter_right"
+  | "left_profile"
+  | "right_profile"
+  | "back";
+
+interface ProductImageAnglePreset {
+  id: ProductImageAngle;
+  label: string;
+  description: string;
+  promptInstruction: string;
+  cameraInstruction: string;
+}
+
+export interface ProductImageAngleOption {
+  id: ProductImageAngle;
+  label: string;
+  description: string;
+}
+
 export interface GenerateProductImageInput {
   sourceImageUrl?: string;
   sourceImageUrls?: string[];
   colorReferenceImageUrl?: string;
+  consistencyReferenceImageUrl?: string;
   productName?: string;
   productCategory?: string;
   productColors?: string[];
   preferredProfileId?: string;
   customPrompt?: string;
   targetColor?: string;
+  targetAngle?: ProductImageAngle;
 }
 
 export interface GenerateProductImageResult {
@@ -81,17 +106,60 @@ export interface GenerateProductImageResult {
   sourceImageHash: string;
   sourceImageHashes: string[];
   colorReferenceImageHash: string | null;
+  consistencyReferenceImageHash: string | null;
   outputFormat: OutputFormat;
   quality: Quality;
   inputFidelity: InputFidelity;
+  targetAngle: ProductImageAngle;
 }
 
-const MODEL_CANDIDATES = [
-  process.env.GEMINI_IMAGE_MODEL,
+function parseCsvEnvList(value: string | undefined): string[] {
+  if (!value || !value.trim()) return [];
+  const deduped = new Set<string>();
+  for (const item of value.split(",")) {
+    const normalized = item.trim();
+    if (!normalized) continue;
+    deduped.add(normalized);
+  }
+  return [...deduped];
+}
+
+const DEFAULT_IMAGE_MODEL_FALLBACKS = [
   "gemini-3-pro-image-preview",
   "nano-banana-pro-preview",
+  // Stable Gemini 2.5 Flash Image (faster, lower quota tier cost).
   "gemini-2.5-flash-image",
-].filter((value): value is string => Boolean(value && value.trim()));
+  // Preview alias; retried only if available for the project.
+  "gemini-2.5-flash-image-preview",
+];
+
+const MODEL_CANDIDATES = (() => {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  const push = (value: string | undefined | null): void => {
+    if (!value || !value.trim()) return;
+    const normalized = value.trim();
+    if (seen.has(normalized)) return;
+    seen.add(normalized);
+    candidates.push(normalized);
+  };
+
+  // Optional primary override.
+  push(process.env.GEMINI_IMAGE_MODEL);
+
+  // Optional explicit ordered fallback list, comma-separated.
+  for (const fallbackModel of parseCsvEnvList(
+    process.env.GEMINI_IMAGE_FALLBACK_MODELS
+  )) {
+    push(fallbackModel);
+  }
+
+  for (const defaultModel of DEFAULT_IMAGE_MODEL_FALLBACKS) {
+    push(defaultModel);
+  }
+
+  return candidates;
+})();
 
 const IMAGE_ASPECT_RATIO = process.env.GEMINI_IMAGE_ASPECT_RATIO || "3:4";
 const IMAGE_SIZE = process.env.GEMINI_IMAGE_SIZE || "2K";
@@ -117,6 +185,83 @@ const TRANSPARENCY_PASS_ENABLED =
 const LOCAL_CUTOUT_FALLBACK_ENABLED =
   (process.env.GEMINI_IMAGE_LOCAL_CUTOUT_FALLBACK || "false").toLowerCase() ===
   "true";
+const OUTPUT_SCALE_FACTOR_RAW = Number.parseFloat(
+  process.env.GEMINI_IMAGE_OUTPUT_SCALE_FACTOR || "2"
+);
+const OUTPUT_SCALE_FACTOR =
+  Number.isFinite(OUTPUT_SCALE_FACTOR_RAW) && OUTPUT_SCALE_FACTOR_RAW >= 2
+    ? OUTPUT_SCALE_FACTOR_RAW
+    : 2;
+const OUTPUT_MAX_LONG_EDGE_RAW = Number.parseInt(
+  process.env.GEMINI_IMAGE_OUTPUT_MAX_LONG_EDGE || "0",
+  10
+);
+const OUTPUT_MAX_LONG_EDGE =
+  Number.isFinite(OUTPUT_MAX_LONG_EDGE_RAW) && OUTPUT_MAX_LONG_EDGE_RAW > 0
+    ? OUTPUT_MAX_LONG_EDGE_RAW
+    : 0;
+const DEFAULT_TARGET_ANGLE: ProductImageAngle = "front";
+
+const ANGLE_PRESETS: ProductImageAnglePreset[] = [
+  {
+    id: "front",
+    label: "Frontal",
+    description: "Vista frontal recta de catalogo",
+    promptInstruction:
+      "Frontal straight-on ecommerce pose, shoulders square to camera, hips square, both feet visible.",
+    cameraInstruction:
+      "Camera at chest height, no dutch angle, maintain neutral perspective.",
+  },
+  {
+    id: "front_three_quarter_left",
+    label: "3/4 Izquierdo",
+    description: "Vista 3/4 orientada hacia la izquierda",
+    promptInstruction:
+      "Three-quarter front-left pose (about 35-45 degrees), torso and hips rotated together while preserving natural stance.",
+    cameraInstruction:
+      "Maintain same camera distance as canonical front shot; avoid zoom drift.",
+  },
+  {
+    id: "front_three_quarter_right",
+    label: "3/4 Derecho",
+    description: "Vista 3/4 orientada hacia la derecha",
+    promptInstruction:
+      "Three-quarter front-right pose (about 35-45 degrees), torso and hips rotated together while preserving natural stance.",
+    cameraInstruction:
+      "Maintain same camera distance as canonical front shot; avoid zoom drift.",
+  },
+  {
+    id: "left_profile",
+    label: "Perfil Izquierdo",
+    description: "Vista lateral izquierda completa",
+    promptInstruction:
+      "Strict left-side profile pose (about 85-95 degrees), both legs aligned naturally, arms relaxed.",
+    cameraInstruction:
+      "Keep full-body framing and equal head-to-feet scale relative to canonical shot.",
+  },
+  {
+    id: "right_profile",
+    label: "Perfil Derecho",
+    description: "Vista lateral derecha completa",
+    promptInstruction:
+      "Strict right-side profile pose (about 85-95 degrees), both legs aligned naturally, arms relaxed.",
+    cameraInstruction:
+      "Keep full-body framing and equal head-to-feet scale relative to canonical shot.",
+  },
+  {
+    id: "back",
+    label: "Espalda",
+    description: "Vista trasera completa",
+    promptInstruction:
+      "Back view pose (about 180 degrees), keep posture elegant and neutral with visible full body.",
+    cameraInstruction:
+      "Maintain same camera distance and vertical framing as canonical front shot.",
+  },
+];
+
+const ANGLE_PRESET_MAP = new Map<ProductImageAngle, ProductImageAnglePreset>(
+  ANGLE_PRESETS.map((preset) => [preset.id, preset])
+);
 
 const MODEL_PROFILES: ProductModelProfile[] = [
   {
@@ -215,6 +360,43 @@ export function isProductImageGenerationConfigured(): boolean {
 
 export function getProductModelProfiles(): ProductModelProfile[] {
   return MODEL_PROFILES;
+}
+
+export function getProductImageAngleOptions(): ProductImageAngleOption[] {
+  return ANGLE_PRESETS.map((preset) => ({
+    id: preset.id,
+    label: preset.label,
+    description: preset.description,
+  }));
+}
+
+export function isProductImageAngle(value: string): value is ProductImageAngle {
+  return ANGLE_PRESET_MAP.has(value as ProductImageAngle);
+}
+
+export function normalizeProductImageAngles(
+  values: unknown,
+  fallback: ProductImageAngle[] = [DEFAULT_TARGET_ANGLE]
+): ProductImageAngle[] {
+  if (!Array.isArray(values)) return [...fallback];
+  const deduped: ProductImageAngle[] = [];
+  for (const item of values) {
+    if (typeof item !== "string") continue;
+    const normalized = item.trim().toLowerCase();
+    if (!isProductImageAngle(normalized)) continue;
+    if (!deduped.includes(normalized)) {
+      deduped.push(normalized);
+    }
+  }
+  return deduped.length ? deduped : [...fallback];
+}
+
+function resolveAnglePreset(targetAngle?: ProductImageAngle): ProductImageAnglePreset {
+  if (targetAngle) {
+    const explicit = ANGLE_PRESET_MAP.get(targetAngle);
+    if (explicit) return explicit;
+  }
+  return ANGLE_PRESET_MAP.get(DEFAULT_TARGET_ANGLE) as ProductImageAnglePreset;
 }
 
 function getRandomProfile(preferredProfileId?: string): ProductModelProfile {
@@ -348,8 +530,10 @@ function buildPrompt({
   productColors,
   customPrompt,
   targetColor,
+  targetAngle,
   referenceImageCount,
   hasColorReferenceImage,
+  hasConsistencyReferenceImage,
 }: {
   profile: ProductModelProfile;
   productName?: string;
@@ -357,9 +541,12 @@ function buildPrompt({
   productColors?: string[];
   customPrompt?: string;
   targetColor?: string;
+  targetAngle?: ProductImageAngle;
   referenceImageCount: number;
   hasColorReferenceImage: boolean;
+  hasConsistencyReferenceImage: boolean;
 }): string {
+  const anglePreset = resolveAnglePreset(targetAngle);
   const contextParts = [
     productName ? `Product name: ${productName}.` : "",
     productCategory ? `Category: ${productCategory}.` : "",
@@ -372,6 +559,10 @@ function buildPrompt({
     `Number of garment reference images provided: ${referenceImageCount}.`,
     hasColorReferenceImage
       ? "A separate color reference image is also provided. Use it only to match garment color tone."
+      : "",
+    `Target camera angle for this output: ${anglePreset.label}.`,
+    hasConsistencyReferenceImage
+      ? "A generated consistency anchor image is provided. Match body proportions, garment scale, and framing to that anchor."
       : "",
   ].filter(Boolean);
 
@@ -394,16 +585,23 @@ Source fidelity rules (mandatory):
 
 Model, pose, and framing rules:
 - Exactly one adult female model, full body visible from head to feet, centered.
-- Frontal ecommerce pose, neutral confident expression, arms relaxed with slight separation from torso.
+- ${anglePreset.promptInstruction}
 - Keep anatomy natural and realistic: correct hands/fingers, shoulders, hips, limbs, and body proportions.
 - Keep garment fit flattering but realistic; no extreme body warping.
 - Maintain clean composition with padding around silhouette for storefront card cropping.
 
 Lighting and camera rules:
 - High-end studio look, soft key + fill lighting, controlled highlights, minimal harsh shadows.
+- ${anglePreset.cameraInstruction}
 - Sharp focus on garment texture and closures; avoid blur and over-smoothing.
 - Photorealistic skin texture and face detail; avoid plastic skin.
 - No cinematic color grading, no stylized filters.
+
+Cross-angle consistency lock (mandatory):
+- Keep garment scale, waistline height, hemline length, and strap placement consistent with references.
+- Do not change garment size ratio relative to model torso/hips/legs across angle variants.
+- Preserve same model identity, body proportions, and face identity across rerenders.
+- Keep camera distance and crop scale stable so all angle outputs align as a coherent set.
 
 Output constraints (mandatory):
 - Background must be truly transparent (real alpha), with clean edges around hair, body, and garment.
@@ -419,6 +617,84 @@ Quality checklist before returning:
 
 ${contextParts.join("\n")}
 ${sanitizedCustomPrompt ? `\nUser adjustment instructions:\n${sanitizedCustomPrompt}` : ""}`.trim();
+}
+
+async function upscaleImageToMinimumResolution(
+  image: GeminiImageResult
+): Promise<GeminiImageResult> {
+  if (OUTPUT_SCALE_FACTOR < 2) {
+    return image;
+  }
+
+  try {
+    const source = sharp(image.imageBuffer, { failOn: "none" });
+    const meta = await source.metadata();
+    if (!meta.width || !meta.height) {
+      return image;
+    }
+
+    let targetWidth = Math.max(1, Math.round(meta.width * OUTPUT_SCALE_FACTOR));
+    let targetHeight = Math.max(1, Math.round(meta.height * OUTPUT_SCALE_FACTOR));
+
+    if (OUTPUT_MAX_LONG_EDGE > 0) {
+      const longEdge = Math.max(targetWidth, targetHeight);
+      if (longEdge > OUTPUT_MAX_LONG_EDGE) {
+        const scale = OUTPUT_MAX_LONG_EDGE / longEdge;
+        targetWidth = Math.max(1, Math.round(targetWidth * scale));
+        targetHeight = Math.max(1, Math.round(targetHeight * scale));
+      }
+    }
+
+    if (targetWidth <= meta.width || targetHeight <= meta.height) {
+      return image;
+    }
+
+    let pipeline = source.resize({
+      width: targetWidth,
+      height: targetHeight,
+      fit: "fill",
+      kernel: "lanczos3",
+      withoutEnlargement: false,
+    });
+
+    let mimeType = image.mimeType;
+    if (image.mimeType.includes("png")) {
+      pipeline = pipeline.png({
+        compressionLevel: 9,
+        adaptiveFiltering: true,
+      });
+      mimeType = "image/png";
+    } else if (image.mimeType.includes("webp")) {
+      pipeline = pipeline.webp({
+        quality: 100,
+        lossless: true,
+      });
+      mimeType = "image/webp";
+    } else if (
+      image.mimeType.includes("jpeg") ||
+      image.mimeType.includes("jpg")
+    ) {
+      pipeline = pipeline.jpeg({
+        quality: 95,
+        mozjpeg: true,
+      });
+      mimeType = "image/jpeg";
+    } else {
+      pipeline = pipeline.png({
+        compressionLevel: 9,
+        adaptiveFiltering: true,
+      });
+      mimeType = "image/png";
+    }
+
+    return {
+      imageBuffer: await pipeline.toBuffer(),
+      mimeType,
+      textNotes: image.textNotes,
+    };
+  } catch {
+    return image;
+  }
 }
 
 function isModelNotFoundError(error: unknown): boolean {
@@ -585,12 +861,14 @@ async function generateImageWithGemini({
   prompt,
   sourceImages,
   colorReferenceImage,
+  consistencyReferenceImage,
 }: {
   apiKey: string;
   modelName: string;
   prompt: string;
   sourceImages: SourceImagePayload[];
   colorReferenceImage?: SourceImagePayload | null;
+  consistencyReferenceImage?: SourceImagePayload | null;
 }): Promise<GeminiImageResult> {
   const parts: Array<
     | { text: string }
@@ -614,6 +892,18 @@ async function generateImageWithGemini({
       inline_data: {
         mime_type: colorReferenceImage.mimeType,
         data: colorReferenceImage.base64,
+      },
+    });
+  }
+  if (consistencyReferenceImage) {
+    parts.push({
+      text:
+        "The next image is a consistency anchor. Preserve model identity, garment scale, body proportions, and framing to match this anchor while applying the requested camera angle.",
+    });
+    parts.push({
+      inline_data: {
+        mime_type: consistencyReferenceImage.mimeType,
+        data: consistencyReferenceImage.base64,
       },
     });
   }
@@ -1227,11 +1517,13 @@ async function generateWithFallback({
   apiKey,
   sourceImages,
   colorReferenceImage,
+  consistencyReferenceImage,
   prompt,
 }: {
   apiKey: string;
   sourceImages: SourceImagePayload[];
   colorReferenceImage?: SourceImagePayload | null;
+  consistencyReferenceImage?: SourceImagePayload | null;
   prompt: string;
 }): Promise<{
   imageBuffer: Buffer;
@@ -1259,6 +1551,7 @@ async function generateWithFallback({
         prompt,
         sourceImages,
         colorReferenceImage,
+        consistencyReferenceImage,
       });
 
       const finalImage = await enforceTransparency({
@@ -1266,14 +1559,15 @@ async function generateWithFallback({
         modelName: normalizedModel,
         initialImage: initial,
       });
+      const upscaled = await upscaleImageToMinimumResolution(finalImage);
 
-      const revisedPrompt = [...initial.textNotes, ...finalImage.textNotes]
+      const revisedPrompt = [...initial.textNotes, ...upscaled.textNotes]
         .filter(Boolean)
         .join(" | ");
 
       return {
-        imageBuffer: finalImage.imageBuffer,
-        mimeType: finalImage.mimeType,
+        imageBuffer: upscaled.imageBuffer,
+        mimeType: upscaled.mimeType,
         revisedPrompt: revisedPrompt || null,
         modelUsed: normalizedModel,
       };
@@ -1286,6 +1580,7 @@ async function generateWithFallback({
             prompt,
             sourceImages: [sourceImages[0]],
             colorReferenceImage,
+            consistencyReferenceImage,
           });
 
           const finalImage = await enforceTransparency({
@@ -1293,14 +1588,15 @@ async function generateWithFallback({
             modelName: normalizedModel,
             initialImage: initial,
           });
+          const upscaled = await upscaleImageToMinimumResolution(finalImage);
 
-          const revisedPrompt = [...initial.textNotes, ...finalImage.textNotes]
+          const revisedPrompt = [...initial.textNotes, ...upscaled.textNotes]
             .filter(Boolean)
             .join(" | ");
 
           return {
-            imageBuffer: finalImage.imageBuffer,
-            mimeType: finalImage.mimeType,
+            imageBuffer: upscaled.imageBuffer,
+            mimeType: upscaled.mimeType,
             revisedPrompt: revisedPrompt || null,
             modelUsed: normalizedModel,
           };
@@ -1431,10 +1727,19 @@ export async function generateProfessionalProductImage(
     typeof input.colorReferenceImageUrl === "string"
       ? input.colorReferenceImageUrl.trim()
       : "";
+  const consistencyReferenceImageUrl =
+    typeof input.consistencyReferenceImageUrl === "string"
+      ? input.consistencyReferenceImageUrl.trim()
+      : "";
   const colorReferenceImage =
     colorReferenceImageUrl.length > 0
       ? await fetchSourceImage(colorReferenceImageUrl)
       : null;
+  const consistencyReferenceImage =
+    consistencyReferenceImageUrl.length > 0
+      ? await fetchSourceImage(consistencyReferenceImageUrl)
+      : null;
+  const targetAngle = resolveAnglePreset(input.targetAngle).id;
   const profile = getRandomProfile(input.preferredProfileId);
   const prompt = buildPrompt({
     profile,
@@ -1443,14 +1748,17 @@ export async function generateProfessionalProductImage(
     productColors: input.productColors,
     customPrompt: input.customPrompt,
     targetColor: input.targetColor,
+    targetAngle,
     referenceImageCount: sourceImages.length,
     hasColorReferenceImage: Boolean(colorReferenceImage),
+    hasConsistencyReferenceImage: Boolean(consistencyReferenceImage),
   });
 
   const generated = await generateWithFallback({
     apiKey,
     sourceImages,
     colorReferenceImage,
+    consistencyReferenceImage,
     prompt,
   });
 
@@ -1464,8 +1772,10 @@ export async function generateProfessionalProductImage(
     sourceImageHash: sourceImages[0].hash,
     sourceImageHashes: sourceImages.map((image) => image.hash),
     colorReferenceImageHash: colorReferenceImage?.hash || null,
+    consistencyReferenceImageHash: consistencyReferenceImage?.hash || null,
     outputFormat: inferOutputFormat(generated.mimeType),
     quality: inferQuality(generated.modelUsed),
     inputFidelity: inferInputFidelity(generated.modelUsed),
+    targetAngle,
   };
 }

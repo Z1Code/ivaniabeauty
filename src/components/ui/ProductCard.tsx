@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { memo, useCallback, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag, Check, Star, Eye } from "lucide-react";
 import { formatPrice, cn, getColorHex } from "@/lib/utils";
@@ -29,6 +30,7 @@ export interface Product {
 
 interface ProductCardProps {
   product: Product;
+  imagePriority?: boolean;
   className?: string;
 }
 
@@ -67,7 +69,7 @@ const defaultBadgeStyle = {
   bg: "bg-white/90",
 };
 
-export default function ProductCard({ product, className }: ProductCardProps) {
+function ProductCard({ product, imagePriority = false, className }: ProductCardProps) {
   const { t, language } = useTranslation();
   const addItem = useCart((s) => s.addItem);
   const openCart = useCart((s) => s.openCart);
@@ -179,16 +181,20 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
             {/* Product image */}
             {primaryImage && !imgError ? (
-              <img
+              <Image
                 src={primaryImage}
                 alt={name}
+                fill
+                priority={imagePriority}
+                fetchPriority={imagePriority ? "high" : "auto"}
+                quality={isAiGeneratedImage ? 95 : 92}
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1536px) 29vw, 360px"
                 className={cn(
                   "absolute inset-0 w-full h-full transition-transform duration-700 ease-out will-change-transform",
                   isAiGeneratedImage
                     ? "object-contain p-1.5 group-hover:scale-[1.01]"
                     : "object-cover group-hover:scale-[1.06]"
                 )}
-                loading="lazy"
                 onError={() => setImgError(true)}
               />
             ) : (
@@ -362,3 +368,5 @@ export default function ProductCard({ product, className }: ProductCardProps) {
     </motion.article>
   );
 }
+
+export default memo(ProductCard);

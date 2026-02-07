@@ -2,6 +2,54 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
+// GET: Public endpoint - list approved reviews (optionally filtered by productId)
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const productId = searchParams.get("productId");
+
+    let query: FirebaseFirestore.Query = adminDb
+      .collection("reviews")
+      .where("status", "==", "approved")
+      .limit(100);
+
+    if (productId) {
+      query = query.where("productId", "==", productId);
+    }
+
+    const snapshot = await query.get();
+
+    const reviews = snapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        const createdAtIso = data.createdAt?.toDate?.()?.toISOString() || null;
+        return {
+          id: doc.id,
+          productId: data.productId || "",
+          productName: data.productName || "",
+          customerName: data.customerName || "",
+          rating: Number(data.rating || 0),
+          title: data.title || "",
+          body: data.body || "",
+          isVerifiedPurchase: data.isVerifiedPurchase === true,
+          createdAt: createdAtIso,
+        };
+      })
+      .sort((a, b) => {
+        if (!a.createdAt || !b.createdAt) return 0;
+        return a.createdAt < b.createdAt ? 1 : -1;
+      });
+
+    return NextResponse.json(reviews);
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch reviews" },
+      { status: 500 }
+    );
+  }
+}
+
 // POST: Submit a review (public)
 export async function POST(request: Request) {
   try {

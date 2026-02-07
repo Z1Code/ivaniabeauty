@@ -35,6 +35,8 @@ export interface ProductDoc {
   care: string;
   images: string[];
   sizeChartImageUrl: string | null;
+  productPageImageUrl: string | null;
+  productPageImageSourceUrl: string | null;
   rating: number;
   reviewCount: number;
   inStock: boolean;

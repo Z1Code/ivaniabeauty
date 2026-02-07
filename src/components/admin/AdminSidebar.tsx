@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useCallback, type ComponentType } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -28,7 +29,13 @@ interface AdminSidebarProps {
   themeGradient?: string;
 }
 
-const NAV_ITEMS = [
+interface NavItem {
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/products", icon: Package, label: "Productos" },
   { href: "/admin/collections", icon: FolderOpen, label: "Colecciones" },
@@ -42,6 +49,47 @@ const NAV_ITEMS = [
   { href: "/admin/settings", icon: Settings, label: "Configuracion" },
 ];
 
+interface SidebarNavItemProps {
+  item: NavItem;
+  isActive: boolean;
+  onClick?: () => void;
+}
+
+const SidebarNavItem = memo(function SidebarNavItem({
+  item,
+  isActive,
+  onClick,
+}: SidebarNavItemProps) {
+  return (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group",
+        isActive
+          ? "bg-white/15 text-white shadow-sm"
+          : "text-white/60 hover:text-white hover:bg-white/8"
+      )}
+    >
+      <item.icon
+        className={cn(
+          "w-5 h-5 flex-shrink-0",
+          isActive ? "text-white" : "text-white/50 group-hover:text-white/80"
+        )}
+      />
+      <span className="flex-1">{item.label}</span>
+      {isActive && <ChevronRight className="w-4 h-4 text-white/40" />}
+    </Link>
+  );
+});
+
+function isItemActive(pathname: string, href: string): boolean {
+  if (href === "/admin") {
+    return pathname === "/admin";
+  }
+  return pathname.startsWith(href);
+}
+
 function SidebarContent({
   onCloseMobile,
 }: {
@@ -50,11 +98,11 @@ function SidebarContent({
   const pathname = usePathname();
   const router = useRouter();
 
-  async function handleLogout() {
+  const handleLogout = useCallback(async () => {
     await fetch("/api/auth/session", { method: "DELETE" });
     router.push("/admin/login");
     router.refresh();
-  }
+  }, [router]);
 
   return (
     <div className="flex flex-col h-full">
@@ -85,34 +133,15 @@ function SidebarContent({
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         {NAV_ITEMS.map((item) => {
-          const isActive =
-            item.href === "/admin"
-              ? pathname === "/admin"
-              : pathname.startsWith(item.href);
+          const isActive = isItemActive(pathname, item.href);
 
           return (
-            <Link
+            <SidebarNavItem
               key={item.href}
-              href={item.href}
+              item={item}
+              isActive={isActive}
               onClick={onCloseMobile}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group",
-                isActive
-                  ? "bg-white/15 text-white shadow-sm"
-                  : "text-white/60 hover:text-white hover:bg-white/8"
-              )}
-            >
-              <item.icon
-                className={cn(
-                  "w-5 h-5 flex-shrink-0",
-                  isActive ? "text-white" : "text-white/50 group-hover:text-white/80"
-                )}
-              />
-              <span className="flex-1">{item.label}</span>
-              {isActive && (
-                <ChevronRight className="w-4 h-4 text-white/40" />
-              )}
-            </Link>
+            />
           );
         })}
       </nav>
@@ -143,7 +172,7 @@ function SidebarContent({
 
 const DEFAULT_GRADIENT = "bg-gradient-to-b from-[#8B5A6B] to-[#6B3F50]";
 
-export default function AdminSidebar({
+function AdminSidebarComponent({
   mobileOpen,
   onCloseMobile,
   themeGradient,
@@ -183,3 +212,7 @@ export default function AdminSidebar({
     </>
   );
 }
+
+const AdminSidebar = memo(AdminSidebarComponent);
+
+export default AdminSidebar;

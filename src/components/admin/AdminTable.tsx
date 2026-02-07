@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 
 interface Column<T> {
@@ -17,7 +18,7 @@ interface AdminTableProps<T> {
   emptyMessage?: string;
 }
 
-export default function AdminTable<T>({
+function AdminTableComponent<T>({
   columns,
   data,
   keyExtractor,
@@ -78,3 +79,7 @@ export default function AdminTable<T>({
     </div>
   );
 }
+
+const AdminTable = memo(AdminTableComponent) as typeof AdminTableComponent;
+
+export default AdminTable;

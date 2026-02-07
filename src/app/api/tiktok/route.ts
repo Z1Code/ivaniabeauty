@@ -30,12 +30,6 @@ const FALLBACK_VIDEO_IDS = [
 
 let cachedData: { videos: TikTokVideo[]; timestamp: number } | null = null;
 
-function formatCount(n: number): string {
-  if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
-  if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
-  return String(n);
-}
-
 function extractScriptContent(html: string, scriptId: string): string | null {
   const marker = `id="${scriptId}"`;
   const idx = html.indexOf(marker);

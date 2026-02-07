@@ -1,7 +1,7 @@
 "use client";
 
+import { memo } from "react";
 import { Menu, Bell, Moon, Sun } from "lucide-react";
-import type { AdminProfile } from "@/lib/firebase/types";
 
 interface AdminTopbarProps {
   admin: {
@@ -15,7 +15,7 @@ interface AdminTopbarProps {
   onToggleDark?: () => void;
 }
 
-export default function AdminTopbar({ admin, onMenuToggle, isDark, onToggleDark }: AdminTopbarProps) {
+function AdminTopbarComponent({ admin, onMenuToggle, isDark, onToggleDark }: AdminTopbarProps) {
   const initials = admin.fullName
     ? admin.fullName
         .split(" ")
@@ -73,3 +73,7 @@ export default function AdminTopbar({ admin, onMenuToggle, isDark, onToggleDark 
     </header>
   );
 }
+
+const AdminTopbar = memo(AdminTopbarComponent);
+
+export default AdminTopbar;

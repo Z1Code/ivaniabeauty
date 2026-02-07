@@ -3,12 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "next dev",
+    "dev:webpack": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "backfill:fit-guides": "npx tsx scripts/backfill-fit-guides.ts",
-    "test:fit-guide": "npx tsx --test src/lib/fit-guide/*.test.ts"
+    "test:fit-guide": "npx tsx --test src/lib/fit-guide/*.test.ts",
+    "test:smoke": "node scripts/smoke-test-site.mjs",
+    "test:smoke:ci": "node scripts/smoke-test-site.mjs --start-server",
+    "test:nightly": "npm run lint && npm run typecheck && npm run test:fit-guide && npm run build && npm run test:smoke:ci"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -22,6 +27,8 @@
     "pngjs": "^7.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-easy-crop": "^5.5.3",
+    "sharp": "^0.34.5",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
