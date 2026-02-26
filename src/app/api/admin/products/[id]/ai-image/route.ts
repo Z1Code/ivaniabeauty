@@ -15,7 +15,7 @@ import {
   getBackgroundRemovalConfigurationRuntime,
 } from "@/lib/product-image-ai/background-removal";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 interface ProductRecord {
   nameEs?: string;

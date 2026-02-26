@@ -1566,6 +1566,33 @@ async function enforceTransparency({
     return initialImage;
   }
 
+  // Step 1: Try specialized background removal first (faster than Gemini passes, ~2-5s).
+  try {
+    const specialized = await removeBackgroundSpecializedWithDiagnostics({
+      imageBuffer: initialImage.imageBuffer,
+      mimeType: initialImage.mimeType,
+    });
+    if (
+      specialized.result &&
+      !lacksRequiredTransparency(
+        specialized.result.mimeType,
+        specialized.result.imageBuffer
+      )
+    ) {
+      return {
+        imageBuffer: specialized.result.imageBuffer,
+        mimeType: specialized.result.mimeType,
+        textNotes: [
+          ...initialImage.textNotes,
+          `specialized_background_removal:${specialized.result.provider}`,
+        ],
+      };
+    }
+  } catch {
+    // Specialized providers unavailable, continue to Gemini pass.
+  }
+
+  // Step 2: Single Gemini transparency pass (~20-30s).
   let candidate = initialImage;
   try {
     candidate = await runTransparencyPass({
@@ -1582,65 +1609,25 @@ async function enforceTransparency({
     return candidate;
   }
 
-  let strict = candidate;
-  try {
-    strict = await runStrictTransparencyPass({
-      apiKey,
-      modelName,
-      imageBuffer: candidate.imageBuffer,
-      mimeType: candidate.mimeType,
-    });
-  } catch {
-    strict = candidate;
-  }
-
-  if (!lacksRequiredTransparency(strict.mimeType, strict.imageBuffer)) {
-    return strict;
-  }
-
-  try {
-    const specialized = await removeBackgroundSpecializedWithDiagnostics({
-      imageBuffer: strict.imageBuffer,
-      mimeType: strict.mimeType,
-    });
-    if (
-      specialized.result &&
-      !lacksRequiredTransparency(
-        specialized.result.mimeType,
-        specialized.result.imageBuffer
-      )
-    ) {
-      return {
-        imageBuffer: specialized.result.imageBuffer,
-        mimeType: specialized.result.mimeType,
-        textNotes: [
-          ...strict.textNotes,
-          `specialized_background_removal:${specialized.result.provider}`,
-        ],
-      };
-    }
-  } catch {
-    // Keep local fallback path when specialized providers fail.
-  }
-
+  // Step 3: Local border cutout as fast last resort.
   if (LOCAL_CUTOUT_FALLBACK_ENABLED) {
     const locallyCut =
-      applyBorderBackgroundCutout(strict.mimeType, strict.imageBuffer) ||
       applyBorderBackgroundCutout(candidate.mimeType, candidate.imageBuffer) ||
       applyBorderBackgroundCutout(initialImage.mimeType, initialImage.imageBuffer);
     if (locallyCut) {
       return {
         imageBuffer: locallyCut.imageBuffer,
         mimeType: locallyCut.mimeType,
-        textNotes: [...strict.textNotes, "local_background_cutout"],
+        textNotes: [...candidate.textNotes, "local_background_cutout"],
       };
     }
   }
 
+  // Return best available result even without perfect transparency.
   return {
-    imageBuffer: initialImage.imageBuffer,
-    mimeType: initialImage.mimeType,
-    textNotes: [...strict.textNotes, "transparency_fallback_original"],
+    imageBuffer: candidate.imageBuffer,
+    mimeType: candidate.mimeType,
+    textNotes: [...candidate.textNotes, "transparency_fallback_best_effort"],
   };
 }
 
@@ -1669,112 +1656,94 @@ async function generateWithFallback({
   let sawSafetyBlock = false;
   const triedModels = new Set<string>();
 
-  const MAX_SAME_MODEL_RETRIES = 1; // retry once on the same model before moving on
-
   for (const modelName of MODEL_CANDIDATES) {
     const normalizedModel = modelName.trim();
     if (!normalizedModel) continue;
     if (triedModels.has(normalizedModel)) continue;
     triedModels.add(normalizedModel);
 
-    for (let retryIndex = 0; retryIndex <= MAX_SAME_MODEL_RETRIES; retryIndex++) {
-      try {
-        const initial = await generateImageWithGemini({
-          apiKey,
-          modelName: normalizedModel,
-          prompt,
-          sourceImages,
-          colorReferenceImage,
-          consistencyReferenceImage,
-        });
+    try {
+      const initial = await generateImageWithGemini({
+        apiKey,
+        modelName: normalizedModel,
+        prompt,
+        sourceImages,
+        colorReferenceImage,
+        consistencyReferenceImage,
+      });
 
-        const finalImage = await enforceTransparency({
-          apiKey,
-          modelName: normalizedModel,
-          initialImage: initial,
-        });
-        const upscaled = await upscaleImageToMinimumResolution(finalImage);
+      const finalImage = await enforceTransparency({
+        apiKey,
+        modelName: normalizedModel,
+        initialImage: initial,
+      });
+      const upscaled = await upscaleImageToMinimumResolution(finalImage);
 
-        const revisedPrompt = [...initial.textNotes, ...upscaled.textNotes]
-          .filter(Boolean)
-          .join(" | ");
+      const revisedPrompt = [...initial.textNotes, ...upscaled.textNotes]
+        .filter(Boolean)
+        .join(" | ");
 
-        return {
-          imageBuffer: upscaled.imageBuffer,
-          mimeType: upscaled.mimeType,
-          revisedPrompt: revisedPrompt || null,
-          modelUsed: normalizedModel,
-        };
-      } catch (error) {
-        // On payload-too-large with multiple source images, try with only the primary image.
-        if (sourceImages.length > 1 && isInputPayloadError(error)) {
-          try {
-            const initial = await generateImageWithGemini({
-              apiKey,
-              modelName: normalizedModel,
-              prompt,
-              sourceImages: [sourceImages[0]],
-              colorReferenceImage,
-              consistencyReferenceImage,
-            });
-
-            const finalImage = await enforceTransparency({
-              apiKey,
-              modelName: normalizedModel,
-              initialImage: initial,
-            });
-            const upscaled = await upscaleImageToMinimumResolution(finalImage);
-
-            const revisedPrompt = [...initial.textNotes, ...upscaled.textNotes]
-              .filter(Boolean)
-              .join(" | ");
-
-            return {
-              imageBuffer: upscaled.imageBuffer,
-              mimeType: upscaled.mimeType,
-              revisedPrompt: revisedPrompt || null,
-              modelUsed: normalizedModel,
-            };
-          } catch (singleImageError) {
-            lastError = singleImageError;
-            const singleMessage = String(
-              (singleImageError as Error).message || "unknown single image fallback error"
-            );
-            attempts.push({
-              model: `${normalizedModel} (single-fallback)`,
-              message: singleMessage,
-            });
-            if (isNoImageDataError(singleImageError)) sawNoImageData = true;
-            if (isImageSafetyError(singleImageError)) sawSafetyBlock = true;
-            if (isQuotaError(singleImageError)) sawQuotaError = true;
-            if (isRetryableModelError(singleImageError)) break; // move to next model
-            throw singleImageError;
-          }
-        }
-
-        // For NO_IMAGE_DATA or empty response: retry on same model once before giving up on it.
-        if (
-          retryIndex < MAX_SAME_MODEL_RETRIES &&
-          (isNoImageDataError(error) ||
-            (error && typeof error === "object" &&
-              String((error as { code?: string }).code || "").includes("empty_response")))
-        ) {
-          attempts.push({
-            model: `${normalizedModel} (retry ${retryIndex + 1})`,
-            message: String((error as Error).message || "retrying same model"),
+      return {
+        imageBuffer: upscaled.imageBuffer,
+        mimeType: upscaled.mimeType,
+        revisedPrompt: revisedPrompt || null,
+        modelUsed: normalizedModel,
+      };
+    } catch (error) {
+      // On payload-too-large with multiple source images, try with only the primary image.
+      if (sourceImages.length > 1 && isInputPayloadError(error)) {
+        try {
+          const initial = await generateImageWithGemini({
+            apiKey,
+            modelName: normalizedModel,
+            prompt,
+            sourceImages: [sourceImages[0]],
+            colorReferenceImage,
+            consistencyReferenceImage,
           });
-          continue; // retry same model
-        }
 
-        lastError = error;
-        const message = String((error as Error).message || "unknown model error");
-        attempts.push({ model: normalizedModel, message });
-        if (isNoImageDataError(error)) sawNoImageData = true;
-        if (isImageSafetyError(error)) sawSafetyBlock = true;
-        if (isQuotaError(error)) sawQuotaError = true;
-        if (isRetryableModelError(error)) break; // move to next model
-        throw error;
+          const finalImage = await enforceTransparency({
+            apiKey,
+            modelName: normalizedModel,
+            initialImage: initial,
+          });
+          const upscaled = await upscaleImageToMinimumResolution(finalImage);
+
+          const revisedPrompt = [...initial.textNotes, ...upscaled.textNotes]
+            .filter(Boolean)
+            .join(" | ");
+
+          return {
+            imageBuffer: upscaled.imageBuffer,
+            mimeType: upscaled.mimeType,
+            revisedPrompt: revisedPrompt || null,
+            modelUsed: normalizedModel,
+          };
+        } catch (singleImageError) {
+          lastError = singleImageError;
+          const singleMessage = String(
+            (singleImageError as Error).message || "unknown single image fallback error"
+          );
+          attempts.push({
+            model: `${normalizedModel} (single-fallback)`,
+            message: singleMessage,
+          });
+          if (isNoImageDataError(singleImageError)) sawNoImageData = true;
+          if (isImageSafetyError(singleImageError)) sawSafetyBlock = true;
+          if (isQuotaError(singleImageError)) sawQuotaError = true;
+          if (isRetryableModelError(singleImageError)) continue;
+          throw singleImageError;
+        }
       }
+
+      lastError = error;
+      const message = String((error as Error).message || "unknown model error");
+      attempts.push({ model: normalizedModel, message });
+      if (isNoImageDataError(error)) sawNoImageData = true;
+      if (isImageSafetyError(error)) sawSafetyBlock = true;
+      if (isQuotaError(error)) sawQuotaError = true;
+      if (isRetryableModelError(error)) continue;
+      throw error;
     }
   }
 
