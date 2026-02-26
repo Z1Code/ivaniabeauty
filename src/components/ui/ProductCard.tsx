@@ -372,8 +372,10 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
                     </div>
                   ) : (
                     product.sizes!.map((size) => {
+                      // Only mark out-of-stock when we have explicit stock data for this size showing 0
+                      const hasStockData = sizeStock !== null && Object.keys(sizeStock).length > 0;
                       const qty = sizeStock?.[size];
-                      const isSizeOut = sizeStock !== null && (qty === undefined || qty <= 0);
+                      const isSizeOut = hasStockData && qty !== undefined && qty <= 0;
                       return (
                         <button
                           key={size}
