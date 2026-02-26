@@ -14,6 +14,9 @@ import {
   Tag,
   Download,
   ExternalLink,
+  Mail,
+  Check,
+  Loader2,
 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ShippingLabelModal from "@/components/admin/ShippingLabelModal";
@@ -120,6 +123,35 @@ export default function OrderDetailClient({ order }: { order: OrderData }) {
   const [labelUrl, setLabelUrl] = useState(order.labelUrl || null);
   const [labelCarrier, setLabelCarrier] = useState(order.labelCarrier || null);
   const [trackingUrl, setTrackingUrl] = useState(order.trackingUrlProvider || null);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+
+  const sendLabelEmail = async () => {
+    if (!labelUrl) return;
+    setEmailSending(true);
+    try {
+      const res = await fetch("/api/admin/shipping/send-label", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: "ivaniabeauty2@gmail.com",
+          orderNumber: order.orderNumber,
+          customerName: order.customerName,
+          trackingNumber,
+          labelUrl,
+          carrier: labelCarrier,
+          trackingUrl,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setEmailSent(true);
+      showNotification("Label enviado a ivaniabeauty2@gmail.com");
+    } catch {
+      showNotification("Error al enviar el email", true);
+    } finally {
+      setEmailSending(false);
+    }
+  };
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -491,22 +523,50 @@ export default function OrderDetailClient({ order }: { order: OrderData }) {
                     {labelCarrier && ` (${labelCarrier})`}
                   </span>
                 </div>
-                <div className="flex gap-2">
-                  <a
-                    href={labelUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Descargar PDF
-                  </a>
+                <div className="space-y-2">
                   <button
-                    onClick={() => setShowLabelModal(true)}
-                    className="px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 text-xs font-medium hover:bg-emerald-100 transition-colors cursor-pointer"
+                    onClick={sendLabelEmail}
+                    disabled={emailSending || emailSent}
+                    className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      emailSent
+                        ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                        : "bg-gray-900 text-white hover:bg-gray-800"
+                    } disabled:opacity-70`}
                   >
-                    Nueva Etiqueta
+                    {emailSent ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        Enviado
+                      </>
+                    ) : emailSending ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-3.5 h-3.5" />
+                        Enviar por Email
+                      </>
+                    )}
                   </button>
+                  <div className="flex gap-2">
+                    <a
+                      href={labelUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Descargar PDF
+                    </a>
+                    <button
+                      onClick={() => setShowLabelModal(true)}
+                      className="px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 text-xs font-medium hover:bg-emerald-100 transition-colors cursor-pointer"
+                    >
+                      Nueva Etiqueta
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
