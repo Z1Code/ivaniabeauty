@@ -1566,33 +1566,8 @@ async function enforceTransparency({
     return initialImage;
   }
 
-  // Step 1: Try specialized background removal first (faster than Gemini passes, ~2-5s).
-  try {
-    const specialized = await removeBackgroundSpecializedWithDiagnostics({
-      imageBuffer: initialImage.imageBuffer,
-      mimeType: initialImage.mimeType,
-    });
-    if (
-      specialized.result &&
-      !lacksRequiredTransparency(
-        specialized.result.mimeType,
-        specialized.result.imageBuffer
-      )
-    ) {
-      return {
-        imageBuffer: specialized.result.imageBuffer,
-        mimeType: specialized.result.mimeType,
-        textNotes: [
-          ...initialImage.textNotes,
-          `specialized_background_removal:${specialized.result.provider}`,
-        ],
-      };
-    }
-  } catch {
-    // Specialized providers unavailable, continue to Gemini pass.
-  }
-
-  // Step 2: Single Gemini transparency pass (~20-30s).
+  // Step 1: Single Gemini transparency pass — handles fake transparency patterns
+  // (checkerboard, grey backgrounds) that Gemini often produces.
   let candidate = initialImage;
   try {
     candidate = await runTransparencyPass({
@@ -1609,7 +1584,34 @@ async function enforceTransparency({
     return candidate;
   }
 
-  // Step 3: Local border cutout as fast last resort.
+  // Step 2: Specialized background removal (RemoveBG/Clipdrop) — works well on
+  // the Gemini-cleaned image which now has a simpler background.
+  try {
+    const specialized = await removeBackgroundSpecializedWithDiagnostics({
+      imageBuffer: candidate.imageBuffer,
+      mimeType: candidate.mimeType,
+    });
+    if (
+      specialized.result &&
+      !lacksRequiredTransparency(
+        specialized.result.mimeType,
+        specialized.result.imageBuffer
+      )
+    ) {
+      return {
+        imageBuffer: specialized.result.imageBuffer,
+        mimeType: specialized.result.mimeType,
+        textNotes: [
+          ...candidate.textNotes,
+          `specialized_background_removal:${specialized.result.provider}`,
+        ],
+      };
+    }
+  } catch {
+    // Specialized providers unavailable or failed.
+  }
+
+  // Step 3: Local border cutout as last resort.
   if (LOCAL_CUTOUT_FALLBACK_ENABLED) {
     const locallyCut =
       applyBorderBackgroundCutout(candidate.mimeType, candidate.imageBuffer) ||

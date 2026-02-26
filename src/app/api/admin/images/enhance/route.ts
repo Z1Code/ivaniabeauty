@@ -15,6 +15,8 @@ import {
   type ProviderId,
 } from "@/lib/product-image-ai/background-removal";
 
+export const maxDuration = 300;
+
 const MAX_SOURCE_BYTES = 50 * 1024 * 1024;
 const DEFAULT_SCALE_FACTOR = 4;
 const MIN_SCALE_FACTOR = 2;
