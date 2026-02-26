@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -189,7 +189,7 @@ export async function POST(request: Request) {
     // Build discounts for Stripe
     const discounts: { coupon: string }[] = [];
     if (discountAmount > 0) {
-      const stripeCoupon = await stripe.coupons.create({
+      const stripeCoupon = await getStripe().coupons.create({
         amount_off: Math.round(discountAmount * 100),
         currency: "usd",
         duration: "once",
@@ -201,7 +201,7 @@ export async function POST(request: Request) {
     // Create Stripe Checkout Session
     const origin = request.headers.get("origin") || "https://ivaniabeauty.com";
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
       customer_email: customer.email,
@@ -223,9 +223,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url }, { status: 200 });
   } catch (error) {
-    console.error("Error creating checkout session:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Error creating checkout session:", message, error);
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      { error: `Failed to create checkout session: ${message}` },
       { status: 500 }
     );
   }
