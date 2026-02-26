@@ -125,8 +125,6 @@ function parseCsvEnvList(value: string | undefined): string[] {
 }
 
 const DEFAULT_IMAGE_MODEL_FALLBACKS = [
-  "gemini-3-pro-image-preview",
-  "nano-banana-pro-preview",
   // Stable Gemini 2.5 Flash Image (faster, lower quota tier cost).
   "gemini-2.5-flash-image",
   // Preview alias; retried only if available for the project.
@@ -746,7 +744,9 @@ function isRetryableModelError(error: unknown): boolean {
   if (isQuotaError(error)) return true;
   if (isNoImageDataError(error)) return true;
   if (!error || typeof error !== "object") return false;
-  const maybe = error as { status?: number; message?: string };
+  const maybe = error as { status?: number; message?: string; code?: string };
+  const code = String(maybe.code || "").toLowerCase();
+  if (code.includes("empty_response")) return true;
   const status = maybe.status || 0;
   if (status === 408 || status === 409 || status === 425) return true;
   if (status >= 500 && status <= 599) return true;
@@ -800,7 +800,13 @@ function extractGeminiPartImage(part: GeminiInlineImagePart): {
 
 function parseGeminiResponse(payload: unknown): GeminiImageResult {
   if (!payload || typeof payload !== "object") {
-    throw new Error("Gemini returned an empty response payload");
+    const error = new Error("Gemini returned an empty or unparseable response payload") as Error & {
+      code?: string;
+      status?: number;
+    };
+    error.code = "EMPTY_RESPONSE";
+    error.status = 500;
+    throw error;
   }
 
   const response = payload as GeminiGenerateResponse;
