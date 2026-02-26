@@ -65,6 +65,27 @@ export interface CollectionDoc {
   updatedAt: Date;
 }
 
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL: string | null;
+  provider: "email" | "google" | "apple";
+  firstName: string;
+  lastName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  totalOrders: number;
+  totalSpent: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface CustomerDoc {
   email: string;
   firstName: string;

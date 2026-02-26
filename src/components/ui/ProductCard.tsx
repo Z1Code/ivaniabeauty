@@ -84,10 +84,27 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
   const [added, setAdded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [showSizePicker, setShowSizePicker] = useState(false);
+  const [sizeStock, setSizeStock] = useState<Record<string, number> | null>(null);
+  const [loadingStock, setLoadingStock] = useState(false);
   const sizePickerRef = useRef<HTMLDivElement>(null);
+  const stockFetchedRef = useRef(false);
 
   const isOutOfStock = product.inStock === false;
   const hasSizes = product.sizes && product.sizes.length > 0;
+
+  // Fetch sizeStock when picker opens (once per card)
+  useEffect(() => {
+    if (!showSizePicker || !hasSizes || stockFetchedRef.current) return;
+    stockFetchedRef.current = true;
+    setLoadingStock(true);
+    fetch(`/api/products/${product.id}/stock`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.sizeStock) setSizeStock(data.sizeStock);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingStock(false));
+  }, [showSizePicker, hasSizes, product.id]);
 
   // Close size picker on outside click
   useEffect(() => {
@@ -349,15 +366,31 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {product.sizes!.map((size) => (
-                    <button
-                      key={size}
-                      onClick={(e) => handleSizeSelect(e, size)}
-                      className="px-2.5 py-1.5 text-[11px] font-medium rounded-md border border-gray-200 hover:border-rosa hover:bg-rosa/5 hover:text-rosa-dark transition-all duration-200 cursor-pointer"
-                    >
-                      {size}
-                    </button>
-                  ))}
+                  {loadingStock ? (
+                    <div className="flex items-center justify-center w-full py-2">
+                      <div className="w-4 h-4 border-2 border-rosa/30 border-t-rosa rounded-full animate-spin" />
+                    </div>
+                  ) : (
+                    product.sizes!.map((size) => {
+                      const qty = sizeStock?.[size];
+                      const isSizeOut = sizeStock !== null && (qty === undefined || qty <= 0);
+                      return (
+                        <button
+                          key={size}
+                          onClick={(e) => !isSizeOut && handleSizeSelect(e, size)}
+                          disabled={isSizeOut}
+                          className={cn(
+                            "px-2.5 py-1.5 text-[11px] font-medium rounded-md border transition-all duration-200",
+                            isSizeOut
+                              ? "border-gray-100 bg-gray-50 text-gray-300 line-through cursor-not-allowed opacity-50"
+                              : "border-gray-200 hover:border-rosa hover:bg-rosa/5 hover:text-rosa-dark cursor-pointer"
+                          )}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </motion.div>
             )}
