@@ -29,6 +29,7 @@
     "react-dom": "19.2.3",
     "react-easy-crop": "^5.5.3",
     "sharp": "^0.34.5",
+    "shippo": "^2.18.0",
     "stripe": "^20.4.0",
     "zustand": "^5.0.11"
   },

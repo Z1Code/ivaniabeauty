@@ -42,7 +42,8 @@
     "panelCardFastText": "For major cities",
     "panelCardSupportTitle": "1:1 support",
     "panelCardSupportText": "Live size guidance",
-    "panelBadge": "Premium pick 2026"
+    "panelBadge": "Premium pick 2026",
+    "scrollIndicator": "Scroll"
   },
   "features": {
     "heading": "Why Choose Us",
@@ -185,6 +186,7 @@
     "infoPrivacyPolicy": "Privacy Policy",
     "infoTerms": "Terms & Conditions",
     "contactHeading": "Contact",
+    "whatsappButton": "Chat on WhatsApp",
     "copyright": "All rights reserved."
   },
   "shop": {
@@ -202,7 +204,21 @@
     "sectionCinturillas": "Waist Cinchers",
     "sectionTopsShorts": "Tops & Shorts",
     "outOfStock": "Out of Stock",
-    "quickView": "Quick View"
+    "quickView": "Quick View",
+    "visibleSections": "Visible sections",
+    "contextualFilters": "Contextual filters",
+    "focusLabel": "Focus",
+    "productTypeLabel": "Product type",
+    "focusHair": "Hair",
+    "focusBody": "Body",
+    "formatDuo": "Shampoo + Cond. Duo",
+    "formatShampoo": "Shampoo",
+    "formatConditioner": "Conditioner",
+    "formatMask": "Mask",
+    "formatScrub": "Scrub",
+    "formatOil": "Oil",
+    "formatCream": "Cream",
+    "formatOther": "Other"
   },
   "filters": {
     "heading": "Filters",
@@ -271,7 +287,8 @@
     "sizeChartLoading": "Analyzing size chart...",
     "sizeChartError": "Could not load size chart",
     "closeAriaLabel": "Close",
-    "quickViewAriaLabel": "Quick view"
+    "quickViewAriaLabel": "Quick view",
+    "fitGuideFallbackNotice": "Showing a fallback chart while the fit guide is being confirmed."
   },
   "cart": {
     "heading": "Your Cart",
@@ -344,7 +361,17 @@
     "successHeading": "Thank You for Your Order!",
     "successOrderNumber": "Order number",
     "successMessage": "We have received your order and will process it shortly. You will receive a confirmation email at",
-    "successContinueShopping": "Continue Shopping"
+    "successContinueShopping": "Continue Shopping",
+    "countryLocked": "United States",
+    "stateSelectPlaceholder": "Select state",
+    "zipInvalid": "Enter a valid 5-digit ZIP code",
+    "zipNotFound": "ZIP code not found",
+    "zipLookupFailed": "Error looking up ZIP code",
+    "cityMismatch": "City does not match the ZIP code",
+    "stateMismatch": "State does not match the ZIP code",
+    "stateInvalid": "Select a valid state",
+    "autoFilled": "Auto-filled",
+    "stripeRedirectNotice": "You will be redirected to Stripe to enter your payment details securely."
   },
   "shipping": {
     "title": "Shipping & Returns",

@@ -44,6 +44,12 @@ export async function PUT(
   if (body.status) updateData.status = body.status;
   if (body.trackingNumber !== undefined) updateData.trackingNumber = body.trackingNumber;
   if (body.notes !== undefined) updateData.notes = body.notes;
+  if (body.trackingUrlProvider !== undefined) updateData.trackingUrlProvider = body.trackingUrlProvider;
+  if (body.labelUrl !== undefined) updateData.labelUrl = body.labelUrl;
+  if (body.labelCarrier !== undefined) updateData.labelCarrier = body.labelCarrier;
+  if (body.labelServiceLevel !== undefined) updateData.labelServiceLevel = body.labelServiceLevel;
+  if (body.labelShippoCost !== undefined) updateData.labelShippoCost = body.labelShippoCost;
+  if (body.shippoShipmentId !== undefined) updateData.shippoShipmentId = body.shippoShipmentId;
 
   await adminDb.collection("orders").doc(id).update(updateData);
   return NextResponse.json({ success: true });

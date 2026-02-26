@@ -120,6 +120,12 @@ export interface OrderDoc {
   shippingZip: string;
   shippingCountry: string;
   trackingNumber: string | null;
+  labelUrl: string | null;
+  labelCarrier: string | null;
+  labelServiceLevel: string | null;
+  labelShippoCost: number | null;
+  trackingUrlProvider: string | null;
+  shippoShipmentId: string | null;
   notes: string;
   createdAt: Date;
   updatedAt: Date;

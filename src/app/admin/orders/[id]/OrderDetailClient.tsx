@@ -12,8 +12,11 @@ import {
   Package,
   MessageSquare,
   Tag,
+  Download,
+  ExternalLink,
 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import ShippingLabelModal from "@/components/admin/ShippingLabelModal";
 import AdminBadge, {
   getOrderStatusVariant,
   getOrderStatusLabel,
@@ -54,6 +57,12 @@ interface OrderData {
   shippingZip: string;
   shippingCountry: string;
   trackingNumber: string;
+  labelUrl: string | null;
+  labelCarrier: string | null;
+  labelServiceLevel: string | null;
+  labelShippoCost: number | null;
+  trackingUrlProvider: string | null;
+  shippoShipmentId: string | null;
   notes: string;
   createdAt: string | null;
   updatedAt: string | null;
@@ -106,6 +115,11 @@ export default function OrderDetailClient({ order }: { order: OrderData }) {
   const [statusSaving, setStatusSaving] = useState(false);
   const [trackingSaving, setTrackingSaving] = useState(false);
   const [notesSaving, setNotesSaving] = useState(false);
+
+  const [showLabelModal, setShowLabelModal] = useState(false);
+  const [labelUrl, setLabelUrl] = useState(order.labelUrl || null);
+  const [labelCarrier, setLabelCarrier] = useState(order.labelCarrier || null);
+  const [trackingUrl, setTrackingUrl] = useState(order.trackingUrlProvider || null);
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -453,12 +467,54 @@ export default function OrderDetailClient({ order }: { order: OrderData }) {
             </div>
           </div>
 
-          {/* Tracking Number */}
+          {/* Shipping Label & Tracking */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <h3 className="font-serif text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
               <Truck className="w-4 h-4 text-rosa" />
-              Seguimiento
+              Envio y Seguimiento
             </h3>
+
+            {/* Generate Label Button */}
+            {!labelUrl ? (
+              <button
+                onClick={() => setShowLabelModal(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rosa text-white text-sm font-semibold hover:bg-rosa-dark transition-colors mb-4 cursor-pointer"
+              >
+                <Truck className="w-4 h-4" />
+                Generar Etiqueta de Envio
+              </button>
+            ) : (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-emerald-700">
+                    Etiqueta generada
+                    {labelCarrier && ` (${labelCarrier})`}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <a
+                    href={labelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Descargar PDF
+                  </a>
+                  <button
+                    onClick={() => setShowLabelModal(true)}
+                    className="px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 text-xs font-medium hover:bg-emerald-100 transition-colors cursor-pointer"
+                  >
+                    Nueva Etiqueta
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tracking Number */}
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Numero de Seguimiento
+            </label>
             <input
               type="text"
               value={trackingNumber}
@@ -466,6 +522,17 @@ export default function OrderDetailClient({ order }: { order: OrderData }) {
               placeholder="Numero de seguimiento"
               className={inputClasses}
             />
+            {trackingUrl && (
+              <a
+                href={trackingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 mt-2 text-xs text-rosa hover:text-rosa-dark transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Ver rastreo en sitio del carrier
+              </a>
+            )}
             <div className="mt-3 flex justify-end">
               <button
                 onClick={handleTrackingSave}
@@ -483,6 +550,20 @@ export default function OrderDetailClient({ order }: { order: OrderData }) {
           </div>
         </div>
       </div>
+
+      {showLabelModal && (
+        <ShippingLabelModal
+          order={order}
+          onClose={() => setShowLabelModal(false)}
+          onLabelCreated={(data) => {
+            setTrackingNumber(data.trackingNumber);
+            setLabelUrl(data.labelUrl);
+            setLabelCarrier(data.carrier);
+            setTrackingUrl(data.trackingUrl);
+            setStatus("shipped");
+          }}
+        />
+      )}
     </>
   );
 }
