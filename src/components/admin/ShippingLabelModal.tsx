@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Package, Truck, Download, Printer, Loader2, ExternalLink } from "lucide-react";
+import { X, Package, Truck, Download, Printer, Loader2, ExternalLink, Mail, Check } from "lucide-react";
 
 interface ShippingRate {
   objectId: string;
@@ -77,6 +77,39 @@ export default function ShippingLabelModal({
     serviceLevel: string;
     cost: string;
   } | null>(null);
+
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+
+  const sendLabelEmail = async () => {
+    if (!labelData) return;
+    setEmailSending(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/shipping/send-label", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: "ivaniabeauty2@gmail.com",
+          orderNumber: order.orderNumber,
+          customerName: order.customerName,
+          trackingNumber: labelData.trackingNumber,
+          labelUrl: labelData.labelUrl,
+          carrier: labelData.carrier,
+          trackingUrl: labelData.trackingUrl,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to send email");
+      }
+      setEmailSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error sending email");
+    } finally {
+      setEmailSending(false);
+    }
+  };
 
   const fetchRates = async () => {
     setLoading(true);
@@ -463,6 +496,33 @@ export default function ShippingLabelModal({
                   </a>
                 )}
               </div>
+
+              <button
+                onClick={sendLabelEmail}
+                disabled={emailSending || emailSent}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                  emailSent
+                    ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                    : "bg-gray-900 text-white hover:bg-gray-800"
+                } disabled:opacity-70`}
+              >
+                {emailSent ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Enviado a ivaniabeauty2@gmail.com
+                  </>
+                ) : emailSending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4" />
+                    Enviar Label por Email
+                  </>
+                )}
+              </button>
 
               <button
                 onClick={onClose}
