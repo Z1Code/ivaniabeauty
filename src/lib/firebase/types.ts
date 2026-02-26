@@ -93,6 +93,8 @@ export type OrderStatus =
 export type PaymentMethod = "card" | "paypal" | "transfer";
 export type ShippingMethod = "standard" | "express";
 
+export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
+
 export interface OrderDoc {
   orderNumber: string;
   customerId: string;
@@ -107,6 +109,9 @@ export interface OrderDoc {
   couponId: string | null;
   couponCode: string | null;
   paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  stripeSessionId: string | null;
+  stripePaymentIntentId: string | null;
   shippingMethod: ShippingMethod;
   shippingAddressLine1: string;
   shippingAddressLine2: string;

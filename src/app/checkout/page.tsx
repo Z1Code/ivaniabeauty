@@ -10,7 +10,6 @@ import {
   Lock,
   RefreshCw,
   ChevronRight,
-  CheckCircle,
   Loader2,
   Tag,
   X,
@@ -41,14 +40,9 @@ interface FormErrors {
   country?: string;
 }
 
-interface OrderSuccess {
-  orderNumber: string;
-  email: string;
-}
-
 export default function CheckoutPage() {
   const { t } = useTranslation();
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal } = useCart();
 
   // ── Form field state ──
   const [email, setEmail] = useState("");
@@ -77,7 +71,6 @@ export default function CheckoutPage() {
   const [isPlacing, setIsPlacing] = useState(false);
   const [orderFilling, setOrderFilling] = useState(false);
   const [orderError, setOrderError] = useState("");
-  const [orderSuccess, setOrderSuccess] = useState<OrderSuccess | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   const cartSubtotal = subtotal();
@@ -143,7 +136,7 @@ export default function CheckoutPage() {
     setCouponError("");
   };
 
-  // ── Place order ──
+  // ── Place order (redirect to Stripe Checkout) ──
   const handlePlaceOrder = () => {
     setOrderError("");
 
@@ -159,7 +152,7 @@ export default function CheckoutPage() {
       setIsPlacing(true);
 
       try {
-        const res = await fetch("/api/orders", {
+        const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -196,11 +189,12 @@ export default function CheckoutPage() {
           throw new Error(data.error || t("checkout.orderErrorGeneric"));
         }
 
-        clearCart();
-        setOrderSuccess({
-          orderNumber: data.orderNumber,
-          email: email.trim(),
-        });
+        // Redirect to Stripe Checkout
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error("No checkout URL returned");
+        }
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : t("checkout.orderErrorGeneric");
@@ -216,55 +210,6 @@ export default function CheckoutPage() {
 
   const inputErrorClasses =
     "w-full p-3 rounded-xl border border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition-all duration-200 text-sm";
-
-  // ── Order success view ──
-  if (orderSuccess) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-xl p-8 sm:p-12 shadow-sm border border-rosa-light/20 text-center"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-          >
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
-          </motion.div>
-
-          <h1 className="font-serif text-3xl font-bold mb-3">
-            {t("checkout.successHeading")}
-          </h1>
-
-          <div className="inline-block bg-rosa/10 rounded-xl px-6 py-3 mb-6">
-            <p className="text-sm text-gray-600">
-              {t("checkout.successOrderNumber")}
-            </p>
-            <p className="text-xl font-bold text-rosa-dark tracking-wider">
-              {orderSuccess.orderNumber}
-            </p>
-          </div>
-
-          <p className="text-gray-600 mb-8 max-w-md mx-auto">
-            {t("checkout.successMessage")}{" "}
-            <span className="font-medium text-rosa-dark">
-              {orderSuccess.email}
-            </span>
-          </p>
-
-          <Link
-            href="/shop"
-            className="inline-block py-3 px-8 btn-shimmer text-white rounded-full text-base font-semibold"
-          >
-            {t("checkout.successContinueShopping")}
-          </Link>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28">
@@ -606,38 +551,13 @@ export default function CheckoutPage() {
               </label>
             </div>
 
-            {/* Credit Card Fields (visual only) */}
-            <AnimatePresence>
-              {paymentMethod === "card" && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-4 space-y-4 pt-4 border-t border-rosa-light/20">
-                    <input
-                      type="text"
-                      placeholder={t("checkout.cardNumberPlaceholder")}
-                      className={inputClasses}
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                      <input
-                        type="text"
-                        placeholder={t("checkout.cardExpiryPlaceholder")}
-                        className={inputClasses}
-                      />
-                      <input
-                        type="text"
-                        placeholder={t("checkout.cardCvvPlaceholder")}
-                        className={inputClasses}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Card details are collected by Stripe Checkout */}
+            {paymentMethod === "card" && (
+              <p className="mt-3 text-xs text-gray-500 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5" />
+                {t("checkout.stripeRedirectNotice") || "Serás redirigido a Stripe para ingresar tus datos de pago de forma segura."}
+              </p>
+            )}
           </section>
         </div>
 
