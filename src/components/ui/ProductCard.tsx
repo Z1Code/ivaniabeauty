@@ -98,9 +98,15 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
     stockFetchedRef.current = true;
     setLoadingStock(true);
     fetch(`/api/products/${product.id}/stock`)
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data?.sizeStock) setSizeStock(data.sizeStock);
+        if (data?.sizeStock && typeof data.sizeStock === "object") {
+          const entries = Object.keys(data.sizeStock);
+          // Only set sizeStock when there are actual per-size entries
+          if (entries.length > 0) {
+            setSizeStock(data.sizeStock);
+          }
+        }
       })
       .catch(() => {})
       .finally(() => setLoadingStock(false));
@@ -372,10 +378,18 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
                     </div>
                   ) : (
                     product.sizes!.map((size) => {
-                      // Only mark out-of-stock when we have explicit stock data for this size showing 0
-                      const hasStockData = sizeStock !== null && Object.keys(sizeStock).length > 0;
-                      const qty = sizeStock?.[size];
-                      const isSizeOut = hasStockData && qty !== undefined && qty <= 0;
+                      // sizeStock is null → no per-size data → all sizes available
+                      // sizeStock has entries → check this size's qty:
+                      //   qty > 0 → available
+                      //   qty <= 0 → out of stock
+                      //   size not in sizeStock → available (admin didn't track it)
+                      let isSizeOut = false;
+                      if (sizeStock !== null) {
+                        const qty = sizeStock[size];
+                        if (typeof qty === "number" && qty <= 0) {
+                          isSizeOut = true;
+                        }
+                      }
                       return (
                         <button
                           key={size}
