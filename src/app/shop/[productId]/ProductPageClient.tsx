@@ -21,7 +21,7 @@ import {
 
 import productsData from "@/data/products.json";
 import useCart from "@/hooks/useCart";
-import { formatPrice, getColorHex } from "@/lib/utils";
+import { formatPrice, getColorHex, cn } from "@/lib/utils";
 import { SIZE_CHART } from "@/lib/constants";
 import ProductCard from "@/components/ui/ProductCard";
 import UnitToggle, { type Unit } from "@/components/ui/UnitToggle";
@@ -419,6 +419,21 @@ function ProductDetail({ product }: { product: ProductData }) {
     return t("productDetail.fitGuideFallbackNotice");
   }, [fitGuideData?.warnings, hasConfirmedFitGuide, t]);
 
+  /* ----- stock limit for selected size ----- */
+  const maxQty = useMemo(() => {
+    if (!liveStock || !selectedSize) return Infinity;
+    const qty = liveStock.sizeStock[selectedSize];
+    if (typeof qty === "number" && qty > 0) return qty;
+    return Infinity; // no per-size tracking → no limit
+  }, [liveStock, selectedSize]);
+
+  // Cap quantity when size changes and max is known
+  useEffect(() => {
+    if (maxQty !== Infinity && quantity > maxQty) {
+      setQuantity(Math.max(1, maxQty));
+    }
+  }, [maxQty, quantity]);
+
   /* ----- cart handler ----- */
   const handleAddToCart = () => {
     if (!selectedSize && product.sizes.length > 0) {
@@ -433,7 +448,7 @@ function ProductDetail({ product }: { product: ProductData }) {
       image: galleryImages[0] ?? "",
       color: selectedColor,
       size: selectedSize || product.sizes[0],
-      quantity,
+      quantity: Math.min(quantity, maxQty === Infinity ? quantity : maxQty),
     });
   };
 
@@ -451,7 +466,7 @@ function ProductDetail({ product }: { product: ProductData }) {
       image: galleryImages[0] ?? "",
       color: selectedColor,
       size: selectedSize || product.sizes[0],
-      quantity,
+      quantity: Math.min(quantity, maxQty === Infinity ? quantity : maxQty),
     });
     router.push("/checkout");
   };
@@ -761,13 +776,27 @@ function ProductDetail({ product }: { product: ProductData }) {
                 {quantity}
               </span>
               <button
-                onClick={() => setQuantity((q) => q + 1)}
-                className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-rosa-light/30 transition-colors cursor-pointer"
+                onClick={() => setQuantity((q) => {
+                  if (maxQty !== Infinity && q >= maxQty) return q;
+                  return q + 1;
+                })}
+                disabled={maxQty !== Infinity && quantity >= maxQty}
+                className={cn(
+                  "w-10 h-10 flex items-center justify-center transition-colors cursor-pointer",
+                  maxQty !== Infinity && quantity >= maxQty
+                    ? "text-gray-300 cursor-not-allowed"
+                    : "text-gray-600 hover:bg-rosa-light/30"
+                )}
                 aria-label={t("productDetail.increaseQuantityAriaLabel")}
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
+            {maxQty !== Infinity && quantity >= maxQty && (
+              <p className="text-xs text-red-500/80 mt-2">
+                {t("productDetail.maxQuantityReached").replace("{count}", String(maxQty))}
+              </p>
+            )}
           </div>
 
           {/* ----- Add to Cart ----- */}

@@ -296,7 +296,8 @@
     "fitGuideFallbackNotice": "Showing a fallback chart while the fit guide is being confirmed.",
     "sizeRequired": "Please select a size before adding to cart",
     "lowStockWarning": "Only {count} left in size {size}",
-    "outOfStockSize": "Out of stock in this size"
+    "outOfStockSize": "Out of stock in this size",
+    "maxQuantityReached": "Maximum available: {count} units"
   },
   "cart": {
     "heading": "Your Cart",
@@ -312,7 +313,9 @@
     "subtotalLabel": "Subtotal",
     "freeShippingNote": "Free shipping on orders over $100",
     "checkoutButton": "Go to Checkout",
-    "continueShopping": "Continue Shopping"
+    "continueShopping": "Continue Shopping",
+    "maxStockReached": "Only {count} available",
+    "lowStockBadge": "Only {count} left!"
   },
   "checkout": {
     "authRequired": "Sign in to continue",

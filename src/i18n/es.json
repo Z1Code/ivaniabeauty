@@ -296,7 +296,8 @@
     "fitGuideFallbackNotice": "Se muestra una tabla referencial mientras se confirma el fit guide.",
     "sizeRequired": "Por favor selecciona una talla antes de agregar al carrito",
     "lowStockWarning": "Solo quedan {count} en talla {size}",
-    "outOfStockSize": "Agotado en esta talla"
+    "outOfStockSize": "Agotado en esta talla",
+    "maxQuantityReached": "Maximo disponible: {count} unidades"
   },
   "cart": {
     "heading": "Tu Carrito",
@@ -312,7 +313,9 @@
     "subtotalLabel": "Subtotal",
     "freeShippingNote": "Envío gratis en pedidos +$100",
     "checkoutButton": "Ir a Pagar",
-    "continueShopping": "Continuar Comprando"
+    "continueShopping": "Continuar Comprando",
+    "maxStockReached": "Solo {count} disponibles",
+    "lowStockBadge": "Quedan {count}!"
   },
   "checkout": {
     "authRequired": "Inicia sesión para continuar",

@@ -11,11 +11,19 @@ import {
   Plus,
   Trash2,
   Check,
+  AlertTriangle,
 } from "lucide-react";
 
 import useCart from "@/hooks/useCart";
 import { formatPrice, getColorHex, cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
+
+// Stock data keyed by "productId::size" for per-size or "productId" for whole-product
+type StockMap = Record<string, number | undefined>;
+
+function stockKey(productId: string, size: string): string {
+  return size ? `${productId}::${size}` : productId;
+}
 
 export default function CartDrawer() {
   const {
@@ -36,6 +44,94 @@ export default function CartDrawer() {
   const [discountError, setDiscountError] = useState("");
   const [checkoutFilling, setCheckoutFilling] = useState(false);
   const [checkoutReady, setCheckoutReady] = useState(false);
+
+  // Stock data fetched from API
+  const [stockMap, setStockMap] = useState<StockMap>({});
+  const [stockFetched, setStockFetched] = useState(false);
+
+  // Per-item warnings (briefly shown when user hits the limit)
+  const [warnings, setWarnings] = useState<Record<string, boolean>>({});
+
+  // Fetch stock for all cart items when drawer opens
+  useEffect(() => {
+    if (!isOpen || items.length === 0) {
+      setStockFetched(false);
+      return;
+    }
+
+    // Deduplicate product IDs
+    const productIds = [...new Set(items.map((i) => i.id))];
+    let cancelled = false;
+
+    async function fetchAllStock() {
+      const map: StockMap = {};
+      await Promise.all(
+        productIds.map(async (pid) => {
+          try {
+            const res = await fetch(`/api/products/${pid}/stock`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const sizeStock: Record<string, number> = data.sizeStock || {};
+            const totalStock: number = data.stockQuantity ?? Infinity;
+
+            // If per-size stock exists, use it; otherwise use total stockQuantity
+            if (Object.keys(sizeStock).length > 0) {
+              for (const [size, qty] of Object.entries(sizeStock)) {
+                map[stockKey(pid, size)] = qty as number;
+              }
+            } else {
+              // Store the total stock for the whole product
+              map[pid] = totalStock;
+            }
+          } catch {
+            // Silent fail — stock enforcement is best-effort
+          }
+        })
+      );
+      if (!cancelled) {
+        setStockMap(map);
+        setStockFetched(true);
+      }
+    }
+
+    void fetchAllStock();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, items.length]);
+
+  // Get max stock for a cart item
+  function getMaxStock(item: { id: string; size: string }): number {
+    // Check per-size stock first
+    const perSize = stockMap[stockKey(item.id, item.size)];
+    if (typeof perSize === "number") return perSize;
+    // Check whole-product stock
+    const total = stockMap[item.id];
+    if (typeof total === "number") return total;
+    // No data → no limit
+    return Infinity;
+  }
+
+  // Auto-cap quantities when stock data arrives
+  useEffect(() => {
+    if (!stockFetched || items.length === 0) return;
+    for (const item of items) {
+      const max = getMaxStock(item);
+      if (max !== Infinity && item.quantity > max) {
+        updateQuantity(item.id, item.color, item.size, Math.max(1, max));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stockFetched, stockMap]);
+
+  // Show a brief warning for an item
+  function flashWarning(itemKey: string) {
+    setWarnings((w) => ({ ...w, [itemKey]: true }));
+    setTimeout(() => {
+      setWarnings((w) => ({ ...w, [itemKey]: false }));
+    }, 3000);
+  }
 
   // Focus trap for cart drawer
   useEffect(() => {
@@ -78,7 +174,7 @@ export default function CartDrawer() {
       const drawer = drawerRef.current;
       if (drawer) {
         const firstFocusable = drawer.querySelector<HTMLElement>(
-          'button, a[href], input'
+          "button, a[href], input"
         );
         firstFocusable?.focus();
       }
@@ -133,7 +229,9 @@ export default function CartDrawer() {
             {/* Header */}
             <div className="flex justify-between items-center p-6 border-b border-rosa-light/30">
               <div className="flex items-center gap-3">
-                <h2 className="font-serif text-xl font-semibold">{t("cart.heading")}</h2>
+                <h2 className="font-serif text-xl font-semibold">
+                  {t("cart.heading")}
+                </h2>
                 <ShoppingBag className="w-5 h-5 text-rosa" />
                 {count > 0 && (
                   <span className="flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-rosa rounded-full">
@@ -174,101 +272,161 @@ export default function CartDrawer() {
                 /* Cart Items List */
                 <div className="flex flex-col gap-4">
                   <AnimatePresence initial={false}>
-                    {items.map((item) => (
-                      <motion.div
-                        key={`${item.id}-${item.color}-${item.size}`}
-                        layout
-                        initial={{ opacity: 0, x: 40 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -40, height: 0, marginBottom: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="flex gap-4"
-                      >
-                        {/* Product Image Placeholder */}
-                        <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-rosa-light/30 to-arena flex-shrink-0 overflow-hidden">
-                          {item.image && (
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                        </div>
+                    {items.map((item) => {
+                      const itemKey = `${item.id}-${item.color}-${item.size}`;
+                      const max = stockFetched
+                        ? getMaxStock(item)
+                        : Infinity;
+                      const atMax =
+                        max !== Infinity && item.quantity >= max;
+                      const isLowStock =
+                        stockFetched && max !== Infinity && max <= 2 && max > 0;
+                      const showWarning = warnings[itemKey] || false;
 
-                        {/* Product Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm truncate">
-                            {item.name}
-                          </p>
-
-                          {/* Color & Size */}
-                          <div className="flex items-center gap-2 mt-1">
-                            <span
-                              className="w-3 h-3 rounded-full border border-gray-200 flex-shrink-0"
-                              style={{ backgroundColor: getColorHex(item.color) }}
-                            />
-                            <span className="text-xs text-gray-500 capitalize">
-                              {item.color}
-                            </span>
-                            <span className="text-xs text-gray-300">|</span>
-                            <span className="text-xs text-gray-500 uppercase">
-                              {item.size}
-                            </span>
-                          </div>
-
-                          {/* Price */}
-                          <p className="text-rosa-dark font-semibold text-sm mt-1">
-                            {formatPrice(item.price)}
-                          </p>
-
-                          {/* Quantity Controls */}
-                          <div className="flex items-center gap-2 mt-2">
-                            <button
-                              onClick={() =>
-                                updateQuantity(
-                                  item.id,
-                                  item.color,
-                                  item.size,
-                                  item.quantity - 1
-                                )
-                              }
-                              className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:border-rosa hover:text-rosa transition-colors duration-200"
-                              aria-label={t("cart.decreaseQuantityAriaLabel")}
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="text-sm font-medium w-6 text-center">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() =>
-                                updateQuantity(
-                                  item.id,
-                                  item.color,
-                                  item.size,
-                                  item.quantity + 1
-                                )
-                              }
-                              className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:border-rosa hover:text-rosa transition-colors duration-200"
-                              aria-label={t("cart.increaseQuantityAriaLabel")}
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Remove Button */}
-                        <button
-                          onClick={() =>
-                            removeItem(item.id, item.color, item.size)
-                          }
-                          className="self-start p-1 text-gray-400 hover:text-rosa-dark transition-colors duration-200"
-                          aria-label={t("cart.removeAriaLabel")}
+                      return (
+                        <motion.div
+                          key={itemKey}
+                          layout
+                          initial={{ opacity: 0, x: 40 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{
+                            opacity: 0,
+                            x: -40,
+                            height: 0,
+                            marginBottom: 0,
+                          }}
+                          transition={{ duration: 0.25 }}
+                          className="flex gap-4"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </motion.div>
-                    ))}
+                          {/* Product Image */}
+                          <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-rosa-light/30 to-arena flex-shrink-0 overflow-hidden relative">
+                            {item.image && (
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                          </div>
+
+                          {/* Product Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm truncate">
+                              {item.name}
+                            </p>
+
+                            {/* Color & Size */}
+                            <div className="flex items-center gap-2 mt-1">
+                              <span
+                                className="w-3 h-3 rounded-full border border-gray-200 flex-shrink-0"
+                                style={{
+                                  backgroundColor: getColorHex(item.color),
+                                }}
+                              />
+                              <span className="text-xs text-gray-500 capitalize">
+                                {item.color}
+                              </span>
+                              <span className="text-xs text-gray-300">|</span>
+                              <span className="text-xs text-gray-500 uppercase">
+                                {item.size}
+                              </span>
+                            </div>
+
+                            {/* Price */}
+                            <p className="text-rosa-dark font-semibold text-sm mt-1">
+                              {formatPrice(item.price)}
+                            </p>
+
+                            {/* Low stock badge */}
+                            {isLowStock && (
+                              <p className="flex items-center gap-1 text-[10px] text-amber-600 mt-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                {t("cart.lowStockBadge").replace(
+                                  "{count}",
+                                  String(max)
+                                )}
+                              </p>
+                            )}
+
+                            {/* Max stock warning */}
+                            <AnimatePresence>
+                              {showWarning && atMax && (
+                                <motion.p
+                                  initial={{ opacity: 0, y: -4 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0 }}
+                                  className="text-[10px] text-red-500 mt-1"
+                                >
+                                  {t("cart.maxStockReached").replace(
+                                    "{count}",
+                                    String(max)
+                                  )}
+                                </motion.p>
+                              )}
+                            </AnimatePresence>
+
+                            {/* Quantity Controls */}
+                            <div className="flex items-center gap-2 mt-2">
+                              <button
+                                onClick={() =>
+                                  updateQuantity(
+                                    item.id,
+                                    item.color,
+                                    item.size,
+                                    item.quantity - 1
+                                  )
+                                }
+                                className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:border-rosa hover:text-rosa transition-colors duration-200"
+                                aria-label={t(
+                                  "cart.decreaseQuantityAriaLabel"
+                                )}
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="text-sm font-medium w-6 text-center">
+                                {item.quantity}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  if (atMax) {
+                                    flashWarning(itemKey);
+                                    return;
+                                  }
+                                  updateQuantity(
+                                    item.id,
+                                    item.color,
+                                    item.size,
+                                    item.quantity + 1
+                                  );
+                                }}
+                                className={cn(
+                                  "w-7 h-7 rounded-full border flex items-center justify-center transition-colors duration-200",
+                                  atMax
+                                    ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                                    : "border-gray-300 hover:border-rosa hover:text-rosa"
+                                )}
+                                aria-label={t(
+                                  "cart.increaseQuantityAriaLabel"
+                                )}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Remove Button */}
+                          <button
+                            onClick={() =>
+                              removeItem(item.id, item.color, item.size)
+                            }
+                            className="self-start p-1 text-gray-400 hover:text-rosa-dark transition-colors duration-200"
+                            aria-label={t("cart.removeAriaLabel")}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
                 </div>
               )}
@@ -299,14 +457,20 @@ export default function CartDrawer() {
                           const res = await fetch("/api/coupons/validate", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ code: discountCode.trim() }),
+                            body: JSON.stringify({
+                              code: discountCode.trim(),
+                            }),
                           });
                           const data = await res.json();
                           if (data.valid) {
                             closeCart();
-                            router.push(`/checkout?coupon=${encodeURIComponent(discountCode.trim())}`);
+                            router.push(
+                              `/checkout?coupon=${encodeURIComponent(discountCode.trim())}`
+                            );
                           } else {
-                            setDiscountError(data.message || t("checkout.couponInvalid"));
+                            setDiscountError(
+                              data.message || t("checkout.couponInvalid")
+                            );
                           }
                         } catch {
                           setDiscountError(t("checkout.couponInvalid"));
@@ -321,7 +485,10 @@ export default function CartDrawer() {
                     </button>
                   </div>
                   {discountError && (
-                    <p role="alert" className="text-red-500 text-xs mt-1.5 px-2">
+                    <p
+                      role="alert"
+                      className="text-red-500 text-xs mt-1.5 px-2"
+                    >
                       {discountError}
                     </p>
                   )}
@@ -329,7 +496,9 @@ export default function CartDrawer() {
 
                 {/* Subtotal */}
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">{t("cart.subtotalLabel")}</span>
+                  <span className="text-gray-600">
+                    {t("cart.subtotalLabel")}
+                  </span>
                   <span className="font-semibold text-lg">
                     {formatPrice(cartSubtotal)}
                   </span>
@@ -343,9 +512,19 @@ export default function CartDrawer() {
                 {/* Checkout Button */}
                 <motion.button
                   onClick={handleCheckout}
-                  animate={checkoutFilling ? { scale: 0.95 } : { scale: 1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                  whileTap={!checkoutFilling && !checkoutReady ? { scale: 0.93 } : undefined}
+                  animate={
+                    checkoutFilling ? { scale: 0.95 } : { scale: 1 }
+                  }
+                  transition={{
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 20,
+                  }}
+                  whileTap={
+                    !checkoutFilling && !checkoutReady
+                      ? { scale: 0.93 }
+                      : undefined
+                  }
                   className={cn(
                     "group/btn relative w-full py-3 rounded-xl text-sm font-semibold cursor-pointer overflow-hidden transition-all duration-300",
                     checkoutReady
@@ -357,8 +536,14 @@ export default function CartDrawer() {
                   <motion.span
                     className="absolute inset-y-0 left-0 bg-gradient-to-r from-rosa to-rosa-dark"
                     initial={{ width: "0%" }}
-                    animate={{ width: checkoutFilling ? "100%" : "0%" }}
-                    transition={checkoutFilling ? { duration: 0.5, ease: "easeOut" } : { duration: 0 }}
+                    animate={{
+                      width: checkoutFilling ? "100%" : "0%",
+                    }}
+                    transition={
+                      checkoutFilling
+                        ? { duration: 0.5, ease: "easeOut" }
+                        : { duration: 0 }
+                    }
                   />
                   {/* Label */}
                   <AnimatePresence mode="wait">
@@ -368,7 +553,11 @@ export default function CartDrawer() {
                         initial={{ opacity: 0, scale: 0.5 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 500,
+                          damping: 25,
+                        }}
                         className="relative z-10 flex items-center justify-center gap-2 text-emerald-600"
                       >
                         <Check className="w-4 h-4" />
@@ -381,7 +570,9 @@ export default function CartDrawer() {
                         exit={{ opacity: 0 }}
                         className={cn(
                           "relative z-10 flex items-center justify-center gap-2 transition-colors duration-300",
-                          checkoutFilling ? "text-white" : "text-rosa-dark"
+                          checkoutFilling
+                            ? "text-white"
+                            : "text-rosa-dark"
                         )}
                       >
                         <ShoppingBag className="w-3.5 h-3.5" />
