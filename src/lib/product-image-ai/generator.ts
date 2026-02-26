@@ -522,6 +522,108 @@ async function fetchSourceImages(sourceImageUrls: string[]): Promise<SourceImage
   return payloads;
 }
 
+/**
+ * Infer a product-type hint from name and category so the prompt can adapt
+ * for shapewear, bodysuits, creams, accessories, etc.
+ */
+type ProductTypeHint =
+  | "shapewear"
+  | "lingerie"
+  | "bodysuit"
+  | "cream_skincare"
+  | "accessory"
+  | "general_garment";
+
+function inferProductType(
+  productName?: string,
+  productCategory?: string
+): ProductTypeHint {
+  const text = `${productName || ""} ${productCategory || ""}`.toLowerCase();
+  if (
+    text.includes("cintur") ||
+    text.includes("faja") ||
+    text.includes("shapewear") ||
+    text.includes("waist") ||
+    text.includes("compres") ||
+    text.includes("moldeador") ||
+    text.includes("reductor") ||
+    text.includes("body shaper") ||
+    text.includes("girdle") ||
+    text.includes("cincher")
+  )
+    return "shapewear";
+  if (
+    text.includes("bodysuit") ||
+    text.includes("body suit") ||
+    text.includes("enterizo")
+  )
+    return "bodysuit";
+  if (
+    text.includes("lencer") ||
+    text.includes("lingerie") ||
+    text.includes("brassier") ||
+    text.includes("bra ") ||
+    text.includes("panty") ||
+    text.includes("tanga")
+  )
+    return "lingerie";
+  if (
+    text.includes("crema") ||
+    text.includes("cream") ||
+    text.includes("serum") ||
+    text.includes("lotion") ||
+    text.includes("gel ") ||
+    text.includes("aceite") ||
+    text.includes("oil ")
+  )
+    return "cream_skincare";
+  if (
+    text.includes("accesorio") ||
+    text.includes("accessory") ||
+    text.includes("joya") ||
+    text.includes("jewel")
+  )
+    return "accessory";
+  return "general_garment";
+}
+
+function getProductTypePromptBlock(typeHint: ProductTypeHint): string {
+  switch (typeHint) {
+    case "shapewear":
+      return `Product type: Shapewear / compression garment.
+- Show the garment worn on the model body with visible compression zones, boning, hook-and-eye closures, and sculpting panels.
+- Emphasize the sculpting/slimming effect while keeping a natural body shape — the garment should look fitted and functional.
+- Preserve all structural details: reinforced panels, seams, waistband width, closure rows, latex or powernet textures.
+- The model should stand in a confident, natural pose that highlights the garment's body-contouring effect.`;
+    case "bodysuit":
+      return `Product type: Bodysuit / one-piece garment.
+- Show the garment worn full-body from neckline to leg openings.
+- Preserve snaps, closures, strap details, and fabric stretch texture.
+- Ensure the bodysuit fits naturally on the model without unrealistic smoothing.`;
+    case "lingerie":
+      return `Product type: Lingerie / intimate apparel.
+- Show the garment worn elegantly, emphasizing fabric detail, lace patterns, and strap construction.
+- Keep the presentation tasteful and professional for an ecommerce catalog.
+- Preserve delicate construction: underwire, hooks, lace edges, elastic bands.`;
+    case "cream_skincare":
+      return `Product type: Skincare / beauty product.
+- Show the product container (bottle, jar, tube) in a clean studio arrangement.
+- The model may hold or present the product rather than wearing it.
+- Emphasize product packaging, label, and texture of the cream/liquid if visible.
+- Keep a clean, premium beauty-brand aesthetic.`;
+    case "accessory":
+      return `Product type: Accessory / jewelry.
+- Show the item worn or displayed elegantly.
+- Emphasize material quality, finish, and design details.
+- Keep composition tight and focused on the accessory.`;
+    case "general_garment":
+    default:
+      return `Product type: Fashion garment.
+- Show the garment worn naturally on the model with realistic fabric draping and fit.
+- Preserve all construction details: seams, closures, trims, and textile patterns.`;
+  }
+}
+
 function buildPrompt({
   profile,
   productName,
@@ -546,6 +648,9 @@ function buildPrompt({
   hasConsistencyReferenceImage: boolean;
 }): string {
   const anglePreset = resolveAnglePreset(targetAngle);
+  const typeHint = inferProductType(productName, productCategory);
+  const productTypeBlock = getProductTypePromptBlock(typeHint);
+
   const contextParts = [
     productName ? `Product name: ${productName}.` : "",
     productCategory ? `Category: ${productCategory}.` : "",
@@ -555,7 +660,7 @@ function buildPrompt({
     targetColor
       ? `Target garment color for this generation: ${targetColor}. Prioritize this tone exactly.`
       : "",
-    `Number of garment reference images provided: ${referenceImageCount}.`,
+    `Number of reference images provided: ${referenceImageCount}.`,
     hasColorReferenceImage
       ? "A separate color reference image is also provided. Use it only to match garment color tone."
       : "",
@@ -570,52 +675,74 @@ function buildPrompt({
       ? customPrompt.trim().slice(0, 1200)
       : "";
 
-  return `You are an expert ecommerce fashion photographer and retoucher.
-Generate one premium studio product image from the provided references.
+  // Skincare products use a different prompt structure (no model wearing garment)
+  if (typeHint === "cream_skincare") {
+    return `Generate a premium ecommerce studio product photograph.
+Create one high-quality studio image of the product shown in the provided reference images.
 
-Source fidelity rules (mandatory):
-- Use the garment from all references as the exact same product.
-- Treat reference image #1 as canonical and use other references only to recover missing details.
-- Preserve exact construction details: panel cuts, seams, stitch lines, hook/zip closure rows, strap width/placement, leg length, edge trims, lace motifs, and compression zones.
-- Preserve exact garment color family and tone. Do not shift hue or saturation beyond realistic studio lighting.
-- Preserve textile realism: weave, micro-wrinkles, material sheen, and fabric thickness must look physically plausible.
-- Do not redesign, simplify, or invent new garment features.
-- If a person appears in reference, replace only the person using this model profile while keeping garment identity unchanged: ${profile.description}.
+${productTypeBlock}
 
-Model, pose, and framing rules:
-- Exactly one adult female model, full body visible from head to feet, centered.
-- ${anglePreset.promptInstruction}
-- Keep anatomy natural and realistic: correct hands/fingers, shoulders, hips, limbs, and body proportions.
-- Keep garment fit flattering but realistic; no extreme body warping.
-- Maintain clean composition with padding around silhouette for storefront card cropping.
+Source fidelity:
+- Treat reference image #1 as canonical. Reproduce exact packaging shape, label design, colors, and branding.
+- Use additional references only to recover missing details (back label, texture).
+- Preserve realistic material appearance: plastic gloss, glass reflection, matte finish, metallic cap sheen.
 
-Lighting and camera rules:
-- High-end studio look, soft key + fill lighting, controlled highlights, minimal harsh shadows.
+Studio setup:
+- Clean, bright product photography with soft diffused lighting, subtle reflections, and controlled highlights.
 - ${anglePreset.cameraInstruction}
-- Sharp focus on garment texture and closures; avoid blur and over-smoothing.
-- Photorealistic skin texture and face detail; avoid plastic skin.
-- No cinematic color grading, no stylized filters.
+- Sharp focus on product label and packaging texture.
 
-Cross-angle consistency lock (mandatory):
-- Keep garment scale, waistline height, hemline length, and strap placement consistent with references.
-- Do not change garment size ratio relative to model torso/hips/legs across angle variants.
-- Preserve same model identity, body proportions, and face identity across rerenders.
-- Keep camera distance and crop scale stable so all angle outputs align as a coherent set.
-
-Output constraints (mandatory):
-- Background must be truly transparent (real alpha), with clean edges around hair, body, and garment.
+Output:
+- Background must be truly transparent (real alpha channel), with clean edges around the product silhouette.
 - Return a transparent PNG suitable for ecommerce listing cards.
-- No text, logos, watermark, props, furniture, extra people, mirrored duplicates, or collage layout.
-- No checkerboard, no fake transparency pattern, no solid studio backdrop in final output.
-
-Quality checklist before returning:
-- Garment details match references and remain structurally consistent.
-- Model anatomy looks natural (especially hands and feet).
-- Product edges are clean with no jagged halos.
-- Final render is marketing-ready, high-detail, and catalog quality.
+- Only the product itself — clean, isolated, marketing-ready.
 
 ${contextParts.join("\n")}
-${sanitizedCustomPrompt ? `\nUser adjustment instructions:\n${sanitizedCustomPrompt}` : ""}`.trim();
+${sanitizedCustomPrompt ? `\nAdditional instructions:\n${sanitizedCustomPrompt}` : ""}`.trim();
+  }
+
+  return `Generate a premium ecommerce studio product photograph.
+Create one high-quality studio image of a model wearing the product shown in the reference images.
+
+Role: Expert ecommerce fashion photographer and retoucher.
+
+${productTypeBlock}
+
+Model profile: ${profile.description}.
+
+Source fidelity (follow strictly):
+- The product in all reference images is the exact same item. Treat reference image #1 as canonical.
+- Preserve exact construction details: panel cuts, seams, stitch lines, hook/zip closure rows, strap width/placement, leg length, edge trims, lace motifs, and compression zones.
+- Preserve exact color family and tone — only allow natural variation from studio lighting.
+- Preserve textile realism: weave, micro-wrinkles, material sheen, and fabric thickness must look physically plausible.
+- Keep the product design exactly as shown — maintain all features from the reference.
+
+Model and pose:
+- Exactly one adult female model, full body visible from head to feet, centered in frame.
+- ${anglePreset.promptInstruction}
+- Natural, realistic anatomy: correct hands/fingers, shoulders, hips, limbs, and body proportions.
+- Flattering but realistic garment fit.
+- Clean composition with padding around the silhouette for storefront card cropping.
+
+Lighting and camera:
+- High-end studio look with soft key + fill lighting, controlled highlights, gentle shadows.
+- ${anglePreset.cameraInstruction}
+- Sharp focus on product texture and closures.
+- Photorealistic skin texture and face detail with natural appearance.
+- Neutral color grading — true-to-life colors.
+
+Cross-angle consistency:
+- Keep garment scale, waistline height, hemline length, and strap placement consistent with references.
+- Preserve model identity, body proportions, and face identity across different angles.
+- Keep camera distance and crop scale stable for a coherent product image set.
+
+Output:
+- Background must be truly transparent (real alpha channel), with clean edges around hair, body, and garment.
+- Return a transparent PNG suitable for ecommerce listing cards.
+- Only the model wearing the product — clean, isolated, marketing-ready.
+
+${contextParts.join("\n")}
+${sanitizedCustomPrompt ? `\nAdditional instructions:\n${sanitizedCustomPrompt}` : ""}`.trim();
 }
 
 async function upscaleImageToMinimumResolution(
@@ -852,14 +979,11 @@ function parseGeminiResponse(payload: unknown): GeminiImageResult {
   throw error;
 }
 
-function buildImageConfig(modelName: string): Record<string, unknown> {
-  const config: Record<string, unknown> = {
+function buildImageConfig(_modelName: string): Record<string, unknown> {
+  return {
     aspectRatio: IMAGE_ASPECT_RATIO,
+    imageSize: IMAGE_SIZE,
   };
-  if (modelName.includes("pro")) {
-    config.imageSize = IMAGE_SIZE;
-  }
-  return config;
 }
 
 async function generateImageWithGemini({
@@ -922,7 +1046,7 @@ async function generateImageWithGemini({
       },
     ],
     generationConfig: {
-      responseModalities: ["IMAGE"],
+      responseModalities: ["TEXT", "IMAGE"],
       imageConfig: buildImageConfig(modelName),
     },
   };
@@ -1545,109 +1669,112 @@ async function generateWithFallback({
   let sawSafetyBlock = false;
   const triedModels = new Set<string>();
 
+  const MAX_SAME_MODEL_RETRIES = 1; // retry once on the same model before moving on
+
   for (const modelName of MODEL_CANDIDATES) {
     const normalizedModel = modelName.trim();
     if (!normalizedModel) continue;
     if (triedModels.has(normalizedModel)) continue;
     triedModels.add(normalizedModel);
 
-    try {
-      const initial = await generateImageWithGemini({
-        apiKey,
-        modelName: normalizedModel,
-        prompt,
-        sourceImages,
-        colorReferenceImage,
-        consistencyReferenceImage,
-      });
+    for (let retryIndex = 0; retryIndex <= MAX_SAME_MODEL_RETRIES; retryIndex++) {
+      try {
+        const initial = await generateImageWithGemini({
+          apiKey,
+          modelName: normalizedModel,
+          prompt,
+          sourceImages,
+          colorReferenceImage,
+          consistencyReferenceImage,
+        });
 
-      const finalImage = await enforceTransparency({
-        apiKey,
-        modelName: normalizedModel,
-        initialImage: initial,
-      });
-      const upscaled = await upscaleImageToMinimumResolution(finalImage);
+        const finalImage = await enforceTransparency({
+          apiKey,
+          modelName: normalizedModel,
+          initialImage: initial,
+        });
+        const upscaled = await upscaleImageToMinimumResolution(finalImage);
 
-      const revisedPrompt = [...initial.textNotes, ...upscaled.textNotes]
-        .filter(Boolean)
-        .join(" | ");
+        const revisedPrompt = [...initial.textNotes, ...upscaled.textNotes]
+          .filter(Boolean)
+          .join(" | ");
 
-      return {
-        imageBuffer: upscaled.imageBuffer,
-        mimeType: upscaled.mimeType,
-        revisedPrompt: revisedPrompt || null,
-        modelUsed: normalizedModel,
-      };
-    } catch (error) {
-      if (sourceImages.length > 1 && isInputPayloadError(error)) {
-        try {
-          const initial = await generateImageWithGemini({
-            apiKey,
-            modelName: normalizedModel,
-            prompt,
-            sourceImages: [sourceImages[0]],
-            colorReferenceImage,
-            consistencyReferenceImage,
-          });
+        return {
+          imageBuffer: upscaled.imageBuffer,
+          mimeType: upscaled.mimeType,
+          revisedPrompt: revisedPrompt || null,
+          modelUsed: normalizedModel,
+        };
+      } catch (error) {
+        // On payload-too-large with multiple source images, try with only the primary image.
+        if (sourceImages.length > 1 && isInputPayloadError(error)) {
+          try {
+            const initial = await generateImageWithGemini({
+              apiKey,
+              modelName: normalizedModel,
+              prompt,
+              sourceImages: [sourceImages[0]],
+              colorReferenceImage,
+              consistencyReferenceImage,
+            });
 
-          const finalImage = await enforceTransparency({
-            apiKey,
-            modelName: normalizedModel,
-            initialImage: initial,
-          });
-          const upscaled = await upscaleImageToMinimumResolution(finalImage);
+            const finalImage = await enforceTransparency({
+              apiKey,
+              modelName: normalizedModel,
+              initialImage: initial,
+            });
+            const upscaled = await upscaleImageToMinimumResolution(finalImage);
 
-          const revisedPrompt = [...initial.textNotes, ...upscaled.textNotes]
-            .filter(Boolean)
-            .join(" | ");
+            const revisedPrompt = [...initial.textNotes, ...upscaled.textNotes]
+              .filter(Boolean)
+              .join(" | ");
 
-          return {
-            imageBuffer: upscaled.imageBuffer,
-            mimeType: upscaled.mimeType,
-            revisedPrompt: revisedPrompt || null,
-            modelUsed: normalizedModel,
-          };
-        } catch (singleImageError) {
-          lastError = singleImageError;
-          const singleMessage = String(
-            (singleImageError as Error).message || "unknown single image fallback error"
-          );
-          attempts.push({
-            model: `${normalizedModel} (single-fallback)`,
-            message: singleMessage,
-          });
-          if (isNoImageDataError(singleImageError)) {
-            sawNoImageData = true;
+            return {
+              imageBuffer: upscaled.imageBuffer,
+              mimeType: upscaled.mimeType,
+              revisedPrompt: revisedPrompt || null,
+              modelUsed: normalizedModel,
+            };
+          } catch (singleImageError) {
+            lastError = singleImageError;
+            const singleMessage = String(
+              (singleImageError as Error).message || "unknown single image fallback error"
+            );
+            attempts.push({
+              model: `${normalizedModel} (single-fallback)`,
+              message: singleMessage,
+            });
+            if (isNoImageDataError(singleImageError)) sawNoImageData = true;
+            if (isImageSafetyError(singleImageError)) sawSafetyBlock = true;
+            if (isQuotaError(singleImageError)) sawQuotaError = true;
+            if (isRetryableModelError(singleImageError)) break; // move to next model
+            throw singleImageError;
           }
-          if (isImageSafetyError(singleImageError)) {
-            sawSafetyBlock = true;
-          }
-          if (isQuotaError(singleImageError)) {
-            sawQuotaError = true;
-          }
-          if (isRetryableModelError(singleImageError)) {
-            continue;
-          }
-          throw singleImageError;
         }
-      }
 
-      lastError = error;
-      const message = String((error as Error).message || "unknown model error");
-      attempts.push({ model: normalizedModel, message });
-      if (isNoImageDataError(error)) {
-        sawNoImageData = true;
+        // For NO_IMAGE_DATA or empty response: retry on same model once before giving up on it.
+        if (
+          retryIndex < MAX_SAME_MODEL_RETRIES &&
+          (isNoImageDataError(error) ||
+            (error && typeof error === "object" &&
+              String((error as { code?: string }).code || "").includes("empty_response")))
+        ) {
+          attempts.push({
+            model: `${normalizedModel} (retry ${retryIndex + 1})`,
+            message: String((error as Error).message || "retrying same model"),
+          });
+          continue; // retry same model
+        }
+
+        lastError = error;
+        const message = String((error as Error).message || "unknown model error");
+        attempts.push({ model: normalizedModel, message });
+        if (isNoImageDataError(error)) sawNoImageData = true;
+        if (isImageSafetyError(error)) sawSafetyBlock = true;
+        if (isQuotaError(error)) sawQuotaError = true;
+        if (isRetryableModelError(error)) break; // move to next model
+        throw error;
       }
-      if (isImageSafetyError(error)) {
-        sawSafetyBlock = true;
-      }
-      if (isQuotaError(error)) {
-        sawQuotaError = true;
-      }
-      if (isRetryableModelError(error)) {
-        continue;
-      }
-      throw error;
     }
   }
 
