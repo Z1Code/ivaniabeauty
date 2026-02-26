@@ -355,7 +355,7 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] font-semibold text-gray-700">
-                    {t("productDetail.sizeHeading")}
+                    {t("shop.sizeHeading")}
                   </span>
                   <button
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowSizePicker(false); }}
