@@ -350,14 +350,14 @@ export default function CheckoutPage() {
               productId: item.id,
               productName: item.name,
               productImage: item.image,
-              color: item.color,
-              size: item.size,
+              color: item.color || "",
+              size: item.size || "",
               quantity: item.quantity,
               unitPrice: item.price,
             })),
             shippingMethod,
             paymentMethod: "card",
-            couponCode: couponData ? couponData.code : undefined,
+            couponCode: couponData ? couponData.code : null,
           }),
         });
 
