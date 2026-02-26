@@ -100,24 +100,44 @@
     "with": "Con Faja",
     "ariaLabel": "Comparación antes y después"
   },
+  "brandStory": {
+    "tag": "Nuestra Historia",
+    "heading": "Belleza que empodera, confianza que transforma",
+    "paragraph1": "Ivania Beauty nacio de la conviccion de que cada mujer merece sentirse segura y hermosa en su propia piel. Nuestras fajas premium estan disenadas con tecnologia de compresion avanzada y materiales de la mas alta calidad, garantizando comodidad durante todo el dia sin sacrificar la silueta que deseas.",
+    "paragraph2": "Desde Miami para toda Latinoamerica y Estados Unidos, seleccionamos cuidadosamente cada diseno combinando la tradicion colombiana en fajas con innovacion textil moderna. El resultado: prendas que moldean, sostienen y realzan tu figura de manera natural.",
+    "statClientsLabel": "Clientas satisfechas",
+    "statDesignsLabel": "Disenos exclusivos",
+    "statSatisfactionLabel": "Satisfaccion",
+    "cta": "Explorar la Tienda"
+  },
+  "socialProof": {
+    "clientsValue": "2,500+",
+    "clientsLabel": "Clientas felices",
+    "ratingValue": "4.9/5",
+    "ratingLabel": "Valoracion promedio",
+    "designsValue": "30+",
+    "designsLabel": "Disenos exclusivos",
+    "returnPolicyValue": "15 dias",
+    "returnPolicyLabel": "Cambios y devoluciones"
+  },
   "testimonials": {
     "heading": "Lo Que Dicen Nuestras Clientas",
     "subtitle": "Historias reales de mujeres reales",
     "prevAriaLabel": "Anterior testimonio",
     "nextAriaLabel": "Siguiente testimonio",
     "goToAriaLabel": "Ir al testimonio",
-    "review1Name": "Maria Garcia",
-    "review1Text": "Increíble! La faja es super cómoda y no se nota bajo la ropa. La use en mi boda y me sentia espectacular.",
-    "review1Product": "Faja Gala Sculpt",
-    "review2Name": "Laura Martinez",
-    "review2Text": "Perfecta para la playa. Se seca super rápido y moldea sin incomodar. No puedo salir de vacaciones sin ella.",
-    "review2Product": "Faja Bikini Invisible",
-    "review3Name": "Carolina Ruiz",
-    "review3Text": "Despues del parto necesitaba soporte y esta faja fue mi salvación. Muy cómoda para usar todo el día.",
-    "review3Product": "Faja Recovery Mama",
-    "review4Name": "Ana Sofia Lopez",
-    "review4Text": "El waist trainer es increíble. Resultados visibles desde la primera semana. 100% recomendado!",
-    "review4Product": "Waist Trainer Deluxe"
+    "review1Name": "Valentina R.",
+    "review1Text": "Compre la Faja Pescador Invisible y es otra cosa. La uso todos los dias debajo de mis vestidos de trabajo y nadie nota que la llevo puesta. Super comoda incluso despues de 10 horas.",
+    "review1Product": "Faja Pescador Invisible / Angel",
+    "review2Name": "Daniela M.",
+    "review2Text": "Despues de mi cesarea necesitaba algo que me diera soporte sin incomodar. La Faja Post Quirurgica fue perfecta, me ayudo muchisimo en la recuperacion. La recomiendo al 100%.",
+    "review2Product": "Faja Post Quirurgica",
+    "review3Name": "Carolina P.",
+    "review3Text": "La Cinturilla Extrema Luciana es increible para el gym. Se siente firme pero no me corta la respiracion. Ya van 3 meses usandola y los resultados son visibles.",
+    "review3Product": "Cinturilla Extrema / Luciana",
+    "review4Name": "Sofia L.",
+    "review4Text": "Pedi la Faja Full Body y me llego super rapido. La calidad es impresionante, se siente como segunda piel. Definitivamente volvere a comprar!",
+    "review4Product": "Faja Full Body / Cuerpo Completo"
   },
   "sizeQuiz": {
     "heading": "Encuentra tu Talla Perfecta",
@@ -297,7 +317,8 @@
     "sizeRequired": "Por favor selecciona una talla antes de agregar al carrito",
     "lowStockWarning": "Solo quedan {count} en talla {size}",
     "outOfStockSize": "Agotado en esta talla",
-    "maxQuantityReached": "Maximo disponible: {count} unidades"
+    "maxQuantityReached": "Maximo disponible: {count} unidades",
+    "productNotAvailable": "Este producto no esta disponible actualmente"
   },
   "cart": {
     "heading": "Tu Carrito",

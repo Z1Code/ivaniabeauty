@@ -187,6 +187,7 @@ export async function PUT(
       "imageCropSourceMap",
       "imageEnhanceSourceMap",
       "sizeStock",
+      "colorSizeStock",
     ];
 
     for (const field of allowedFields) {

@@ -16,7 +16,7 @@ export interface ProductRow {
   price: number;
   originalPrice: number | null;
   category: string;
-  stockQuantity: number;
+  totalStock: number;
   isActive: boolean;
   images: string[];
   fitGuideStatus?: "draft" | "confirmed" | "failed" | "stale";
@@ -275,14 +275,14 @@ export default function AdminProductsClient({
       render: (p: ProductRow) => (
         <AdminBadge
           variant={
-            p.stockQuantity === 0
+            p.totalStock === 0
               ? "danger"
-              : p.stockQuantity <= 10
+              : p.totalStock <= 10
                 ? "warning"
                 : "success"
           }
         >
-          {p.stockQuantity} uds
+          {p.totalStock} uds
         </AdminBadge>
       ),
     },

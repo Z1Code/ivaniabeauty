@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb, isFirebaseConfigured } from "@/lib/firebase/admin";
+import { computeTotalStock } from "@/lib/stock-helpers";
 
 // Public GET endpoint — no auth required, read-only
 export async function GET(
@@ -28,12 +29,19 @@ export async function GET(
     }
 
     const data = doc.data()!;
+    const sizeStock: Record<string, number> = data.sizeStock ?? {};
+    const colorSizeStock: Record<string, Record<string, number>> | undefined =
+      data.colorSizeStock && typeof data.colorSizeStock === "object"
+        ? (data.colorSizeStock as Record<string, Record<string, number>>)
+        : undefined;
+    const totalStock = computeTotalStock(colorSizeStock, sizeStock);
 
     return NextResponse.json({
-      stockQuantity: data.stockQuantity ?? 0,
-      sizeStock: data.sizeStock ?? {},
+      sizeStock,
+      colorSizeStock: colorSizeStock || null,
+      totalStock,
       lowStockThreshold: data.lowStockThreshold ?? 5,
-      inStock: data.inStock !== false,
+      inStock: totalStock > 0,
     });
   } catch (error) {
     console.error("Error fetching stock:", error);

@@ -1,5 +1,6 @@
 import { adminDb } from "@/lib/firebase/admin";
 import { requireAdmin } from "@/lib/firebase/auth-helpers";
+import { computeTotalStock } from "@/lib/stock-helpers";
 import AdminProductsClient, { type ProductRow } from "./AdminProductsClient";
 import type { SizeChartDoc } from "@/lib/firebase/types";
 
@@ -24,7 +25,12 @@ async function getInitialProducts(): Promise<ProductRow[]> {
       price: Number(data.price || 0),
       originalPrice: data.originalPrice ?? null,
       category: data.category || "",
-      stockQuantity: Number(data.stockQuantity ?? 0),
+      totalStock: computeTotalStock(
+        data.colorSizeStock && typeof data.colorSizeStock === "object"
+          ? (data.colorSizeStock as Record<string, Record<string, number>>)
+          : undefined,
+        (data.sizeStock as Record<string, number>) || {}
+      ),
       isActive: data.isActive !== false,
       images: Array.isArray(data.images) ? data.images : [],
       fitGuideStatus:

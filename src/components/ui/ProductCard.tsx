@@ -9,6 +9,7 @@ import { formatPrice, cn, getColorHex } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getLocalizedField } from "@/lib/productHelpers";
 import useCart from "@/hooks/useCart";
+import { isAllOutOfStock, getSizeStockForColor } from "@/lib/stock-helpers";
 
 type BilingualString = { en: string; es: string };
 
@@ -26,6 +27,8 @@ export interface Product {
   category: string;
   sizes?: string[];
   inStock?: boolean;
+  sizeStock?: Record<string, number>;
+  colorSizeStock?: Record<string, Record<string, number>>;
 }
 
 interface ProductCardProps {
@@ -89,8 +92,16 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
   const sizePickerRef = useRef<HTMLDivElement>(null);
   const stockFetchedRef = useRef(false);
 
-  const isOutOfStock = product.inStock === false;
   const hasSizes = product.sizes && product.sizes.length > 0;
+
+  // Product is out of stock if:
+  // 1. Explicitly marked inStock=false, OR
+  // 2. Has sizes but all stock is zero
+  const isOutOfStock = (() => {
+    if (product.inStock === false) return true;
+    if (!hasSizes) return false;
+    return isAllOutOfStock(product.colorSizeStock, product.sizeStock, product.colors, product.sizes!);
+  })();
 
   // Fetch sizeStock when picker opens (once per card)
   useEffect(() => {
@@ -100,17 +111,21 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
     fetch(`/api/products/${product.id}/stock`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data?.sizeStock && typeof data.sizeStock === "object") {
-          const entries = Object.keys(data.sizeStock);
-          // Only set sizeStock when there are actual per-size entries
-          if (entries.length > 0) {
-            setSizeStock(data.sizeStock);
-          }
+        if (data) {
+          // Use colorSizeStock for the first color if available, else sizeStock
+          const effectiveStock = getSizeStockForColor(
+            data.colorSizeStock,
+            data.sizeStock,
+            colors[0] || ""
+          );
+          setSizeStock(Object.keys(effectiveStock).length > 0 ? effectiveStock : {});
+        } else {
+          setSizeStock({});
         }
       })
       .catch(() => {})
       .finally(() => setLoadingStock(false));
-  }, [showSizePicker, hasSizes, product.id]);
+  }, [showSizePicker, hasSizes, product.id, colors]);
 
   // Close size picker on outside click
   useEffect(() => {
@@ -378,17 +393,16 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
                     </div>
                   ) : (
                     product.sizes!.map((size) => {
-                      // sizeStock is null → no per-size data → all sizes available
-                      // sizeStock has entries → check this size's qty:
+                      // sizeStock is the single source of truth:
+                      //   null → still loading/error → show available (optimistic)
+                      //   {} (empty) → no stock configured → all sizes unavailable
+                      //   size not in sizeStock → unavailable
+                      //   qty <= 0 → unavailable
                       //   qty > 0 → available
-                      //   qty <= 0 → out of stock
-                      //   size not in sizeStock → available (admin didn't track it)
                       let isSizeOut = false;
                       if (sizeStock !== null) {
                         const qty = sizeStock[size];
-                        if (typeof qty === "number" && qty <= 0) {
-                          isSizeOut = true;
-                        }
+                        isSizeOut = typeof qty !== "number" || qty <= 0;
                       }
                       return (
                         <button

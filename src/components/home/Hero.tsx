@@ -16,7 +16,6 @@ import {
   Star,
   ShieldCheck,
   Truck,
-  RefreshCcw,
   CheckCircle2,
 } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -266,7 +265,6 @@ export default function Hero({ effectIntensity = "medium" }: HeroProps) {
 
   const trustItems = [
     { icon: Truck, label: t("hero.trustFreeShipping") },
-    { icon: RefreshCcw, label: t("hero.trust30DayReturns") },
     { icon: ShieldCheck, label: t("hero.trustSecurePayment") },
   ];
 

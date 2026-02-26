@@ -36,7 +36,7 @@ interface DashboardProps {
   lowStockProducts: Array<{
     id: string;
     name: string;
-    stockQuantity: number;
+    totalStock: number;
   }>;
 }
 
@@ -167,10 +167,10 @@ export default function DashboardClient({
                     </span>
                     <AdminBadge
                       variant={
-                        product.stockQuantity === 0 ? "danger" : "warning"
+                        product.totalStock === 0 ? "danger" : "warning"
                       }
                     >
-                      {product.stockQuantity} uds
+                      {product.totalStock} uds
                     </AdminBadge>
                   </Link>
                 ))}

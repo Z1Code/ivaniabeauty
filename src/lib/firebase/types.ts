@@ -42,6 +42,7 @@ export interface ProductDoc {
   inStock: boolean;
   stockQuantity: number;
   sizeStock?: Record<string, number>;
+  colorSizeStock?: Record<string, Record<string, number>>;
   lowStockThreshold: number;
   sku: string | null;
   isFeatured: boolean;

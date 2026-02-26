@@ -27,6 +27,8 @@ export interface Product {
   rating: number;
   reviewCount: number;
   inStock: boolean;
+  sizeStock?: Record<string, number>;
+  colorSizeStock?: Record<string, Record<string, number>>;
 }
 
 /**
@@ -87,6 +89,12 @@ function transformProduct(
     rating: Number(data.rating) || 0,
     reviewCount: Number(data.reviewCount) || 0,
     inStock: data.inStock !== false,
+    sizeStock: data.sizeStock && typeof data.sizeStock === "object"
+      ? (data.sizeStock as Record<string, number>)
+      : undefined,
+    colorSizeStock: data.colorSizeStock && typeof data.colorSizeStock === "object"
+      ? (data.colorSizeStock as Record<string, Record<string, number>>)
+      : undefined,
   };
 }
 

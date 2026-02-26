@@ -42,6 +42,8 @@ interface ShopListProductPayload {
   rating: number;
   reviewCount: number;
   inStock: boolean;
+  sizeStock?: Record<string, number>;
+  colorSizeStock?: Record<string, Record<string, number>>;
 }
 
 function toShopListPayload(products: Awaited<ReturnType<typeof getProducts>>): ShopListProductPayload[] {
@@ -60,6 +62,8 @@ function toShopListPayload(products: Awaited<ReturnType<typeof getProducts>>): S
     rating: product.rating,
     reviewCount: product.reviewCount,
     inStock: product.inStock,
+    sizeStock: product.sizeStock,
+    colorSizeStock: product.colorSizeStock,
   }));
 }
 

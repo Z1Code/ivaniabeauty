@@ -7,7 +7,8 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { motion } from "framer-motion";
 import Features from "@/components/home/Features";
 import Collections from "@/components/home/Collections";
-import FeaturedProduct from "@/components/home/FeaturedProduct";
+import BrandStory from "@/components/home/BrandStory";
+import SocialProofBanner from "@/components/home/SocialProofBanner";
 import Testimonials from "@/components/home/Testimonials";
 import {
   DEFAULT_HOME_SECTIONS_SETTINGS,
@@ -133,8 +134,9 @@ export default function HomeClient() {
       <div className="relative z-10">
         <Hero effectIntensity={homeSections.heroEffectIntensity} />
         <Features />
+        <SocialProofBanner />
         {homeSections.showCollections && <Collections />}
-        {homeSections.showFeaturedProduct && <FeaturedProduct />}
+        <BrandStory />
 
         {/* Before & After Section */}
         <section className="py-24 bg-arena/80 backdrop-blur-[1px]">

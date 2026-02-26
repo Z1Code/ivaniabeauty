@@ -74,13 +74,18 @@ export async function POST(request: Request) {
             const batch = adminDb.batch();
             for (const item of orderItems.docs) {
               const data = item.data();
-              if (data.productId) {
+              if (data.productId && data.size) {
                 const productRef = adminDb
                   .collection("products")
                   .doc(data.productId);
-                batch.update(productRef, {
-                  stockQuantity: FieldValue.increment(-data.quantity),
-                });
+                const updates: Record<string, FirebaseFirestore.FieldValue> = {
+                  [`sizeStock.${data.size}`]: FieldValue.increment(-data.quantity),
+                };
+                // Also decrement colorSizeStock if color is present
+                if (data.color) {
+                  updates[`colorSizeStock.${data.color}.${data.size}`] = FieldValue.increment(-data.quantity);
+                }
+                batch.update(productRef, updates);
               }
             }
             await batch.commit();

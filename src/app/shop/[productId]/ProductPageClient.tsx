@@ -28,6 +28,7 @@ import UnitToggle, { type Unit } from "@/components/ui/UnitToggle";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getLocalizedField } from "@/lib/productHelpers";
 import type { FitGuideStatus } from "@/lib/firebase/types";
+import { getColorSizeQty, getSizeStockForColor, isAllOutOfStock } from "@/lib/stock-helpers";
 import { canonicalizeSizeLabel } from "@/lib/fit-guide/utils";
 
 /* ------------------------------------------------------------------ */
@@ -61,6 +62,7 @@ interface ProductData {
   sizeChartImageUrl?: string | null;
   productPageImageUrl?: string | null;
   sizeStock?: Record<string, number>;
+  colorSizeStock?: Record<string, Record<string, number>>;
 }
 
 interface SizeChartDisplayCell {
@@ -220,6 +222,7 @@ function ProductDetail({ product }: { product: ProductData }) {
   const sizeRef = useRef<HTMLDivElement>(null);
   const [liveStock, setLiveStock] = useState<{
     sizeStock: Record<string, number>;
+    colorSizeStock?: Record<string, Record<string, number>> | null;
     lowStockThreshold: number;
   } | null>(null);
 
@@ -235,6 +238,7 @@ function ProductDetail({ product }: { product: ProductData }) {
           const data = await res.json();
           setLiveStock({
             sizeStock: data.sizeStock || {},
+            colorSizeStock: data.colorSizeStock || null,
             lowStockThreshold: data.lowStockThreshold ?? 5,
           });
         }
@@ -419,13 +423,24 @@ function ProductDetail({ product }: { product: ProductData }) {
     return t("productDetail.fitGuideFallbackNotice");
   }, [fitGuideData?.warnings, hasConfirmedFitGuide, t]);
 
+  /* ----- product-level availability (no stock in ANY size) ----- */
+  const isProductUnavailable = useMemo(() => {
+    if (!product.sizes || product.sizes.length === 0) return false;
+    const css = liveStock?.colorSizeStock ?? product.colorSizeStock;
+    const ss = liveStock?.sizeStock ?? product.sizeStock;
+    if (!css && (!ss || Object.keys(ss).length === 0)) return true;
+    return isAllOutOfStock(css, ss, product.colors, product.sizes);
+  }, [liveStock, product.sizes, product.colors, product.sizeStock, product.colorSizeStock]);
+
   /* ----- stock limit for selected size ----- */
   const maxQty = useMemo(() => {
-    if (!liveStock || !selectedSize) return Infinity;
-    const qty = liveStock.sizeStock[selectedSize];
+    if (!selectedSize) return Infinity;
+    const css = liveStock?.colorSizeStock ?? product.colorSizeStock;
+    const ss = liveStock?.sizeStock ?? product.sizeStock;
+    const qty = getColorSizeQty(css, ss, selectedColor, selectedSize);
     if (typeof qty === "number" && qty > 0) return qty;
-    return Infinity; // no per-size tracking → no limit
-  }, [liveStock, selectedSize]);
+    return 0;
+  }, [liveStock, selectedSize, selectedColor, product.sizeStock, product.colorSizeStock]);
 
   // Cap quantity when size changes and max is known
   useEffect(() => {
@@ -436,6 +451,7 @@ function ProductDetail({ product }: { product: ProductData }) {
 
   /* ----- cart handler ----- */
   const handleAddToCart = () => {
+    if (isProductUnavailable) return;
     if (!selectedSize && product.sizes.length > 0) {
       setSizeError(true);
       sizeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -454,6 +470,7 @@ function ProductDetail({ product }: { product: ProductData }) {
 
   /* ----- buy now handler ----- */
   const handleBuyNow = () => {
+    if (isProductUnavailable) return;
     if (!selectedSize && product.sizes.length > 0) {
       setSizeError(true);
       sizeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -667,7 +684,7 @@ function ProductDetail({ product }: { product: ProductData }) {
               {product.colors.map((color) => (
                 <button
                   key={color}
-                  onClick={() => setSelectedColor(color)}
+                  onClick={() => { setSelectedColor(color); setSelectedSize(""); }}
                   className={`w-8 h-8 rounded-full border-2 transition-all cursor-pointer ${
                     selectedColor === color
                       ? "ring-2 ring-rosa ring-offset-2 border-transparent"
@@ -699,8 +716,10 @@ function ProductDetail({ product }: { product: ProductData }) {
             </div>
             <div className="flex flex-wrap gap-2">
               {product.sizes.map((size) => {
-                const sizeQty = product.sizeStock?.[size];
-                const isOutOfStock = sizeQty !== undefined && sizeQty <= 0;
+                const css = liveStock?.colorSizeStock ?? product.colorSizeStock;
+                const ss = liveStock?.sizeStock ?? product.sizeStock;
+                const sizeQty = getColorSizeQty(css, ss, selectedColor, size);
+                const isOutOfStock = typeof sizeQty !== "number" || sizeQty <= 0;
                 return (
                   <button
                     key={size}
@@ -731,7 +750,9 @@ function ProductDetail({ product }: { product: ProductData }) {
             )}
             {/* Low stock alert */}
             {selectedSize && liveStock && (() => {
-              const qty = liveStock.sizeStock[selectedSize];
+              const css = liveStock.colorSizeStock;
+              const ss = liveStock.sizeStock;
+              const qty = getColorSizeQty(css, ss, selectedColor, selectedSize);
               if (qty === undefined) return null;
               if (qty <= 0) {
                 return (
@@ -799,21 +820,42 @@ function ProductDetail({ product }: { product: ProductData }) {
             )}
           </div>
 
+          {/* ----- Not available banner ----- */}
+          {isProductUnavailable && (
+            <div className="w-full py-3 px-4 bg-gray-100 border border-gray-200 rounded-xl text-center mb-2">
+              <p className="text-sm font-medium text-gray-500">
+                {t("productDetail.productNotAvailable")}
+              </p>
+            </div>
+          )}
+
           {/* ----- Add to Cart ----- */}
           <motion.button
-            whileTap={{ scale: 0.97 }}
+            whileTap={isProductUnavailable ? undefined : { scale: 0.97 }}
             onClick={handleAddToCart}
-            className="w-full py-4 bg-rosa text-white rounded-full text-lg font-semibold hover:bg-rosa-dark transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            disabled={isProductUnavailable}
+            className={cn(
+              "w-full py-4 rounded-full text-lg font-semibold transition-colors flex items-center justify-center gap-2",
+              isProductUnavailable
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-rosa text-white hover:bg-rosa-dark cursor-pointer"
+            )}
           >
             <ShoppingBag className="w-5 h-5" />
-            {t("productDetail.addToCart")}
+            {isProductUnavailable ? t("productDetail.outOfStock") : t("productDetail.addToCart")}
           </motion.button>
 
           {/* ----- Buy Now ----- */}
           <motion.button
-            whileTap={{ scale: 0.97 }}
+            whileTap={isProductUnavailable ? undefined : { scale: 0.97 }}
             onClick={handleBuyNow}
-            className="w-full mt-3 py-4 border-2 border-rosa text-rosa rounded-full text-lg font-semibold hover:bg-rosa hover:text-white transition-colors cursor-pointer"
+            disabled={isProductUnavailable}
+            className={cn(
+              "w-full mt-3 py-4 border-2 rounded-full text-lg font-semibold transition-colors",
+              isProductUnavailable
+                ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                : "border-rosa text-rosa hover:bg-rosa hover:text-white cursor-pointer"
+            )}
           >
             {t("productDetail.buyNow")}
           </motion.button>

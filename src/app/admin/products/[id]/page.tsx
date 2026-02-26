@@ -39,7 +39,11 @@ export default async function EditProductPage({
     colors: data.colors || [],
     sizes: data.sizes || [],
     images: data.images || [],
-    stockQuantity: data.stockQuantity?.toString() || "100",
+    stockQuantity: Object.values(
+      (data.sizeStock as Record<string, number>) || {}
+    ).reduce((sum: number, qty) => sum + (typeof qty === "number" ? qty : 0), 0).toString(),
+    sizeStock: data.sizeStock || {},
+    colorSizeStock: data.colorSizeStock || {},
     lowStockThreshold: data.lowStockThreshold?.toString() || "5",
     inStock: data.inStock !== false,
     isFeatured: data.isFeatured || false,

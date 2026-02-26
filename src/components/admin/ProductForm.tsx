@@ -83,6 +83,7 @@ interface ProductFormData {
   imageCropSourceMap: Record<string, string>;
   imageEnhanceSourceMap: Record<string, string>;
   sizeStock: Record<string, string>;
+  colorSizeStock: Record<string, Record<string, string>>;
 }
 
 interface ProductFormProps {
@@ -506,6 +507,19 @@ export default function ProductForm({
       const mapped: Record<string, string> = {};
       for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
         mapped[k] = String(v ?? "0");
+      }
+      return mapped;
+    })(),
+    colorSizeStock: (() => {
+      const raw = (initialData as Record<string, unknown>)?.colorSizeStock;
+      if (!raw || typeof raw !== "object") return {};
+      const mapped: Record<string, Record<string, string>> = {};
+      for (const [color, sizeMap] of Object.entries(raw as Record<string, unknown>)) {
+        if (!sizeMap || typeof sizeMap !== "object") continue;
+        mapped[color] = {};
+        for (const [size, qty] of Object.entries(sizeMap as Record<string, unknown>)) {
+          mapped[color][size] = String(qty ?? "0");
+        }
       }
       return mapped;
     })(),
@@ -1726,9 +1740,30 @@ export default function ProductForm({
         sku: form.sku || null,
         sizeChartImageUrl: cleanedSizeChartImageUrl,
         sizeStock: (() => {
+          // If we have colorSizeStock data, flatten it to legacy sizeStock
+          if (form.colors.length > 0 && Object.keys(form.colorSizeStock).length > 0) {
+            const result: Record<string, number> = {};
+            for (const size of form.sizes) {
+              result[size] = form.colors.reduce((sum, color) => {
+                return sum + (parseInt(form.colorSizeStock[color]?.[size] || "0") || 0);
+              }, 0);
+            }
+            return result;
+          }
           const result: Record<string, number> = {};
           for (const size of form.sizes) {
             result[size] = parseInt(form.sizeStock[size] || "0") || 0;
+          }
+          return result;
+        })(),
+        colorSizeStock: (() => {
+          if (form.colors.length === 0) return {};
+          const result: Record<string, Record<string, number>> = {};
+          for (const color of form.colors) {
+            result[color] = {};
+            for (const size of form.sizes) {
+              result[color][size] = parseInt(form.colorSizeStock[color]?.[size] || "0") || 0;
+            }
           }
           return result;
         })(),
@@ -3106,21 +3141,100 @@ export default function ProductForm({
           {/* Inventory */}
           <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4 transition-colors duration-300">
             <h3 className="font-semibold text-gray-800 dark:text-gray-100">Inventario</h3>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Stock
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={form.stockQuantity}
-                onChange={(e) =>
-                  updateField("stockQuantity", e.target.value)
-                }
-                className={inputClasses}
-              />
-            </div>
-            {form.sizes.length > 0 && (
+            {form.sizes.length > 0 && form.colors.length > 0 ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Stock por color y talla
+                </label>
+                {/* Color tabs */}
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {form.colors.map((color) => {
+                    const colorTotal = form.sizes.reduce(
+                      (sum, s) => sum + (parseInt(form.colorSizeStock[color]?.[s] || "0") || 0),
+                      0
+                    );
+                    return (
+                      <span
+                        key={color}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
+                      >
+                        <span
+                          className="w-3 h-3 rounded-full border border-gray-300 dark:border-gray-600 flex-shrink-0"
+                          style={{ backgroundColor: getColorHex(color) }}
+                        />
+                        {color}
+                        <span className="text-gray-400 dark:text-gray-500">({colorTotal})</span>
+                      </span>
+                    );
+                  })}
+                </div>
+                {/* Per-color grids */}
+                <div className="space-y-3">
+                  {form.colors.map((color) => {
+                    const colorTotal = form.sizes.reduce(
+                      (sum, s) => sum + (parseInt(form.colorSizeStock[color]?.[s] || "0") || 0),
+                      0
+                    );
+                    return (
+                      <div key={color} className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span
+                            className="w-3 h-3 rounded-full border border-gray-300 dark:border-gray-600"
+                            style={{ backgroundColor: getColorHex(color) }}
+                          />
+                          <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{color}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">Subtotal: {colorTotal} uds</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {form.sizes.map((size) => (
+                            <div key={size} className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-10 text-right">{size}</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={form.colorSizeStock[color]?.[size] || "0"}
+                                onChange={(e) => {
+                                  const nextColorSizeStock = { ...form.colorSizeStock };
+                                  if (!nextColorSizeStock[color]) nextColorSizeStock[color] = {};
+                                  nextColorSizeStock[color] = { ...nextColorSizeStock[color], [size]: e.target.value };
+                                  updateField("colorSizeStock", nextColorSizeStock);
+                                  // Also update legacy sizeStock + stockQuantity
+                                  let grandTotal = 0;
+                                  const nextSizeStock: Record<string, string> = {};
+                                  for (const s of form.sizes) {
+                                    let sizeTotal = 0;
+                                    for (const c of form.colors) {
+                                      const val = c === color && s === size ? e.target.value : (nextColorSizeStock[c]?.[s] || "0");
+                                      sizeTotal += parseInt(val) || 0;
+                                    }
+                                    nextSizeStock[s] = String(sizeTotal);
+                                    grandTotal += sizeTotal;
+                                  }
+                                  updateField("sizeStock", nextSizeStock);
+                                  updateField("stockQuantity", String(grandTotal));
+                                }}
+                                className={inputClasses}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                  Stock total: {(() => {
+                    let total = 0;
+                    for (const color of form.colors) {
+                      for (const size of form.sizes) {
+                        total += parseInt(form.colorSizeStock[color]?.[size] || "0") || 0;
+                      }
+                    }
+                    return total;
+                  })()} uds. Cada combinacion color+talla tiene stock independiente.
+                </p>
+              </div>
+            ) : form.sizes.length > 0 ? (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Stock por talla
@@ -3145,7 +3259,25 @@ export default function ProductForm({
                   ))}
                 </div>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  El stock total se calcula automaticamente sumando las tallas.
+                  Stock total: {form.sizes.reduce((sum, s) => sum + (parseInt(form.sizeStock[s] || "0") || 0), 0)} uds. Agrega colores para gestionar stock por color+talla.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Stock
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.stockQuantity}
+                  onChange={(e) =>
+                    updateField("stockQuantity", e.target.value)
+                  }
+                  className={inputClasses}
+                />
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  Para productos sin tallas. Agrega tallas para gestionar stock por talla.
                 </p>
               </div>
             )}

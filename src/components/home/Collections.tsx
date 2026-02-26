@@ -2,40 +2,35 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Droplets, ShieldCheck, CircleDot, Shirt } from "lucide-react";
+import Image from "next/image";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface CollectionItem {
   nameKey: string;
-  icon: React.ElementType;
-  gradient: string;
+  image: string;
   slug: string;
 }
 
 const collections: CollectionItem[] = [
   {
     nameKey: "collections.hairBodyCare",
-    icon: Droplets,
-    gradient: "from-turquesa/40 to-rosa-light/40",
+    image: "/ourcollections/1.png",
     slug: "hair-body-care",
   },
   {
     nameKey: "collections.shapewear",
-    icon: ShieldCheck,
-    gradient: "from-rosa-light/40 to-arena",
+    image: "/ourcollections/2.png",
     slug: "shapewear",
   },
   {
     nameKey: "collections.waistCinchers",
-    icon: CircleDot,
-    gradient: "from-dorado/30 to-rosa/30",
+    image: "/ourcollections/3.png",
     slug: "waist-cinchers",
   },
   {
     nameKey: "collections.topsShorts",
-    icon: Shirt,
-    gradient: "from-rosa-light/40 to-coral/30",
+    image: "/ourcollections/4.png",
     slug: "tops-shorts",
   },
 ];
@@ -72,8 +67,6 @@ function CollectionCard({ collection, index }: { collection: CollectionItem; ind
     setIsHovering(true);
   }, []);
 
-  const Icon = collection.icon;
-
   return (
     <ScrollReveal direction="up" delay={index * 0.15}>
       <Link href={`/shop?category=${collection.slug}`}>
@@ -88,18 +81,17 @@ function CollectionCard({ collection, index }: { collection: CollectionItem; ind
             transition: isHovering ? "none" : "transform 0.5s ease-out",
           }}
         >
-          {/* Gradient background */}
-          <div
-            className={`absolute inset-0 bg-gradient-to-br ${collection.gradient}`}
+          {/* Collection photo */}
+          <Image
+            src={collection.image}
+            alt={t(collection.nameKey)}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
           />
 
-          {/* Dark overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-
-          {/* Centered icon */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Icon className="w-16 h-16 text-white/80 group-hover:scale-110 transition-transform duration-300" />
-          </div>
+          {/* Dark gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
           {/* Bottom text */}
           <div className="absolute bottom-0 left-0 right-0 p-6">

@@ -18,11 +18,12 @@ import useCart from "@/hooks/useCart";
 import { formatPrice, getColorHex, cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 
-// Stock data keyed by "productId::size" for per-size or "productId" for whole-product
+// Stock data keyed by "productId::color::size" for per-color-size or "productId::size" for per-size
 type StockMap = Record<string, number | undefined>;
 
-function stockKey(productId: string, size: string): string {
-  return size ? `${productId}::${size}` : productId;
+function stockKey(productId: string, color: string, size: string): string {
+  if (!size) return productId;
+  return color ? `${productId}::${color}::${size}` : `${productId}::::${size}`;
 }
 
 export default function CartDrawer() {
@@ -71,17 +72,21 @@ export default function CartDrawer() {
             const res = await fetch(`/api/products/${pid}/stock`);
             if (!res.ok) return;
             const data = await res.json();
+            const colorSizeStock: Record<string, Record<string, number>> | null = data.colorSizeStock || null;
             const sizeStock: Record<string, number> = data.sizeStock || {};
-            const totalStock: number = data.stockQuantity ?? Infinity;
 
-            // If per-size stock exists, use it; otherwise use total stockQuantity
-            if (Object.keys(sizeStock).length > 0) {
-              for (const [size, qty] of Object.entries(sizeStock)) {
-                map[stockKey(pid, size)] = qty as number;
+            if (colorSizeStock && Object.keys(colorSizeStock).length > 0) {
+              // Use colorSizeStock keyed by color+size
+              for (const [color, sizeMap] of Object.entries(colorSizeStock)) {
+                for (const [size, qty] of Object.entries(sizeMap)) {
+                  map[stockKey(pid, color, size)] = qty as number;
+                }
               }
             } else {
-              // Store the total stock for the whole product
-              map[pid] = totalStock;
+              // Fallback to sizeStock (no color dimension)
+              for (const [size, qty] of Object.entries(sizeStock)) {
+                map[stockKey(pid, "", size)] = qty as number;
+              }
             }
           } catch {
             // Silent fail — stock enforcement is best-effort
@@ -101,16 +106,15 @@ export default function CartDrawer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, items.length]);
 
-  // Get max stock for a cart item
-  function getMaxStock(item: { id: string; size: string }): number {
-    // Check per-size stock first
-    const perSize = stockMap[stockKey(item.id, item.size)];
-    if (typeof perSize === "number") return perSize;
-    // Check whole-product stock
-    const total = stockMap[item.id];
-    if (typeof total === "number") return total;
-    // No data → no limit
-    return Infinity;
+  // Get max stock for a cart item — colorSizeStock is the primary source
+  function getMaxStock(item: { id: string; color: string; size: string }): number {
+    if (!item.size) return Infinity; // products without sizes → no limit
+    // Try color+size key first, then fallback to no-color key
+    const qty = stockMap[stockKey(item.id, item.color, item.size)]
+      ?? stockMap[stockKey(item.id, "", item.size)];
+    if (typeof qty === "number") return qty;
+    // Size not in stockMap → could mean no data fetched yet or size not tracked
+    return stockFetched ? 0 : Infinity;
   }
 
   // Auto-cap quantities when stock data arrives

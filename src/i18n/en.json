@@ -100,24 +100,44 @@
     "with": "With Shaper",
     "ariaLabel": "Before and after comparison"
   },
+  "brandStory": {
+    "tag": "Our Story",
+    "heading": "Beauty that empowers, confidence that transforms",
+    "paragraph1": "Ivania Beauty was born from the belief that every woman deserves to feel confident and beautiful in her own skin. Our premium shapewear is designed with advanced compression technology and the highest quality materials, guaranteeing all-day comfort without sacrificing the silhouette you desire.",
+    "paragraph2": "From Miami to all of Latin America and the United States, we carefully select each design combining the Colombian shapewear tradition with modern textile innovation. The result: garments that shape, support, and enhance your figure naturally.",
+    "statClientsLabel": "Happy clients",
+    "statDesignsLabel": "Exclusive designs",
+    "statSatisfactionLabel": "Satisfaction",
+    "cta": "Explore the Shop"
+  },
+  "socialProof": {
+    "clientsValue": "2,500+",
+    "clientsLabel": "Happy clients",
+    "ratingValue": "4.9/5",
+    "ratingLabel": "Average rating",
+    "designsValue": "30+",
+    "designsLabel": "Exclusive designs",
+    "returnPolicyValue": "15 days",
+    "returnPolicyLabel": "Exchanges & returns"
+  },
   "testimonials": {
     "heading": "What Our Clients Say",
     "subtitle": "Real stories from real women",
     "prevAriaLabel": "Previous testimonial",
     "nextAriaLabel": "Next testimonial",
     "goToAriaLabel": "Go to testimonial",
-    "review1Name": "Maria Garcia",
-    "review1Text": "Incredible! The shaper is super comfortable and invisible under clothes. I wore it to my wedding and felt spectacular.",
-    "review1Product": "Gala Sculpt Shaper",
-    "review2Name": "Laura Martinez",
-    "review2Text": "Perfect for the beach. It dries super fast and shapes without discomfort. I can't go on vacation without it.",
-    "review2Product": "Invisible Bikini Shaper",
-    "review3Name": "Carolina Ruiz",
-    "review3Text": "After giving birth I needed support and this shaper was my lifesaver. Very comfortable for all-day wear.",
-    "review3Product": "Recovery Mama Shaper",
-    "review4Name": "Ana Sofia Lopez",
-    "review4Text": "The waist trainer is incredible. Visible results from the first week. 100% recommended!",
-    "review4Product": "Waist Trainer Deluxe"
+    "review1Name": "Valentina R.",
+    "review1Text": "I bought the Invisible Fisherman Shaper and it's amazing. I wear it every day under my work dresses and no one notices. Super comfortable even after 10 hours.",
+    "review1Product": "Invisible Fisherman / Angel Shaper",
+    "review2Name": "Daniela M.",
+    "review2Text": "After my C-section I needed something supportive without being uncomfortable. The Post-Surgical Shaper was perfect, it helped me so much during recovery. 100% recommend.",
+    "review2Product": "Post-Surgical Shaper",
+    "review3Name": "Carolina P.",
+    "review3Text": "The Extreme Waist Cincher Luciana is incredible for the gym. It feels firm but doesn't restrict my breathing. 3 months in and the results are visible.",
+    "review3Product": "Extreme Waist Cincher / Luciana",
+    "review4Name": "Sofia L.",
+    "review4Text": "I ordered the Full Body Shaper and it arrived super fast. The quality is impressive, it feels like a second skin. I'll definitely be ordering again!",
+    "review4Product": "Full Body Shaper"
   },
   "sizeQuiz": {
     "heading": "Find Your Perfect Size",
@@ -297,7 +317,8 @@
     "sizeRequired": "Please select a size before adding to cart",
     "lowStockWarning": "Only {count} left in size {size}",
     "outOfStockSize": "Out of stock in this size",
-    "maxQuantityReached": "Maximum available: {count} units"
+    "maxQuantityReached": "Maximum available: {count} units",
+    "productNotAvailable": "This product is currently not available"
   },
   "cart": {
     "heading": "Your Cart",

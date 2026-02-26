@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Wind, Sparkles, Eye, Heart } from "lucide-react";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -10,13 +11,14 @@ interface FeatureCard {
   icon: LucideIcon;
   titleKey: string;
   descKey: string;
+  image: string;
 }
 
 const featureItems: FeatureCard[] = [
-  { icon: Wind, titleKey: "features.breathableFabricsTitle", descKey: "features.breathableFabricsDesc" },
-  { icon: Sparkles, titleKey: "features.shapeWithoutCompressingTitle", descKey: "features.shapeWithoutCompressingDesc" },
-  { icon: Eye, titleKey: "features.invisibleDesignTitle", descKey: "features.invisibleDesignDesc" },
-  { icon: Heart, titleKey: "features.inclusiveSizesTitle", descKey: "features.inclusiveSizesDesc" },
+  { icon: Wind, titleKey: "features.breathableFabricsTitle", descKey: "features.breathableFabricsDesc", image: "/whychooseus/telastranspirables.png" },
+  { icon: Sparkles, titleKey: "features.shapeWithoutCompressingTitle", descKey: "features.shapeWithoutCompressingDesc", image: "/whychooseus/moldeasincomprimir.png" },
+  { icon: Eye, titleKey: "features.invisibleDesignTitle", descKey: "features.invisibleDesignDesc", image: "/whychooseus/disenoinvisible.png" },
+  { icon: Heart, titleKey: "features.inclusiveSizesTitle", descKey: "features.inclusiveSizesDesc", image: "/whychooseus/tallasinclusivas.png" },
 ];
 
 export default function Features() {
@@ -45,21 +47,36 @@ export default function Features() {
               delay={index * 0.1}
               className="h-full"
             >
-              <div className="h-full flex flex-col items-center rounded-2xl bg-gradient-to-b from-rosa/15 to-rosa/8 border border-rosa/25 p-8 text-center transition-all duration-300 hover:scale-[1.03] group hover:border-rosa/45 hover:shadow-xl hover:shadow-rosa/15 hover:from-rosa/20 hover:to-rosa/12">
-                {/* Icon circle */}
-                <div className="w-14 h-14 rounded-full bg-rosa/20 flex items-center justify-center mb-5 transition-all duration-300 group-hover:bg-rosa/30 group-hover:scale-110">
-                  <Icon className="w-6 h-6 text-rosa-dark" />
+              <div className="relative h-full min-h-[320px] overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.03] group hover:shadow-xl hover:shadow-black/20">
+                {/* Background image */}
+                <Image
+                  src={feature.image}
+                  alt=""
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+
+                {/* Content */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-left">
+                  {/* Icon circle */}
+                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 transition-all duration-300 group-hover:bg-white/30 group-hover:scale-110">
+                    <Icon className="w-5 h-5 text-white" />
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="font-serif text-lg font-bold text-white">
+                    {t(feature.titleKey)}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="mt-2 text-sm text-white/80 leading-relaxed">
+                    {t(feature.descKey)}
+                  </p>
                 </div>
-
-                {/* Title */}
-                <h3 className="font-serif text-lg font-semibold">
-                  {t(feature.titleKey)}
-                </h3>
-
-                {/* Description */}
-                <p className="mt-3 text-sm text-gray-600 leading-relaxed flex-1">
-                  {t(feature.descKey)}
-                </p>
               </div>
             </ScrollReveal>
           );

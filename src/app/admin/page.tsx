@@ -1,15 +1,16 @@
 import { requireAdmin } from "@/lib/firebase/auth-helpers";
 import { adminDb } from "@/lib/firebase/admin";
+import { computeTotalStock } from "@/lib/stock-helpers";
 import DashboardClient from "./DashboardClient";
 
 export default async function AdminDashboard() {
   await requireAdmin();
 
+  // Fetch active products to check sizeStock (can't query inside maps in Firestore)
   const lowStockPromise = adminDb
     .collection("products")
-    .where("stockQuantity", "<=", 10)
     .where("isActive", "==", true)
-    .limit(5)
+    .select("nameEs", "nameEn", "sizeStock", "colorSizeStock", "sizes")
     .get()
     .catch(() => null);
 
@@ -73,16 +74,25 @@ export default async function AdminDashboard() {
   const lowStockProducts: Array<{
     id: string;
     name: string;
-    stockQuantity: number;
+    totalStock: number;
   }> = lowStockSnap
-    ? lowStockSnap.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        name: data.nameEs || data.nameEn || "---",
-        stockQuantity: data.stockQuantity || 0,
-      };
-    })
+    ? lowStockSnap.docs
+        .map((doc) => {
+          const data = doc.data();
+          const colorSizeStock = data.colorSizeStock && typeof data.colorSizeStock === "object"
+            ? (data.colorSizeStock as Record<string, Record<string, number>>)
+            : undefined;
+          const sizeStock: Record<string, number> = data.sizeStock || {};
+          const totalStock = computeTotalStock(colorSizeStock, sizeStock);
+          return {
+            id: doc.id,
+            name: data.nameEs || data.nameEn || "---",
+            totalStock,
+          };
+        })
+        .filter((p) => p.totalStock <= 10)
+        .sort((a, b) => a.totalStock - b.totalStock)
+        .slice(0, 5)
     : [];
 
   return (

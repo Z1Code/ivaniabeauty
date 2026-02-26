@@ -74,6 +74,7 @@ export async function GET(request: Request) {
         "images",
         "sizeChartImageUrl",
         "sizeStock",
+        "colorSizeStock",
         "createdAt",
         "updatedAt",
         "sortOrder"
@@ -219,6 +220,7 @@ export async function POST(request: Request) {
       isFeatured: body.isFeatured || false,
       isActive: body.isActive !== false,
       sizeStock: body.sizeStock && typeof body.sizeStock === "object" ? body.sizeStock : {},
+      colorSizeStock: body.colorSizeStock && typeof body.colorSizeStock === "object" ? body.colorSizeStock : {},
       sortOrder: body.sortOrder ?? 0,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
