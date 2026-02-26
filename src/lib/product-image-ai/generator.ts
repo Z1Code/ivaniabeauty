@@ -125,10 +125,11 @@ function parseCsvEnvList(value: string | undefined): string[] {
 }
 
 const DEFAULT_IMAGE_MODEL_FALLBACKS = [
-  // Stable Gemini 2.5 Flash Image (faster, lower quota tier cost).
+  // Gemini 3 Pro Image Preview — highest quality, supports up to 14 reference images.
+  "gemini-3-pro-image-preview",
+  // Stable Gemini 2.5 Flash Image (GA) — faster, lower quota cost.
   "gemini-2.5-flash-image",
-  // Preview alias; retried only if available for the project.
-  "gemini-2.5-flash-image-preview",
+  // NOTE: gemini-2.5-flash-image-preview was shut down January 15, 2026. Do NOT re-add.
 ];
 
 const MODEL_CANDIDATES = (() => {
