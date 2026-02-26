@@ -1,10 +1,10 @@
 "use client";
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Check, Star, Eye } from "lucide-react";
+import { ShoppingBag, Check, Star, Eye, X } from "lucide-react";
 import { formatPrice, cn, getColorHex } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getLocalizedField } from "@/lib/productHelpers";
@@ -83,22 +83,32 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
   const [filling, setFilling] = useState(false);
   const [added, setAdded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [showSizePicker, setShowSizePicker] = useState(false);
+  const sizePickerRef = useRef<HTMLDivElement>(null);
 
   const isOutOfStock = product.inStock === false;
+  const hasSizes = product.sizes && product.sizes.length > 0;
+
+  // Close size picker on outside click
+  useEffect(() => {
+    if (!showSizePicker) return;
+    const handleClick = (e: MouseEvent) => {
+      if (sizePickerRef.current && !sizePickerRef.current.contains(e.target as Node)) {
+        setShowSizePicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showSizePicker]);
 
   const discountPercent =
     originalPrice && originalPrice > price
       ? Math.round(((originalPrice - price) / originalPrice) * 100)
       : null;
 
-  const handleAddToCart = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (filling || added || isOutOfStock) return;
-
+  const doAddToCart = useCallback(
+    (selectedSize: string) => {
       setFilling(true);
-
       setTimeout(() => {
         addItem({
           id: product.id,
@@ -106,19 +116,45 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
           price: product.price,
           image: product.images[0] || "",
           color: colors[0] || "",
-          size: (product.sizes && product.sizes[0]) || "",
+          size: selectedSize,
           quantity: 1,
         });
         setFilling(false);
         setAdded(true);
-
         setTimeout(() => {
           openCart();
           setAdded(false);
         }, 600);
       }, 500);
     },
-    [filling, added, isOutOfStock, addItem, openCart, product, name, colors]
+    [addItem, openCart, product, name, colors]
+  );
+
+  const handleAddToCart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (filling || added || isOutOfStock) return;
+
+      if (hasSizes) {
+        setShowSizePicker(true);
+        return;
+      }
+
+      doAddToCart("");
+    },
+    [filling, added, isOutOfStock, hasSizes, doAddToCart]
+  );
+
+  const handleSizeSelect = useCallback(
+    (e: React.MouseEvent, size: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (filling || added) return;
+      setShowSizePicker(false);
+      doAddToCart(size);
+    },
+    [filling, added, doAddToCart]
   );
 
   const fullStars = Math.floor(product.rating);
@@ -287,6 +323,45 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
               </span>
             )}
           </div>
+
+          {/* ─── Size Picker Popup ─── */}
+          <AnimatePresence>
+            {showSizePicker && hasSizes && (
+              <motion.div
+                ref={sizePickerRef}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.15 }}
+                className="relative bg-white border border-rosa/30 rounded-lg p-2.5 shadow-lg mt-1"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-semibold text-gray-700">
+                    {t("productDetail.sizeHeading")}
+                  </span>
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowSizePicker(false); }}
+                    className="p-0.5 rounded-full hover:bg-gray-100 transition-colors"
+                    aria-label={t("productDetail.closeAriaLabel")}
+                  >
+                    <X className="w-3 h-3 text-gray-400" />
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {product.sizes!.map((size) => (
+                    <button
+                      key={size}
+                      onClick={(e) => handleSizeSelect(e, size)}
+                      className="px-2.5 py-1.5 text-[11px] font-medium rounded-md border border-gray-200 hover:border-rosa hover:bg-rosa/5 hover:text-rosa-dark transition-all duration-200 cursor-pointer"
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* ─── Add to Cart - Fill bar animation (preserved) ─── */}
           <motion.button
