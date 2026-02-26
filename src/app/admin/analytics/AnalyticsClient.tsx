@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   ShoppingCart,
@@ -11,6 +12,12 @@ import {
   ArrowRight,
   Ticket,
 } from "lucide-react";
+import { Globe, Eye, MousePointer } from "lucide-react";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, PieChart, Pie, Cell,
+} from "recharts";
+import type { PieLabelRenderProps } from "recharts";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminTable from "@/components/admin/AdminTable";
@@ -20,6 +27,9 @@ import AdminBadge, {
 } from "@/components/admin/AdminBadge";
 import { formatPrice } from "@/lib/utils";
 import type { AnalyticsPayload } from "@/lib/admin/analytics-data";
+import type { VercelAnalyticsData } from "@/lib/admin/vercel-analytics";
+
+const ROSA_COLORS = ["#D4737A", "#40BFC1", "#E8A0A6", "#C25D64", "#F5D5D8", "#2DA5A7", "#B44C54", "#A3E0E1", "#F0B0B6", "#8ECFD0"];
 
 export default function AnalyticsClient({
   initialData,
@@ -27,6 +37,33 @@ export default function AnalyticsClient({
   initialData: AnalyticsPayload;
 }) {
   const { stats, recentOrders, topProducts, statusBreakdown } = initialData;
+
+  const [vercelRange, setVercelRange] = useState<"7d" | "30d" | "90d">("30d");
+  const [vercelData, setVercelData] = useState<VercelAnalyticsData | null>(null);
+  const [vercelLoading, setVercelLoading] = useState(true);
+
+  const fetchVercel = useCallback(async (range: "7d" | "30d" | "90d") => {
+    setVercelLoading(true);
+    try {
+      const res = await fetch(`/api/admin/analytics/vercel?range=${range}`);
+      if (res.ok) {
+        const data: VercelAnalyticsData = await res.json();
+        setVercelData(data);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setVercelLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchVercel(vercelRange);
+  }, [vercelRange, fetchVercel]);
+
+  const vercelConfigured =
+    vercelData &&
+    (vercelData.timeSeries.length > 0 || vercelData.topPages.length > 0 || vercelData.totalPageViews > 0);
 
   const recentOrderColumns = [
     {
@@ -76,6 +113,201 @@ export default function AnalyticsClient({
         ]}
       />
 
+      {/* ── Vercel Web Analytics Section ── */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300 p-6 mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <Globe className="w-5 h-5 text-rosa" />
+            Vercel Web Analytics
+          </h3>
+          <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            {(["7d", "30d", "90d"] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => setVercelRange(r)}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  vercelRange === r
+                    ? "bg-rosa text-white shadow-sm"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {vercelLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="w-8 h-8 border-4 border-rosa/30 border-t-rosa rounded-full animate-spin" />
+          </div>
+        ) : !vercelConfigured ? (
+          <div className="text-center py-10">
+            <Globe className="w-10 h-10 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              Vercel Analytics no configurado. Agrega VERCEL_ANALYTICS_TOKEN en variables de entorno.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Summary cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-rosa-light/10 dark:bg-rosa/10">
+                <div className="w-10 h-10 rounded-full bg-rosa/10 flex items-center justify-center">
+                  <Eye className="w-5 h-5 text-rosa" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Total Page Views</p>
+                  <p className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                    {vercelData!.totalPageViews.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-[#40BFC1]/10">
+                <div className="w-10 h-10 rounded-full bg-[#40BFC1]/10 flex items-center justify-center">
+                  <MousePointer className="w-5 h-5 text-[#40BFC1]" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Total Visitors</p>
+                  <p className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                    {vercelData!.totalVisitors.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Line Chart - Page Views Over Time */}
+            {vercelData!.timeSeries.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">
+                  Visitas en el Tiempo
+                </h4>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={vercelData!.timeSeries}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                        tickFormatter={(v: string) => {
+                          const d = new Date(v);
+                          return `${d.getMonth() + 1}/${d.getDate()}`;
+                        }}
+                      />
+                      <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#fff",
+                          border: "1px solid #E5E7EB",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="pageViews"
+                        stroke="#D4737A"
+                        strokeWidth={2}
+                        dot={false}
+                        name="Page Views"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="visitors"
+                        stroke="#40BFC1"
+                        strokeWidth={2}
+                        dot={false}
+                        name="Visitors"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Bar Chart - Top Pages */}
+              {vercelData!.topPages.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">
+                    Paginas Mas Visitadas
+                  </h4>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={vercelData!.topPages} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: "#9CA3AF" }} />
+                        <YAxis
+                          type="category"
+                          dataKey="key"
+                          tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                          width={120}
+                          tickFormatter={(v: string) =>
+                            v.length > 18 ? v.slice(0, 18) + "..." : v
+                          }
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#fff",
+                            border: "1px solid #E5E7EB",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                          }}
+                        />
+                        <Bar dataKey="total" fill="#D4737A" radius={[0, 4, 4, 0]} name="Views" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Pie Chart - Referrers */}
+              {vercelData!.topReferrers.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">
+                    Fuentes de Trafico
+                  </h4>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={vercelData!.topReferrers}
+                          dataKey="total"
+                          nameKey="key"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={90}
+                          label={(props: PieLabelRenderProps) => {
+                            const name = String(props.name ?? "");
+                            const pct = Number(props.percent ?? 0);
+                            return `${name.length > 15 ? name.slice(0, 15) + "..." : name} ${(pct * 100).toFixed(0)}%`;
+                          }}
+                          labelLine={false}
+                          fontSize={10}
+                        >
+                          {vercelData!.topReferrers.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={ROSA_COLORS[index % ROSA_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#fff",
+                            border: "1px solid #E5E7EB",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── Firestore KPI Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <AdminCard
           title="Total Pedidos"

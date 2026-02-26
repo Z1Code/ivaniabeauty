@@ -320,7 +320,7 @@ export default function ShippingReturnsPage() {
                     {t("shipping.contactEmail")}
                   </p>
                   <a
-                    href="mailto:hola@ivaniabeauty.com"
+                    href={`mailto:${t("shipping.contactEmailValue")}`}
                     className="mt-1 block text-sm font-medium text-gray-700 transition hover:text-rosa"
                   >
                     {t("shipping.contactEmailValue")}
@@ -360,7 +360,7 @@ export default function ShippingReturnsPage() {
             {/* CTA */}
             <div className="mt-8 text-center">
               <a
-                href="mailto:hola@ivaniabeauty.com"
+                href={`mailto:${t("shipping.contactEmailValue")}`}
                 className="btn-shimmer inline-block rounded-full px-8 py-3 text-sm font-semibold text-white transition"
               >
                 {t("shipping.contactCta")}

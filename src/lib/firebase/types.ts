@@ -41,6 +41,7 @@ export interface ProductDoc {
   reviewCount: number;
   inStock: boolean;
   stockQuantity: number;
+  sizeStock?: Record<string, number>;
   lowStockThreshold: number;
   sku: string | null;
   isFeatured: boolean;
@@ -121,6 +122,8 @@ export interface OrderDoc {
   shippingCountry: string;
   trackingNumber: string | null;
   labelUrl: string | null;
+  labelBatchId?: string;
+  labelPrintedAt?: Date;
   labelCarrier: string | null;
   labelServiceLevel: string | null;
   labelShippoCost: number | null;

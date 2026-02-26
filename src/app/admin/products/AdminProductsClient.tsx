@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Package, Sparkles, Loader2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminBadge from "@/components/admin/AdminBadge";
@@ -45,6 +46,8 @@ export default function AdminProductsClient({
   const router = useRouter();
   const [products, setProducts] = useState<ProductRow[]>(initialProducts);
   const [loading, setLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [fitGuideStatus, setFitGuideStatus] = useState("");
@@ -147,7 +150,68 @@ export default function AdminProductsClient({
     await fetchProducts();
   }, [bulkGenerating, fetchProducts, products]);
 
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === products.length) return new Set();
+      return new Set(products.map((p) => p.id));
+    });
+  }, [products]);
+
+  const runBulkAction = useCallback(async (action: "activate" | "deactivate") => {
+    if (selectedIds.size === 0 || bulkLoading) return;
+    const label = action === "activate" ? "activar" : "desactivar";
+    const confirmed = confirm(`¿${label.charAt(0).toUpperCase() + label.slice(1)} ${selectedIds.size} producto(s)?`);
+    if (!confirmed) return;
+
+    setBulkLoading(true);
+    try {
+      const res = await fetch("/api/admin/products/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, productIds: Array.from(selectedIds) }),
+      });
+      if (res.ok) {
+        setSelectedIds(new Set());
+        await fetchProducts();
+      }
+    } catch (err) {
+      console.error("Bulk action error:", err);
+    } finally {
+      setBulkLoading(false);
+    }
+  }, [selectedIds, bulkLoading, fetchProducts]);
+
   const columns = useMemo(() => [
+    {
+      key: "select",
+      header: (
+        <input
+          type="checkbox"
+          checked={products.length > 0 && selectedIds.size === products.length}
+          onChange={toggleSelectAll}
+          className="w-4 h-4 rounded border-gray-300 text-rosa focus:ring-rosa cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      render: (p: ProductRow) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(p.id)}
+          onChange={() => toggleSelect(p.id)}
+          className="w-4 h-4 rounded border-gray-300 text-rosa focus:ring-rosa cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+    },
     {
       key: "name",
       header: "Producto",
@@ -261,7 +325,7 @@ export default function AdminProductsClient({
         </AdminBadge>
       ),
     },
-  ], []);
+  ], [products, selectedIds, toggleSelect, toggleSelectAll]);
 
   return (
     <>
@@ -342,6 +406,42 @@ export default function AdminProductsClient({
           {bulkSummary}
         </p>
       )}
+
+      {/* Bulk Actions Bar */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl"
+          >
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {selectedIds.size} seleccionado(s)
+            </span>
+            <button
+              onClick={() => runBulkAction("activate")}
+              disabled={bulkLoading}
+              className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Activar
+            </button>
+            <button
+              onClick={() => runBulkAction("deactivate")}
+              disabled={bulkLoading}
+              className="px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Desactivar
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="px-3 py-2 rounded-xl text-gray-500 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {loading ? (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center transition-colors duration-300">

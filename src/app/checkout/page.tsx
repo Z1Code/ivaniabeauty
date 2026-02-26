@@ -102,7 +102,7 @@ interface ZipLookupResult {
 }
 
 export default function CheckoutPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { items, subtotal } = useCart();
 
   // ── Form field state ──
@@ -321,6 +321,17 @@ export default function CheckoutPage() {
     if (!validateForm()) return;
     if (items.length === 0) return;
     if (orderFilling || isPlacing) return;
+
+    // Validate that all items have a size selected
+    const missingSize = items.find((item) => !item.size);
+    if (missingSize) {
+      setOrderError(
+        language === "es"
+          ? `El producto "${missingSize.name}" no tiene talla seleccionada. Vuelve al carrito y selecciona una talla.`
+          : `The product "${missingSize.name}" has no size selected. Go back to cart and select a size.`
+      );
+      return;
+    }
 
     // Start fill animation
     setOrderFilling(true);

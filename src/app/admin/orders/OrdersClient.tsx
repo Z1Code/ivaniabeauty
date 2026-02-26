@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminTable from "@/components/admin/AdminTable";
@@ -8,6 +8,7 @@ import AdminBadge, {
   getOrderStatusVariant,
   getOrderStatusLabel,
 } from "@/components/admin/AdminBadge";
+import { Loader2, Printer } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
 interface OrderRow {
@@ -19,6 +20,7 @@ interface OrderRow {
   status: string;
   paymentMethod: string;
   itemCount: number;
+  labelUrl?: string | null;
   createdAt: string;
 }
 
@@ -34,11 +36,91 @@ const STATUS_TABS = [
 export default function OrdersClient({ orders }: { orders: OrderRow[] }) {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState("");
+  const [labelGenerating, setLabelGenerating] = useState(false);
+  const [labelProgress, setLabelProgress] = useState<{ current: number; total: number } | null>(null);
 
   const filtered = useMemo(
     () => (statusFilter ? orders.filter((o) => o.status === statusFilter) : orders),
     [orders, statusFilter]
   );
+
+  const generateDayLabels = useCallback(async () => {
+    if (labelGenerating) return;
+
+    // Filter eligible orders: confirmed/processing, no existing label
+    const eligible = orders.filter(
+      (o) => ["confirmed", "processing"].includes(o.status) && !o.labelUrl
+    );
+
+    if (eligible.length === 0) {
+      alert("No hay pedidos elegibles para etiquetas (necesitan estar confirmados/procesando y sin etiqueta existente).");
+      return;
+    }
+
+    const confirmed = confirm(
+      `Se generarán etiquetas para ${eligible.length} pedido(s). Esto puede generar costos en Shippo. ¿Continuar?`
+    );
+    if (!confirmed) return;
+
+    setLabelGenerating(true);
+    setLabelProgress({ current: 0, total: eligible.length });
+
+    const batchId = `batch-${Date.now()}`;
+    const labelUrls: string[] = [];
+    let errors = 0;
+
+    for (let i = 0; i < eligible.length; i++) {
+      setLabelProgress({ current: i + 1, total: eligible.length });
+
+      try {
+        const res = await fetch("/api/admin/shipping/bulk-labels", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: eligible[i].id, batchId }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.labelUrl && !data.skipped) {
+            labelUrls.push(data.labelUrl);
+          }
+        } else {
+          errors++;
+        }
+      } catch {
+        errors++;
+      }
+    }
+
+    // Merge labels into single PDF
+    if (labelUrls.length > 0) {
+      try {
+        const mergeRes = await fetch("/api/admin/shipping/merge-labels", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ labelUrls }),
+        });
+
+        if (mergeRes.ok) {
+          const blob = await mergeRes.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `etiquetas-${new Date().toISOString().split("T")[0]}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      } catch (err) {
+        console.error("Error merging labels:", err);
+      }
+    }
+
+    setLabelGenerating(false);
+    setLabelProgress(null);
+    alert(`Proceso completado. Etiquetas generadas: ${labelUrls.length}. Errores: ${errors}.`);
+  }, [labelGenerating, orders]);
 
   const columns = useMemo(() => [
     {
@@ -96,6 +178,20 @@ export default function OrdersClient({ orders }: { orders: OrderRow[] }) {
           { label: "Dashboard", href: "/admin" },
           { label: "Pedidos" },
         ]}
+        action={
+          <button
+            onClick={generateDayLabels}
+            disabled={labelGenerating}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rosa text-white text-sm font-semibold hover:bg-rosa-dark transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+          >
+            {labelGenerating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Printer className="w-4 h-4" />
+            )}
+            {labelGenerating ? "Generando..." : "Generar Etiquetas del Día"}
+          </button>
+        }
       />
 
       {/* Status Tabs */}
@@ -114,6 +210,12 @@ export default function OrdersClient({ orders }: { orders: OrderRow[] }) {
           </button>
         ))}
       </div>
+
+      {labelProgress && (
+        <p className="text-xs text-gray-500 mb-3">
+          Generando etiqueta {labelProgress.current}/{labelProgress.total}...
+        </p>
+      )}
 
       <AdminTable
         columns={columns}

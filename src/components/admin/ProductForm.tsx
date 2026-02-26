@@ -82,6 +82,7 @@ interface ProductFormData {
   productPageImageSourceUrl: string | null;
   imageCropSourceMap: Record<string, string>;
   imageEnhanceSourceMap: Record<string, string>;
+  sizeStock: Record<string, string>;
 }
 
 interface ProductFormProps {
@@ -499,6 +500,15 @@ export default function ProductForm({
     productPageImageSourceUrl: initialData?.productPageImageSourceUrl || null,
     imageCropSourceMap: sanitizeImageSourceMap(initialData?.imageCropSourceMap),
     imageEnhanceSourceMap: sanitizeImageSourceMap(initialData?.imageEnhanceSourceMap),
+    sizeStock: (() => {
+      const raw = (initialData as Record<string, unknown>)?.sizeStock;
+      if (!raw || typeof raw !== "object") return {};
+      const mapped: Record<string, string> = {};
+      for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+        mapped[k] = String(v ?? "0");
+      }
+      return mapped;
+    })(),
   });
 
   const sizesLockedByFitGuide = fitGuideStatus === "confirmed";
@@ -1715,6 +1725,13 @@ export default function ProductForm({
         badgeEs: form.badgeEs || null,
         sku: form.sku || null,
         sizeChartImageUrl: cleanedSizeChartImageUrl,
+        sizeStock: (() => {
+          const result: Record<string, number> = {};
+          for (const size of form.sizes) {
+            result[size] = parseInt(form.sizeStock[size] || "0") || 0;
+          }
+          return result;
+        })(),
       };
 
       const url = isEditing
@@ -3103,6 +3120,35 @@ export default function ProductForm({
                 className={inputClasses}
               />
             </div>
+            {form.sizes.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Stock por talla
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {form.sizes.map((size) => (
+                    <div key={size} className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-10 text-right">{size}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.sizeStock[size] || "0"}
+                        onChange={(e) => {
+                          const next = { ...form.sizeStock, [size]: e.target.value };
+                          updateField("sizeStock", next);
+                          const total = form.sizes.reduce((sum, s) => sum + (parseInt(s === size ? e.target.value : next[s] || "0") || 0), 0);
+                          updateField("stockQuantity", String(total));
+                        }}
+                        className={inputClasses}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  El stock total se calcula automaticamente sumando las tallas.
+                </p>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Umbral stock bajo

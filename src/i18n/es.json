@@ -288,7 +288,10 @@
     "sizeChartError": "No se pudo cargar la guía de tallas",
     "closeAriaLabel": "Cerrar",
     "quickViewAriaLabel": "Vista rápida",
-    "fitGuideFallbackNotice": "Se muestra una tabla referencial mientras se confirma el fit guide."
+    "fitGuideFallbackNotice": "Se muestra una tabla referencial mientras se confirma el fit guide.",
+    "sizeRequired": "Por favor selecciona una talla antes de agregar al carrito",
+    "lowStockWarning": "Solo quedan {count} en talla {size}",
+    "outOfStockSize": "Agotado en esta talla"
   },
   "cart": {
     "heading": "Tu Carrito",
@@ -411,7 +414,7 @@
     "contactTitle": "Necesitas Ayuda?",
     "contactSubtitle": "Nuestro equipo está listo para asistirte con cualquier pregunta",
     "contactEmail": "Correo Electrónico",
-    "contactEmailValue": "hola@ivaniabeauty.com",
+    "contactEmailValue": "ivaniabeauty2@gmail.com",
     "contactWhatsApp": "WhatsApp",
     "contactWhatsAppValue": "+1 (234) 567-890",
     "contactResponse": "Tiempo de respuesta: 24-48 horas",

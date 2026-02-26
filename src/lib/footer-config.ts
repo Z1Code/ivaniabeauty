@@ -15,6 +15,7 @@ export interface FooterSocialLink {
 }
 
 export interface FooterSettings {
+  contactEmail: string;
   whatsappNumber: string;
   whatsappMessage: string;
   socialLinks: FooterSocialLink[];
@@ -46,6 +47,7 @@ const DEFAULT_SOCIAL_LABELS: Record<FooterSocialPlatform, string> = {
 const MAX_SOCIAL_LINKS = 12;
 
 export const DEFAULT_FOOTER_SETTINGS: FooterSettings = {
+  contactEmail: "ivaniabeauty2@gmail.com",
   whatsappNumber: "+1 (234) 567-890",
   whatsappMessage: "Hola! Quiero mas informacion sobre Ivania Beauty.",
   socialLinks: [
@@ -184,7 +186,11 @@ export function sanitizeFooterSettings(input: unknown): FooterSettings {
         .slice(0, MAX_SOCIAL_LINKS)
     : DEFAULT_FOOTER_SETTINGS.socialLinks;
 
+  const rawEmail = typeof candidate.contactEmail === "string" ? candidate.contactEmail.trim() : "";
+  const contactEmail = rawEmail || DEFAULT_FOOTER_SETTINGS.contactEmail;
+
   return {
+    contactEmail,
     whatsappNumber: sanitizeWhatsappNumber(candidate.whatsappNumber),
     whatsappMessage: sanitizeWhatsappMessage(candidate.whatsappMessage),
     socialLinks: sanitizedSocialLinks,

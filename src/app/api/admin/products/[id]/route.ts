@@ -186,6 +186,7 @@ export async function PUT(
       "productPageImageSourceUrl",
       "imageCropSourceMap",
       "imageEnhanceSourceMap",
+      "sizeStock",
     ];
 
     for (const field of allowedFields) {

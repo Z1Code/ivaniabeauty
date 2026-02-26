@@ -35,6 +35,7 @@ export async function GET(request: Request) {
       status: d.status || "pending",
       paymentMethod: d.paymentMethod || "card",
       itemCount: d.itemCount || 0,
+      labelUrl: d.labelUrl || null,
       createdAt: d.createdAt?.toDate?.()?.toISOString() || null,
     };
   });

@@ -60,6 +60,7 @@ interface ProductData {
   inStock: boolean;
   sizeChartImageUrl?: string | null;
   productPageImageUrl?: string | null;
+  sizeStock?: Record<string, number>;
 }
 
 interface SizeChartDisplayCell {
@@ -215,6 +216,36 @@ function ProductDetail({ product }: { product: ProductData }) {
   const [sizeGuideUnit, setSizeGuideUnit] = useState<Unit>("cm");
   const [fitGuideLoading, setFitGuideLoading] = useState(false);
   const [fitGuideData, setFitGuideData] = useState<SizeChartApiResponse | null>(null);
+  const [sizeError, setSizeError] = useState(false);
+  const sizeRef = useRef<HTMLDivElement>(null);
+  const [liveStock, setLiveStock] = useState<{
+    sizeStock: Record<string, number>;
+    lowStockThreshold: number;
+  } | null>(null);
+
+  /* ----- fetch live stock data ----- */
+  useEffect(() => {
+    if (!product.id) return;
+    let cancelled = false;
+
+    async function fetchStock() {
+      try {
+        const res = await fetch(`/api/products/${product.id}/stock`);
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setLiveStock({
+            sizeStock: data.sizeStock || {},
+            lowStockThreshold: data.lowStockThreshold ?? 5,
+          });
+        }
+      } catch {
+        // Silent fail — stock alerts are non-critical
+      }
+    }
+
+    void fetchStock();
+    return () => { cancelled = true; };
+  }, [product.id]);
 
   /* ----- translated tab labels ----- */
   const TAB_LABELS: { key: TabKey; label: string }[] = [
@@ -390,6 +421,11 @@ function ProductDetail({ product }: { product: ProductData }) {
 
   /* ----- cart handler ----- */
   const handleAddToCart = () => {
+    if (!selectedSize && product.sizes.length > 0) {
+      setSizeError(true);
+      sizeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     addItem({
       id: product.id,
       name: localName,
@@ -403,6 +439,11 @@ function ProductDetail({ product }: { product: ProductData }) {
 
   /* ----- buy now handler ----- */
   const handleBuyNow = () => {
+    if (!selectedSize && product.sizes.length > 0) {
+      setSizeError(true);
+      sizeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     addItem({
       id: product.id,
       name: localName,
@@ -626,7 +667,7 @@ function ProductDetail({ product }: { product: ProductData }) {
           </div>
 
           {/* ----- Size selector ----- */}
-          <div className="mb-6">
+          <div className="mb-6" ref={sizeRef}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-semibold text-gray-700">
                 {t("productDetail.sizeLabel")}{" "}
@@ -642,20 +683,65 @@ function ProductDetail({ product }: { product: ProductData }) {
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
-              {product.sizes.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`min-w-[3rem] px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                    selectedSize === size
-                      ? "bg-rosa text-white shadow-md"
-                      : "border border-gray-300 text-gray-700 hover:border-rosa hover:text-rosa"
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
+              {product.sizes.map((size) => {
+                const sizeQty = product.sizeStock?.[size];
+                const isOutOfStock = sizeQty !== undefined && sizeQty <= 0;
+                return (
+                  <button
+                    key={size}
+                    onClick={() => {
+                      if (!isOutOfStock) {
+                        setSelectedSize(size);
+                        setSizeError(false);
+                      }
+                    }}
+                    disabled={isOutOfStock}
+                    className={`min-w-[3rem] px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isOutOfStock
+                        ? "border border-gray-200 text-gray-300 line-through cursor-not-allowed"
+                        : selectedSize === size
+                          ? "bg-rosa text-white shadow-md cursor-pointer"
+                          : "border border-gray-300 text-gray-700 hover:border-rosa hover:text-rosa cursor-pointer"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
             </div>
+            {sizeError && !selectedSize && (
+              <p className="text-sm text-red-500 mt-2 animate-pulse">
+                {t("productDetail.sizeRequired")}
+              </p>
+            )}
+            {/* Low stock alert */}
+            {selectedSize && liveStock && (() => {
+              const qty = liveStock.sizeStock[selectedSize];
+              if (qty === undefined) return null;
+              if (qty <= 0) {
+                return (
+                  <p className="text-sm text-gray-400 mt-2">
+                    {t("productDetail.outOfStockSize")}
+                  </p>
+                );
+              }
+              if (qty <= liveStock.lowStockThreshold) {
+                return (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
+                    </span>
+                    <p className="text-sm text-amber-600 font-medium">
+                      {t("productDetail.lowStockWarning")
+                        .replace("{count}", String(qty))
+                        .replace("{size}", selectedSize)}
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           {/* ----- Quantity ----- */}

@@ -334,6 +334,10 @@ export default function SettingsPage() {
       setFooterSettings(nextFooterSettings);
       persistHomeSectionsLocally(nextHomeSections);
       persistFooterSettingsLocally(nextFooterSettings);
+      // Sync contactEmail from Firestore footer settings into store state
+      if (nextFooterSettings.contactEmail) {
+        setStore((prev) => ({ ...prev, contactEmail: nextFooterSettings.contactEmail }));
+      }
       setSiteSectionsError(null);
     } catch (error) {
       setSiteSectionsMessage(null);
@@ -587,6 +591,26 @@ export default function SettingsPage() {
         switch (section) {
           case "store":
             localStorage.setItem(STORAGE_KEY_STORE, JSON.stringify(store));
+            // Also sync contactEmail to footer settings in Firestore
+            if (store.contactEmail) {
+              const updatedFooter = sanitizeFooterSettings({
+                ...footerSettings,
+                contactEmail: store.contactEmail,
+              });
+              setFooterSettings(updatedFooter);
+              try {
+                const storeRes = await fetch("/api/admin/settings/site-sections", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ footerSettings: updatedFooter }),
+                });
+                if (storeRes.ok) {
+                  persistFooterSettingsLocally(updatedFooter);
+                }
+              } catch {
+                persistFooterSettingsLocally(updatedFooter);
+              }
+            }
             break;
           case "shipping":
             localStorage.setItem(

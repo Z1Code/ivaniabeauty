@@ -56,6 +56,7 @@ const SOCIAL_ICON_BY_PLATFORM: Record<
 
 function isSameSettings(a: FooterSettings, b: FooterSettings): boolean {
   if (
+    a.contactEmail !== b.contactEmail ||
     a.whatsappNumber !== b.whatsappNumber ||
     a.whatsappMessage !== b.whatsappMessage ||
     a.socialLinks.length !== b.socialLinks.length
@@ -231,11 +232,11 @@ export default function Footer() {
               <ul className="flex flex-col gap-3 mb-6">
                 <li>
                   <a
-                    href="mailto:hola@ivaniabeauty.com"
+                    href={`mailto:${footerSettings.contactEmail}`}
                     className="flex items-center gap-2 text-sm text-white/75 hover:text-white transition-colors duration-300"
                   >
                     <Mail className="w-4 h-4 shrink-0" />
-                    hola@ivaniabeauty.com
+                    {footerSettings.contactEmail}
                   </a>
                 </li>
                 <li>

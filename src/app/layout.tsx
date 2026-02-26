@@ -18,6 +18,8 @@ import "./globals.css";
 import LayoutShell from "@/components/layout/LayoutShell";
 import LanguageInitializer from "@/components/shared/LanguageInitializer";
 import FontInitializer from "@/components/shared/FontInitializer";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -145,6 +147,8 @@ export default function RootLayout({
         <LanguageInitializer />
         <FontInitializer />
         <LayoutShell>{children}</LayoutShell>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
