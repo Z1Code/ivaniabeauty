@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   try {
     const { error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "Ivania Beauty <onboarding@resend.dev>",
+      from: "Ivania Beauty <shipping@ivaniabeauty.com>",
       to: [to],
       subject: `Shipping Label - Order ${orderNumber}`,
       html: `
