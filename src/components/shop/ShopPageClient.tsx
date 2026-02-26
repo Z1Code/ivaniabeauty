@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Sparkles, X } from "lucide-react";
 import ProductSection from "@/components/shop/ProductSection";
 import ShopPerformanceReporter from "@/components/shop/ShopPerformanceReporter";
-import UniformScrollController from "@/components/shop/UniformScrollController";
 import {
   SECTIONS,
   getSectionsByIds,
@@ -664,44 +663,23 @@ function ShopPageContent({ initialProducts }: ShopPageClientProps) {
 
   const careFocusLabel = useCallback(
     (focus: CareFocus) => {
-      if (focus === "hair") return language === "es" ? "Cabello" : "Hair";
-      return language === "es" ? "Cuerpo" : "Body";
+      return t(`shop.focus${focus.charAt(0).toUpperCase() + focus.slice(1)}`);
     },
-    [language]
+    [t]
   );
 
   const careFormatLabel = useCallback(
     (format: CareFormat) => {
-      const labelsEs: Record<CareFormat, string> = {
-        duo: "Duo Shampoo + Acond.",
-        shampoo: "Shampoo",
-        conditioner: "Acondicionador",
-        mask: "Mascarilla",
-        scrub: "Scrub",
-        oil: "Aceite",
-        cream: "Crema",
-        other: "Otros",
-      };
-      const labelsEn: Record<CareFormat, string> = {
-        duo: "Shampoo + Cond. Duo",
-        shampoo: "Shampoo",
-        conditioner: "Conditioner",
-        mask: "Mask",
-        scrub: "Scrub",
-        oil: "Oil",
-        cream: "Cream",
-        other: "Other",
-      };
-      return language === "es" ? labelsEs[format] : labelsEn[format];
+      return t(`shop.format${format.charAt(0).toUpperCase() + format.slice(1)}`);
     },
-    [language]
+    [t]
   );
 
   const renderContextualFiltersCard = () => (
     <div className="liquid-glass px-3 py-3">
       <div className="mb-3.5">
         <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
-          {language === "es" ? "Secciones visibles" : "Visible sections"}
+          {t("shop.visibleSections")}
         </p>
         <div className="space-y-2">
           {visibleSections.map((section) => {
@@ -728,9 +706,7 @@ function ShopPageContent({ initialProducts }: ShopPageClientProps) {
         <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
           <Sparkles className="w-3 h-3 text-rosa" />
           <span>
-            {language === "es"
-              ? `Filtros contextuales: ${activeSection ? t(activeSection.titleKey) : ""}`
-              : `Contextual filters: ${activeSection ? t(activeSection.titleKey) : ""}`}
+            {`${t("shop.contextualFilters")}: ${activeSection ? t(activeSection.titleKey) : ""}`}
           </span>
         </div>
 
@@ -759,7 +735,7 @@ function ShopPageContent({ initialProducts }: ShopPageClientProps) {
               {careFocusOptions.length > 0 && (
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
-                    {language === "es" ? "Enfoque" : "Focus"}
+                    {t("shop.focusLabel")}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {careFocusOptions.map((focus) => (
@@ -788,7 +764,7 @@ function ShopPageContent({ initialProducts }: ShopPageClientProps) {
               {careFormatOptions.length > 0 && (
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
-                    {language === "es" ? "Tipo de producto" : "Product type"}
+                    {t("shop.productTypeLabel")}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {careFormatOptions.map((format) => (
@@ -926,7 +902,6 @@ function ShopPageContent({ initialProducts }: ShopPageClientProps) {
         productCount={initialProducts.length}
         visibleSectionCount={visibleSections.length}
       />
-      <UniformScrollController />
       {/* Hero Banner */}
       <section className="pt-28 pb-8 bg-perla flex items-center justify-center">
         <div className="text-center">

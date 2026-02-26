@@ -17,8 +17,11 @@ import {
   Video,
   Sparkles,
   KeyRound,
+  Link2,
+  Plus,
+  Trash2,
+  Type,
 } from "lucide-react";
-import { Type } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import useAdminTheme from "@/hooks/useAdminTheme";
 import { ADMIN_THEMES } from "@/lib/admin-themes";
@@ -39,6 +42,17 @@ import {
   type HeroEffectIntensity,
   type HomeSectionsSettings,
 } from "@/lib/home-sections-config";
+import {
+  createFooterSocialLink,
+  DEFAULT_FOOTER_SETTINGS,
+  FOOTER_SETTINGS_STORAGE_KEY,
+  FOOTER_SETTINGS_UPDATED_EVENT,
+  FOOTER_SOCIAL_PLATFORM_OPTIONS,
+  getFooterSocialDefaultLabel,
+  sanitizeFooterSettings,
+  type FooterSettings,
+  type FooterSocialPlatform,
+} from "@/lib/footer-config";
 
 interface StoreSettings {
   storeName: string;
@@ -76,6 +90,14 @@ interface AiProvidersApiResponse {
     removebg: AiProviderRowStatus;
     clipdrop: AiProviderRowStatus;
   };
+  success?: boolean;
+  error?: string;
+}
+
+interface SiteSectionsApiResponse {
+  homeSections?: HomeSectionsSettings;
+  footerSettings?: FooterSettings;
+  persisted?: boolean;
   success?: boolean;
   error?: string;
 }
@@ -145,6 +167,9 @@ export default function SettingsPage() {
   const [homeSections, setHomeSections] = useState<HomeSectionsSettings>(
     DEFAULT_HOME_SECTIONS_SETTINGS
   );
+  const [footerSettings, setFooterSettings] = useState<FooterSettings>(
+    DEFAULT_FOOTER_SETTINGS
+  );
   const [aiProviders, setAiProviders] = useState<AiProvidersApiResponse>({
     configured: false,
     providerOrder: ["removebg", "clipdrop"],
@@ -160,6 +185,8 @@ export default function SettingsPage() {
   const [savingAiProviders, setSavingAiProviders] = useState(false);
   const [aiProvidersMessage, setAiProvidersMessage] = useState<string | null>(null);
   const [aiProvidersError, setAiProvidersError] = useState<string | null>(null);
+  const [siteSectionsMessage, setSiteSectionsMessage] = useState<string | null>(null);
+  const [siteSectionsError, setSiteSectionsError] = useState<string | null>(null);
 
   // Admin info (read-only)
   const [adminEmail] = useState("admin@ivaniabeauty.com");
@@ -201,6 +228,11 @@ export default function SettingsPage() {
       DEFAULT_HOME_SECTIONS_SETTINGS
     );
     setHomeSections(sanitizeHomeSectionsSettings(storedHomeSections));
+    const storedFooterSettings = getStoredValue<FooterSettings>(
+      FOOTER_SETTINGS_STORAGE_KEY,
+      DEFAULT_FOOTER_SETTINGS
+    );
+    setFooterSettings(sanitizeFooterSettings(storedFooterSettings));
   }, []);
 
   const toggleShopSection = useCallback((sectionId: string) => {
@@ -239,7 +271,14 @@ export default function SettingsPage() {
   }, []);
 
   const toggleHomeSection = useCallback(
-    (key: "showTikTok" | "showInstagram") => {
+    (
+      key:
+        | "showCollections"
+        | "showFeaturedProduct"
+        | "showSizeQuiz"
+        | "showTikTok"
+        | "showInstagram"
+    ) => {
       setHomeSections((prev) => ({
         ...prev,
         [key]: !prev[key],
@@ -252,6 +291,111 @@ export default function SettingsPage() {
     setHomeSections((prev) => ({
       ...prev,
       heroEffectIntensity: intensity,
+    }));
+  }, []);
+
+  const persistHomeSectionsLocally = useCallback((value: HomeSectionsSettings) => {
+    localStorage.setItem(
+      HOME_SECTIONS_STORAGE_KEY,
+      JSON.stringify(sanitizeHomeSectionsSettings(value))
+    );
+    window.dispatchEvent(new Event(HOME_SECTIONS_UPDATED_EVENT));
+  }, []);
+
+  const persistFooterSettingsLocally = useCallback((value: FooterSettings) => {
+    localStorage.setItem(
+      FOOTER_SETTINGS_STORAGE_KEY,
+      JSON.stringify(sanitizeFooterSettings(value))
+    );
+    window.dispatchEvent(new Event(FOOTER_SETTINGS_UPDATED_EVENT));
+  }, []);
+
+  const loadSiteSectionsFromServer = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/settings/site-sections", {
+        method: "GET",
+      });
+      const data = (await res.json().catch(() => ({}))) as SiteSectionsApiResponse;
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo cargar configuracion de secciones.");
+      }
+      if (!data.persisted) {
+        setSiteSectionsMessage(null);
+        setSiteSectionsError(
+          "Firestore no esta configurado. Se usara persistencia local para Home y Footer."
+        );
+        return;
+      }
+
+      const nextHomeSections = sanitizeHomeSectionsSettings(data.homeSections);
+      const nextFooterSettings = sanitizeFooterSettings(data.footerSettings);
+
+      setHomeSections(nextHomeSections);
+      setFooterSettings(nextFooterSettings);
+      persistHomeSectionsLocally(nextHomeSections);
+      persistFooterSettingsLocally(nextFooterSettings);
+      setSiteSectionsError(null);
+    } catch (error) {
+      setSiteSectionsMessage(null);
+      setSiteSectionsError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo sincronizar configuracion desde Firestore."
+      );
+    }
+  }, [persistFooterSettingsLocally, persistHomeSectionsLocally]);
+
+  useEffect(() => {
+    void loadSiteSectionsFromServer();
+  }, [loadSiteSectionsFromServer]);
+
+  const updateFooterSocialLink = useCallback(
+    (
+      linkId: string,
+      field: "platform" | "label" | "href",
+      value: string | FooterSocialPlatform
+    ) => {
+      setFooterSettings((prev) => {
+        const nextSocialLinks = prev.socialLinks.map((link) => {
+          if (link.id !== linkId) return link;
+
+          if (field === "platform") {
+            const nextPlatform = value as FooterSocialPlatform;
+            return {
+              ...link,
+              platform: nextPlatform,
+              label:
+                link.label.trim() ||
+                getFooterSocialDefaultLabel(nextPlatform),
+            };
+          }
+
+          return {
+            ...link,
+            [field]: String(value),
+          };
+        });
+
+        return {
+          ...prev,
+          socialLinks: nextSocialLinks,
+        };
+      });
+    },
+    []
+  );
+
+  const addFooterSocialLink = useCallback(() => {
+    setFooterSettings((prev) => ({
+      ...prev,
+      socialLinks: [...prev.socialLinks, createFooterSocialLink("instagram", prev.socialLinks.length)],
+    }));
+  }, []);
+
+  const removeFooterSocialLink = useCallback((linkId: string) => {
+    setFooterSettings((prev) => ({
+      ...prev,
+      socialLinks: prev.socialLinks.filter((link) => link.id !== linkId),
     }));
   }, []);
 
@@ -468,11 +612,89 @@ export default function SettingsPage() {
             window.dispatchEvent(new Event(SHOP_SECTIONS_UPDATED_EVENT));
             break;
           case "home":
-            localStorage.setItem(
-              HOME_SECTIONS_STORAGE_KEY,
-              JSON.stringify(sanitizeHomeSectionsSettings(homeSections))
-            );
-            window.dispatchEvent(new Event(HOME_SECTIONS_UPDATED_EVENT));
+            try {
+              const response = await fetch("/api/admin/settings/site-sections", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  homeSections: sanitizeHomeSectionsSettings(homeSections),
+                }),
+              });
+              const data =
+                (await response.json().catch(() => ({}))) as SiteSectionsApiResponse;
+              if (!response.ok) {
+                throw new Error(
+                  data.error || "No se pudo guardar secciones del home en Firestore."
+                );
+              }
+
+              const nextHomeSections = sanitizeHomeSectionsSettings(
+                data.homeSections
+              );
+              const nextFooterSettings = sanitizeFooterSettings(
+                data.footerSettings
+              );
+              setHomeSections(nextHomeSections);
+              setFooterSettings(nextFooterSettings);
+              persistHomeSectionsLocally(nextHomeSections);
+              persistFooterSettingsLocally(nextFooterSettings);
+              setSiteSectionsMessage(
+                "Secciones del Home guardadas en Firestore."
+              );
+              setSiteSectionsError(null);
+            } catch (error) {
+              const localHomeSections = sanitizeHomeSectionsSettings(homeSections);
+              persistHomeSectionsLocally(localHomeSections);
+              setSiteSectionsMessage(null);
+              setSiteSectionsError(
+                error instanceof Error
+                  ? `${error.message} Se guardo localmente en este navegador.`
+                  : "No se pudo guardar en Firestore. Se guardo localmente en este navegador."
+              );
+            }
+            break;
+          case "footer":
+            try {
+              const response = await fetch("/api/admin/settings/site-sections", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  footerSettings: sanitizeFooterSettings(footerSettings),
+                }),
+              });
+              const data =
+                (await response.json().catch(() => ({}))) as SiteSectionsApiResponse;
+              if (!response.ok) {
+                throw new Error(
+                  data.error ||
+                    "No se pudo guardar ajustes de footer/redes en Firestore."
+                );
+              }
+
+              const nextHomeSections = sanitizeHomeSectionsSettings(
+                data.homeSections
+              );
+              const nextFooterSettings = sanitizeFooterSettings(
+                data.footerSettings
+              );
+              setHomeSections(nextHomeSections);
+              setFooterSettings(nextFooterSettings);
+              persistHomeSectionsLocally(nextHomeSections);
+              persistFooterSettingsLocally(nextFooterSettings);
+              setSiteSectionsMessage(
+                "Ajustes de Footer y Redes guardados en Firestore."
+              );
+              setSiteSectionsError(null);
+            } catch (error) {
+              const localFooterSettings = sanitizeFooterSettings(footerSettings);
+              persistFooterSettingsLocally(localFooterSettings);
+              setSiteSectionsMessage(null);
+              setSiteSectionsError(
+                error instanceof Error
+                  ? `${error.message} Se guardo localmente en este navegador.`
+                  : "No se pudo guardar en Firestore. Se guardo localmente en este navegador."
+              );
+            }
             break;
         }
       } catch (error) {
@@ -481,7 +703,16 @@ export default function SettingsPage() {
         setSavingSection(null);
       }
     },
-    [store, shipping, payments, shopSections.enabledSectionIds, homeSections]
+    [
+      store,
+      shipping,
+      payments,
+      shopSections.enabledSectionIds,
+      homeSections,
+      footerSettings,
+      persistFooterSettingsLocally,
+      persistHomeSectionsLocally,
+    ]
   );
 
   return (
@@ -494,19 +725,30 @@ export default function SettingsPage() {
         ]}
       />
 
-      {/* Firebase connection notice */}
+      {/* Settings persistence notice */}
       <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-xl mb-6 text-sm">
         <Info className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
         <div>
           <p className="font-medium text-amber-800 dark:text-amber-300">
-            Conectar con Firebase - Proximamente
+            Persistencia de configuracion
           </p>
           <p className="text-amber-600 dark:text-amber-400 mt-0.5">
-            Actualmente los ajustes se guardan localmente en el navegador. La
-            persistencia en Firestore se habilitara proximamente.
+            Secciones Home y Footer/Redes ya sincronizan con Firestore.
+            Ajustes de tienda/envio/pagos siguen guardandose localmente.
           </p>
         </div>
       </div>
+
+      {siteSectionsMessage && (
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+          {siteSectionsMessage}
+        </div>
+      )}
+      {siteSectionsError && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+          {siteSectionsError}
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* AI Provider Settings */}
@@ -1111,7 +1353,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Home Social Sections Settings */}
+        {/* Home Sections Settings */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm transition-colors duration-300">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-10 h-10 rounded-xl bg-pink-50 dark:bg-pink-950 flex items-center justify-center">
@@ -1119,15 +1361,87 @@ export default function SettingsPage() {
             </div>
             <div>
               <h3 className="font-semibold text-gray-800 dark:text-gray-100">
-                Secciones Sociales del Home
+                Secciones del Home
               </h3>
               <p className="text-xs text-gray-400 dark:text-gray-500">
-                Elige si mostrar TikTok e Instagram en la landing
+                Activa u oculta bloques clave de la landing
               </p>
             </div>
           </div>
 
           <div className="space-y-3 mb-5">
+            <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer">
+              <div className="flex items-center gap-3">
+                <SlidersHorizontal className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Our Collection
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Mostrar bloque de colecciones destacadas
+                  </p>
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={homeSections.showCollections}
+                  onChange={() => toggleHomeSection("showCollections")}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-rosa transition-colors" />
+                <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
+              </div>
+            </label>
+
+            <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Star Product
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Mostrar producto principal en home
+                  </p>
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={homeSections.showFeaturedProduct}
+                  onChange={() => toggleHomeSection("showFeaturedProduct")}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-rosa transition-colors" />
+                <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
+              </div>
+            </label>
+
+            <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer">
+              <div className="flex items-center gap-3">
+                <Info className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Find Your Perfect Size
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Mostrar quiz de tallas para recomendacion
+                  </p>
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={homeSections.showSizeQuiz}
+                  onChange={() => toggleHomeSection("showSizeQuiz")}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-rosa transition-colors" />
+                <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
+              </div>
+            </label>
+
             <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer">
               <div className="flex items-center gap-3">
                 <Video className="w-5 h-5 text-gray-500 dark:text-gray-400" />
@@ -1218,6 +1532,143 @@ export default function SettingsPage() {
             >
               <Save className="w-4 h-4" />
               {savingSection === "home" ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+        </div>
+
+        {/* Footer Settings */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm transition-colors duration-300">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950 flex items-center justify-center">
+              <Link2 className="w-5 h-5 text-teal-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">
+                Footer y Redes
+              </h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Configura WhatsApp y los enlaces de redes sociales del footer
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                Numero de WhatsApp
+              </label>
+              <input
+                type="text"
+                value={footerSettings.whatsappNumber}
+                onChange={(e) =>
+                  setFooterSettings((prev) => ({
+                    ...prev,
+                    whatsappNumber: e.target.value,
+                  }))
+                }
+                placeholder="+1 234 567 890"
+                className={inputClasses}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                Mensaje predefinido
+              </label>
+              <input
+                type="text"
+                value={footerSettings.whatsappMessage}
+                onChange={(e) =>
+                  setFooterSettings((prev) => ({
+                    ...prev,
+                    whatsappMessage: e.target.value,
+                  }))
+                }
+                placeholder="Hola! Quiero mas informacion."
+                className={inputClasses}
+              />
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Redes Sociales
+            </p>
+            <div className="space-y-3">
+              {footerSettings.socialLinks.map((link, index) => (
+                <div
+                  key={link.id}
+                  className="grid grid-cols-1 md:grid-cols-[160px_1fr_1fr_auto] gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl"
+                >
+                  <select
+                    value={link.platform}
+                    onChange={(e) =>
+                      updateFooterSocialLink(
+                        link.id,
+                        "platform",
+                        e.target.value as FooterSocialPlatform
+                      )
+                    }
+                    className={inputClasses}
+                  >
+                    {FOOTER_SOCIAL_PLATFORM_OPTIONS.map((platform) => (
+                      <option key={platform} value={platform}>
+                        {getFooterSocialDefaultLabel(platform)}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={link.label}
+                    onChange={(e) =>
+                      updateFooterSocialLink(link.id, "label", e.target.value)
+                    }
+                    placeholder="Nombre visible"
+                    className={inputClasses}
+                  />
+                  <input
+                    type="url"
+                    value={link.href}
+                    onChange={(e) =>
+                      updateFooterSocialLink(link.id, "href", e.target.value)
+                    }
+                    placeholder="https://..."
+                    className={inputClasses}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFooterSocialLink(link.id)}
+                    className="inline-flex items-center justify-center px-3 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                    aria-label={`Eliminar red ${index + 1}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Puedes agregar o eliminar redes. Solo se mostraran links validos (http/https).
+            </p>
+            <button
+              type="button"
+              onClick={addFooterSocialLink}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-200 hover:border-rosa/50 hover:text-rosa transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              Agregar red
+            </button>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={() => saveSection("footer")}
+              disabled={savingSection === "footer"}
+              className="flex items-center gap-2 px-5 py-2.5 bg-rosa text-white rounded-xl hover:bg-rosa-dark transition-colors disabled:opacity-50 text-sm font-medium cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              {savingSection === "footer" ? "Guardando..." : "Guardar"}
             </button>
           </div>
         </div>

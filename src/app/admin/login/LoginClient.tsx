@@ -40,7 +40,7 @@ export default function LoginClient() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Error al iniciar sesion");
+        setError(data.error || "Error al iniciar sesión");
         setLoading(false);
         return;
       }
@@ -55,11 +55,11 @@ export default function LoginClient() {
         firebaseError.code === "auth/wrong-password" ||
         firebaseError.code === "auth/invalid-credential"
       ) {
-        setError("Email o contrasena incorrectos");
+        setError("Email o contraseña incorrectos");
       } else if (firebaseError.code === "auth/too-many-requests") {
-        setError("Demasiados intentos. Intenta mas tarde.");
+        setError("Demasiados intentos. Intenta más tarde.");
       } else {
-        setError("Error al iniciar sesion. Intenta de nuevo.");
+        setError("Error al iniciar sesión. Intenta de nuevo.");
       }
       setLoading(false);
     }
@@ -89,10 +89,10 @@ export default function LoginClient() {
               priority
             />
             <h1 className="font-serif text-2xl font-bold text-gray-800">
-              Admin Panel
+              Panel de Administración
             </h1>
             <p className="text-sm text-gray-500 mt-1">
-              Ivania Beauty Dashboard
+              Panel de Ivania Beauty
             </p>
           </div>
 
@@ -134,7 +134,7 @@ export default function LoginClient() {
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-1.5"
               >
-                Contrasena
+                Contraseña
               </label>
               <div className="relative">
                 <input

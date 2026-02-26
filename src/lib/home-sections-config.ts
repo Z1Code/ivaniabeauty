@@ -1,6 +1,9 @@
 export type HeroEffectIntensity = "soft" | "medium" | "intense";
 
 export interface HomeSectionsSettings {
+  showCollections: boolean;
+  showFeaturedProduct: boolean;
+  showSizeQuiz: boolean;
   showTikTok: boolean;
   showInstagram: boolean;
   heroEffectIntensity: HeroEffectIntensity;
@@ -16,6 +19,9 @@ export const HERO_EFFECT_INTENSITY_OPTIONS: HeroEffectIntensity[] = [
 ];
 
 export const DEFAULT_HOME_SECTIONS_SETTINGS: HomeSectionsSettings = {
+  showCollections: true,
+  showFeaturedProduct: true,
+  showSizeQuiz: true,
   showTikTok: true,
   showInstagram: true,
   heroEffectIntensity: "medium",
@@ -36,6 +42,18 @@ export function sanitizeHomeSectionsSettings(input: unknown): HomeSectionsSettin
   const candidate = input as Partial<HomeSectionsSettings>;
 
   return {
+    showCollections:
+      typeof candidate.showCollections === "boolean"
+        ? candidate.showCollections
+        : DEFAULT_HOME_SECTIONS_SETTINGS.showCollections,
+    showFeaturedProduct:
+      typeof candidate.showFeaturedProduct === "boolean"
+        ? candidate.showFeaturedProduct
+        : DEFAULT_HOME_SECTIONS_SETTINGS.showFeaturedProduct,
+    showSizeQuiz:
+      typeof candidate.showSizeQuiz === "boolean"
+        ? candidate.showSizeQuiz
+        : DEFAULT_HOME_SECTIONS_SETTINGS.showSizeQuiz,
     showTikTok:
       typeof candidate.showTikTok === "boolean"
         ? candidate.showTikTok

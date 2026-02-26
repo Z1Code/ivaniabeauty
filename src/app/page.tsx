@@ -17,8 +17,28 @@ import {
   HOME_SECTIONS_STORAGE_KEY,
   HOME_SECTIONS_UPDATED_EVENT,
   parseHomeSectionsSettings,
+  sanitizeHomeSectionsSettings,
   type HomeSectionsSettings,
 } from "@/lib/home-sections-config";
+
+interface SiteSectionsApiResponse {
+  homeSections?: HomeSectionsSettings;
+  persisted?: boolean;
+}
+
+function isSameHomeSections(
+  current: HomeSectionsSettings,
+  next: HomeSectionsSettings
+): boolean {
+  return (
+    current.showCollections === next.showCollections &&
+    current.showFeaturedProduct === next.showFeaturedProduct &&
+    current.showSizeQuiz === next.showSizeQuiz &&
+    current.showTikTok === next.showTikTok &&
+    current.showInstagram === next.showInstagram &&
+    current.heroEffectIntensity === next.heroEffectIntensity
+  );
+}
 
 export default function Home() {
   const { t } = useTranslation();
@@ -33,16 +53,34 @@ export default function Home() {
       const parsed = parseHomeSectionsSettings(
         window.localStorage.getItem(HOME_SECTIONS_STORAGE_KEY)
       );
-      setHomeSections((prev) =>
-        prev.showTikTok === parsed.showTikTok &&
-        prev.showInstagram === parsed.showInstagram &&
-        prev.heroEffectIntensity === parsed.heroEffectIntensity
-          ? prev
-          : parsed
-      );
+      setHomeSections((prev) => (isSameHomeSections(prev, parsed) ? prev : parsed));
+    };
+
+    const syncHomeSectionsFromServer = async () => {
+      try {
+        const response = await fetch("/api/settings/site-sections", {
+          method: "GET",
+          cache: "no-store",
+        });
+        const data =
+          (await response.json().catch(() => ({}))) as SiteSectionsApiResponse;
+        if (!response.ok || !data.persisted) return;
+
+        const persistedSections = sanitizeHomeSectionsSettings(data.homeSections);
+        setHomeSections((prev) =>
+          isSameHomeSections(prev, persistedSections) ? prev : persistedSections
+        );
+        window.localStorage.setItem(
+          HOME_SECTIONS_STORAGE_KEY,
+          JSON.stringify(persistedSections)
+        );
+      } catch {
+        // Local storage fallback already applied.
+      }
     };
 
     syncHomeSections();
+    void syncHomeSectionsFromServer();
 
     const handleStorage = (event: StorageEvent) => {
       if (event.key === HOME_SECTIONS_STORAGE_KEY) {
@@ -83,8 +121,8 @@ export default function Home() {
       <div className="relative z-10">
         <Hero effectIntensity={homeSections.heroEffectIntensity} />
         <Features />
-        <Collections />
-        <FeaturedProduct />
+        {homeSections.showCollections && <Collections />}
+        {homeSections.showFeaturedProduct && <FeaturedProduct />}
 
         {/* Before & After Section */}
         <section className="py-24 bg-arena/80 backdrop-blur-[1px]">
@@ -102,7 +140,7 @@ export default function Home() {
         </section>
 
         <Testimonials />
-        <SizeQuiz />
+        {homeSections.showSizeQuiz && <SizeQuiz />}
         {homeSections.showTikTok && <TikTokFeed />}
         {homeSections.showInstagram && <InstagramFeed />}
       </div>

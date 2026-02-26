@@ -6,8 +6,6 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search,
-  Heart,
   ShoppingBag,
   Menu,
   X,
@@ -157,31 +155,6 @@ export default function Header() {
             <div className="flex items-center gap-1 sm:gap-3">
               {/* Language Toggle */}
               <LanguageToggle />
-
-              {/* Search */}
-              <button
-                aria-label={t("header.search")}
-                className={`relative p-2 rounded-full transition-colors duration-500 ${
-                  heroWhite
-                    ? "text-white/80 hover:text-white hover:bg-white/20"
-                    : "text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40"
-                }`}
-              >
-                <Search className="w-5 h-5" />
-              </button>
-
-              {/* Wishlist */}
-              <Link
-                href="/wishlist"
-                aria-label={t("header.wishlist")}
-                className={`relative p-2 rounded-full transition-colors duration-500 ${
-                  heroWhite
-                    ? "text-white/80 hover:text-white hover:bg-white/20"
-                    : "text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40"
-                }`}
-              >
-                <Heart className="w-5 h-5" />
-              </Link>
 
               {/* Cart */}
               <button

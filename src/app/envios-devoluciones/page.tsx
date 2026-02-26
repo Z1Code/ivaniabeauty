@@ -336,7 +336,7 @@ export default function ShippingReturnsPage() {
                     {t("shipping.contactWhatsApp")}
                   </p>
                   <a
-                    href="https://wa.me/1234567890"
+                    href={`https://wa.me/${t("shipping.contactWhatsAppValue").replace(/[^+\d]/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-1 block text-sm font-medium text-gray-700 transition hover:text-rosa"

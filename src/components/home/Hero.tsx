@@ -623,7 +623,7 @@ export default function Hero({ effectIntensity = "medium" }: HeroProps) {
       >
         <div className="flex flex-col items-center gap-2">
           <span className="text-[10px] font-semibold uppercase tracking-[0.26em] text-gray-500">
-            Scroll
+            {t("hero.scrollIndicator")}
           </span>
           <motion.div className="flex h-9 w-5 items-start justify-center rounded-full border border-rosa/35 p-1">
             <motion.div

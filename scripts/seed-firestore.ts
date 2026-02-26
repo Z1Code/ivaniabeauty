@@ -179,6 +179,44 @@ async function seedSettings() {
     freeShippingThreshold: 100,
     taxRate: 0,
     lowStockAlertThreshold: 5,
+    homeSections: {
+      showCollections: true,
+      showFeaturedProduct: true,
+      showSizeQuiz: true,
+      showTikTok: true,
+      showInstagram: true,
+      heroEffectIntensity: "medium",
+    },
+    footerSettings: {
+      whatsappNumber: "+1 (234) 567-890",
+      whatsappMessage: "Hola! Quiero mas informacion sobre Ivania Beauty.",
+      socialLinks: [
+        {
+          id: "instagram",
+          platform: "instagram",
+          label: "Instagram",
+          href: "https://instagram.com",
+        },
+        {
+          id: "tiktok",
+          platform: "tiktok",
+          label: "TikTok",
+          href: "https://www.tiktok.com/@ivaniabeauty2",
+        },
+        {
+          id: "facebook",
+          platform: "facebook",
+          label: "Facebook",
+          href: "https://facebook.com",
+        },
+        {
+          id: "x",
+          platform: "x",
+          label: "X",
+          href: "https://x.com",
+        },
+      ],
+    },
   };
 
   const batch = db.batch();

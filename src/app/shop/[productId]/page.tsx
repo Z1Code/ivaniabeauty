@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -193,6 +193,7 @@ function ProductNotFound() {
 /* ================================================================== */
 
 function ProductDetail({ product }: { product: ProductData }) {
+  const router = useRouter();
   const { t, language } = useTranslation();
   const addItem = useCart((s) => s.addItem);
 
@@ -384,10 +385,8 @@ function ProductDetail({ product }: { product: ProductData }) {
     if (hasConfirmedFitGuide) return null;
     const warning = fitGuideData?.warnings?.[0];
     if (warning) return warning;
-    return language === "es"
-      ? "Se muestra una tabla referencial mientras se confirma el fit guide."
-      : "Showing a fallback chart while the fit guide is being confirmed.";
-  }, [fitGuideData?.warnings, hasConfirmedFitGuide, language]);
+    return t("productDetail.fitGuideFallbackNotice");
+  }, [fitGuideData?.warnings, hasConfirmedFitGuide, t]);
 
   /* ----- cart handler ----- */
   const handleAddToCart = () => {
@@ -400,6 +399,20 @@ function ProductDetail({ product }: { product: ProductData }) {
       size: selectedSize || product.sizes[0],
       quantity,
     });
+  };
+
+  /* ----- buy now handler ----- */
+  const handleBuyNow = () => {
+    addItem({
+      id: product.id,
+      name: localName,
+      price: product.price,
+      image: galleryImages[0] ?? "",
+      color: selectedColor,
+      size: selectedSize || product.sizes[0],
+      quantity,
+    });
+    router.push("/checkout");
   };
 
   /* ----- badge style helper ----- */
@@ -684,7 +697,7 @@ function ProductDetail({ product }: { product: ProductData }) {
           {/* ----- Buy Now ----- */}
           <motion.button
             whileTap={{ scale: 0.97 }}
-            onClick={handleAddToCart}
+            onClick={handleBuyNow}
             className="w-full mt-3 py-4 border-2 border-rosa text-rosa rounded-full text-lg font-semibold hover:bg-rosa hover:text-white transition-colors cursor-pointer"
           >
             {t("productDetail.buyNow")}
