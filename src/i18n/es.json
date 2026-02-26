@@ -17,7 +17,9 @@
     "wishlist": "Lista de deseos",
     "cart": "Carrito de compras",
     "openMenu": "Abrir menú",
-    "closeMenu": "Cerrar menú"
+    "closeMenu": "Cerrar menú",
+    "signIn": "Iniciar Sesión",
+    "myAccount": "Mi Cuenta"
   },
   "hero": {
     "seasonTag": "Colección Verano 2025",
@@ -312,6 +314,8 @@
     "continueShopping": "Continuar Comprando"
   },
   "checkout": {
+    "authRequired": "Inicia sesión para continuar",
+    "authRequiredDesc": "Debes iniciar sesión para completar tu compra.",
     "breadcrumbHome": "Inicio",
     "breadcrumbCart": "Carrito",
     "breadcrumbCheckout": "Pago",
@@ -478,5 +482,44 @@
     "errorMessage": "Si realizaste el pago, no te preocupes. Tu orden sera procesada automaticamente. Revisa tu correo electronico.",
     "errorCta": "Volver a la tienda",
     "loading": "Cargando..."
+  },
+  "auth": {
+    "login": "Iniciar Sesion",
+    "register": "Crear Cuenta",
+    "logout": "Cerrar Sesion",
+    "email": "Correo electronico",
+    "password": "Contrasena",
+    "confirmPassword": "Confirmar Contrasena",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "forgotPassword": "Olvidaste tu contrasena?",
+    "resetPassword": "Restablecer Contrasena",
+    "sendResetLink": "Enviar enlace",
+    "resetSent": "Correo de restablecimiento enviado! Revisa tu bandeja de entrada.",
+    "orContinueWith": "o continua con",
+    "continueWithGoogle": "Continuar con Google",
+    "signInWithApple": "Iniciar sesion con Apple",
+    "noAccount": "No tienes cuenta?",
+    "createOne": "Crea una",
+    "hasAccount": "Ya tienes cuenta?",
+    "signIn": "Inicia sesion",
+    "passwordMin": "Minimo 8 caracteres",
+    "passwordMismatch": "Las contrasenas no coinciden",
+    "errorInvalidCredentials": "Correo o contrasena incorrectos",
+    "errorEmailInUse": "Este correo ya esta registrado",
+    "errorWeakPassword": "La contrasena es muy debil (minimo 8 caracteres)",
+    "errorGeneric": "Algo salio mal. Intenta de nuevo.",
+    "errorPopupClosed": "La ventana de inicio de sesion se cerro. Intenta de nuevo.",
+    "welcomeBack": "Bienvenida de vuelta",
+    "createYourAccount": "Crea tu cuenta",
+    "loginSubtitle": "Inicia sesion para acceder a tus pedidos y guardar tus favoritos",
+    "registerSubtitle": "Unete a Ivania Beauty para ofertas exclusivas y compras faciles",
+    "account": "Mi Cuenta",
+    "accountSubtitle": "Administra tu perfil y pedidos",
+    "savedAddress": "Direccion Guardada",
+    "noAddress": "Aun no has guardado una direccion",
+    "orderHistory": "Historial de Pedidos",
+    "memberSince": "Miembro desde",
+    "provider": "Sesion iniciada con"
   }
 }

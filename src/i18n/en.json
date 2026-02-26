@@ -17,7 +17,9 @@
     "wishlist": "Wishlist",
     "cart": "Shopping cart",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "signIn": "Sign In",
+    "myAccount": "My Account"
   },
   "hero": {
     "seasonTag": "Summer 2025 Collection",
@@ -312,6 +314,8 @@
     "continueShopping": "Continue Shopping"
   },
   "checkout": {
+    "authRequired": "Sign in to continue",
+    "authRequiredDesc": "You must be signed in to complete your purchase.",
     "breadcrumbHome": "Home",
     "breadcrumbCart": "Cart",
     "breadcrumbCheckout": "Checkout",
@@ -478,5 +482,44 @@
     "errorMessage": "If you completed the payment, don't worry. Your order will be processed automatically. Check your email.",
     "errorCta": "Back to shop",
     "loading": "Loading..."
+  },
+  "auth": {
+    "login": "Sign In",
+    "register": "Create Account",
+    "logout": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "forgotPassword": "Forgot password?",
+    "resetPassword": "Reset Password",
+    "sendResetLink": "Send Reset Link",
+    "resetSent": "Password reset email sent! Check your inbox.",
+    "orContinueWith": "or continue with",
+    "continueWithGoogle": "Continue with Google",
+    "signInWithApple": "Sign in with Apple",
+    "noAccount": "Don't have an account?",
+    "createOne": "Create one",
+    "hasAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "passwordMin": "Minimum 8 characters",
+    "passwordMismatch": "Passwords do not match",
+    "errorInvalidCredentials": "Invalid email or password",
+    "errorEmailInUse": "This email is already registered",
+    "errorWeakPassword": "Password is too weak (min 8 characters)",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "errorPopupClosed": "Sign-in popup was closed. Try again.",
+    "welcomeBack": "Welcome back",
+    "createYourAccount": "Create your account",
+    "loginSubtitle": "Sign in to access your orders and save your favorites",
+    "registerSubtitle": "Join Ivania Beauty for exclusive offers and easy checkout",
+    "account": "My Account",
+    "accountSubtitle": "Manage your profile and orders",
+    "savedAddress": "Saved Address",
+    "noAddress": "No address saved yet",
+    "orderHistory": "Order History",
+    "memberSince": "Member since",
+    "provider": "Signed in with"
   }
 }

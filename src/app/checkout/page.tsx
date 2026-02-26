@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import useCart from "@/hooks/useCart";
+import useAuth from "@/hooks/useAuth";
 import { formatPrice, getColorHex, cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -105,6 +106,7 @@ interface ZipLookupResult {
 export default function CheckoutPage() {
   const { t } = useTranslation();
   const { items, subtotal } = useCart();
+  const { user, profile, loading: authLoading, initialized } = useAuth();
 
   // ── Form field state ──
   const [email, setEmail] = useState("");
@@ -116,6 +118,7 @@ export default function CheckoutPage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
+  const [profilePreFilled, setProfilePreFilled] = useState(false);
 
   // ── ZIP auto-fill state ──
   const [zipLoading, setZipLoading] = useState(false);
@@ -223,6 +226,21 @@ export default function CheckoutPage() {
       }
     };
   }, []);
+
+  // ── Pre-fill from user profile ──
+  useEffect(() => {
+    if (!profile || profilePreFilled) return;
+    if (profile.email) setEmail(profile.email);
+    if (profile.firstName) setFirstName(profile.firstName);
+    if (profile.lastName) setLastName(profile.lastName);
+    if (profile.phone) setPhone(profile.phone);
+    if (profile.addressLine1) setAddressLine1(profile.addressLine1);
+    if (profile.addressLine2) setAddressLine2(profile.addressLine2);
+    if (profile.city) setCity(profile.city);
+    if (profile.state) setState(profile.state);
+    if (profile.zipCode) setZip(profile.zipCode);
+    setProfilePreFilled(true);
+  }, [profile, profilePreFilled]);
 
   // ── Validate form ──
   const validateForm = (): boolean => {
@@ -374,6 +392,7 @@ export default function CheckoutPage() {
             shippingMethod,
             paymentMethod: "card",
             couponCode: couponData ? couponData.code : null,
+            firebaseUid: user?.uid || null,
           }),
         });
 
@@ -410,6 +429,35 @@ export default function CheckoutPage() {
 
   const selectErrorClasses =
     "w-full p-3 rounded-xl border border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition-all duration-200 text-sm bg-white appearance-none";
+
+  // ── Auth gate ──
+  if (!initialized || authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-rosa" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-32 text-center">
+        <Lock className="w-12 h-12 text-rosa mx-auto mb-4" />
+        <h1 className="font-serif text-2xl font-bold mb-3">
+          {t("checkout.authRequired")}
+        </h1>
+        <p className="text-foreground/60 mb-6">
+          {t("checkout.authRequiredDesc")}
+        </p>
+        <Link
+          href="/login?redirect=/checkout"
+          className="inline-block px-8 py-3 bg-rosa text-white font-semibold rounded-xl hover:bg-rosa-dark transition-colors"
+        >
+          {t("header.signIn")}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28">

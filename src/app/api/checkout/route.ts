@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { customer, items, shippingMethod, paymentMethod, couponCode } = body;
+    const { customer, items, shippingMethod, paymentMethod, couponCode, firebaseUid } = body;
 
     // Server-side price validation: fetch actual prices from Firestore
     for (const item of items) {
@@ -116,6 +116,13 @@ export async function POST(request: Request) {
 
     if (!existingCustomer.empty) {
       customerId = existingCustomer.docs[0].id;
+      // Link Firebase Auth UID to existing customer if provided
+      if (firebaseUid) {
+        await adminDb.collection("customers").doc(customerId).update({
+          firebaseUid,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
     } else {
       const customerRef = await adminDb.collection("customers").add({
         email: customer.email,
@@ -128,6 +135,7 @@ export async function POST(request: Request) {
         state: customer.state || "",
         zipCode: customer.zipCode || "",
         country: customer.country || "US",
+        ...(firebaseUid ? { firebaseUid } : {}),
         totalOrders: 0,
         totalSpent: 0,
         createdAt: FieldValue.serverTimestamp(),

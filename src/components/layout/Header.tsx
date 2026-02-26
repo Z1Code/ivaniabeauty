@@ -10,10 +10,12 @@ import {
   Menu,
   X,
   Search,
+  User,
 } from "lucide-react";
 
 import { NAV_LINKS, SITE_NAME } from "@/lib/constants";
 import useCart from "@/hooks/useCart";
+import useAuth from "@/hooks/useAuth";
 import { useTranslation } from "@/hooks/useTranslation";
 import LanguageToggle from "@/components/shared/LanguageToggle";
 
@@ -33,6 +35,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { openCart, totalItems } = useCart();
   const cartCount = totalItems();
+  const { user, profile, initialized } = useAuth();
   const { t } = useTranslation();
   const pathname = usePathname();
   const isPrimaryCommerce =
@@ -232,6 +235,34 @@ export default function Header() {
                 <Search className="w-5 h-5" />
               </button>
 
+              {/* Auth / Account */}
+              {initialized && (
+                <Link
+                  href={user ? "/account" : "/login"}
+                  aria-label={user ? t("header.myAccount") : t("header.signIn")}
+                  className={`relative p-2 rounded-full transition-colors duration-500 ${
+                    heroWhite
+                      ? "text-white/80 hover:text-white hover:bg-white/20"
+                      : "text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40"
+                  }`}
+                >
+                  {user && profile?.photoURL ? (
+                    <Image
+                      src={profile.photoURL}
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="w-5 h-5 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-5 h-5" />
+                  )}
+                  {user && !profile?.photoURL && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-green-500 rounded-full border border-white" />
+                  )}
+                </Link>
+              )}
+
               {/* Cart */}
               <button
                 onClick={openCart}
@@ -319,12 +350,39 @@ export default function Header() {
               {/* Drawer Links */}
               <nav className="flex-1 overflow-y-auto px-6 py-8">
                 <ul className="flex flex-col gap-2">
+                  {/* Auth link — first item in mobile menu */}
+                  {initialized && (
+                    <motion.li
+                      initial={{ opacity: 0, x: 40 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <Link
+                        href={user ? "/account" : "/login"}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-lg font-medium text-foreground/80 hover:bg-rosa-light/30 hover:text-rosa-dark transition-colors duration-300"
+                      >
+                        {user && profile?.photoURL ? (
+                          <Image
+                            src={profile.photoURL}
+                            alt=""
+                            width={24}
+                            height={24}
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-5 h-5" />
+                        )}
+                        {user ? t("header.myAccount") : t("header.signIn")}
+                      </Link>
+                    </motion.li>
+                  )}
                   {navigationLinks.map((link, index) => (
                     <motion.li
                       key={link.href}
                       initial={{ opacity: 0, x: 40 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 + index * 0.07 }}
+                      transition={{ delay: 0.17 + index * 0.07 }}
                     >
                       <Link
                         href={link.href}
