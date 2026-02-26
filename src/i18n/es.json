@@ -95,7 +95,8 @@
     "headingSuffix": "",
     "subtitle": "Descubre la diferencia",
     "without": "Sin Faja",
-    "with": "Con Faja"
+    "with": "Con Faja",
+    "ariaLabel": "Comparación antes y después"
   },
   "testimonials": {
     "heading": "Lo Que Dicen Nuestras Clientas",
@@ -205,6 +206,7 @@
     "sectionTopsShorts": "Tops y Shorts",
     "outOfStock": "Agotado",
     "quickView": "Ver detalle",
+    "selectColor": "Seleccionar color",
     "visibleSections": "Secciones visibles",
     "contextualFilters": "Filtros contextuales",
     "focusLabel": "Enfoque",
@@ -360,6 +362,7 @@
     "placingOrderButton": "Realizando Pedido...",
     "fieldRequired": "Este campo es obligatorio",
     "invalidEmail": "Por favor ingresa un correo válido",
+    "phoneInvalid": "Por favor ingresa un número de teléfono válido (al menos 10 dígitos)",
     "orderErrorGeneric": "Hubo un error al realizar tu pedido. Por favor intenta de nuevo.",
     "successHeading": "Gracias por tu Pedido!",
     "successOrderNumber": "Número de pedido",
@@ -374,7 +377,18 @@
     "stateMismatch": "El estado no coincide con el código ZIP",
     "stateInvalid": "Selecciona un estado válido",
     "autoFilled": "Auto-completado",
-    "stripeRedirectNotice": "Serás redirigido a Stripe para ingresar tus datos de pago de forma segura."
+    "stripeRedirectNotice": "Serás redirigido a Stripe para ingresar tus datos de pago de forma segura.",
+    "sizeValidationError": "El producto \"{name}\" no tiene talla seleccionada. Vuelve al carrito y selecciona una talla."
+  },
+  "search": {
+    "placeholder": "Buscar productos...",
+    "noResults": "No se encontraron resultados",
+    "recentSearches": "Busquedas recientes",
+    "categories": "Categorias",
+    "clearRecent": "Limpiar recientes",
+    "title": "Buscar",
+    "shortcut": "Presiona Ctrl+K para buscar",
+    "searchTitle": "Buscar"
   },
   "shipping": {
     "title": "Envíos y Devoluciones",
@@ -419,5 +433,50 @@
     "contactWhatsAppValue": "+1 (234) 567-890",
     "contactResponse": "Tiempo de respuesta: 24-48 horas",
     "contactCta": "Contactanos"
+  },
+  "privacy": {
+    "title": "Politica de Privacidad",
+    "intro": "Tu privacidad es importante para nosotros. Esta politica explica como Ivania Beauty recopila, utiliza y protege tu informacion personal.",
+    "dataCollection": "Recopilacion de Datos",
+    "dataCollectionDesc": "Recopilamos informacion personal que proporcionas voluntariamente al realizar un pedido, crear una cuenta o contactarnos. Esto incluye tu nombre, direccion de correo electronico, direccion de envio, numero de telefono e informacion de pago. Tambien recopilamos automaticamente ciertos datos tecnicos como tu direccion IP, tipo de navegador y comportamiento de navegacion en nuestro sitio web.",
+    "dataUsage": "Uso de tus Datos",
+    "dataUsageDesc": "Utilizamos tu informacion personal para procesar y completar tus pedidos, comunicarnos contigo sobre tus compras, enviar correos promocionales (con tu consentimiento), mejorar nuestro sitio web y servicios, y prevenir fraudes. Nunca venderemos tu informacion personal a terceros.",
+    "cookies": "Cookies",
+    "cookiesDesc": "Nuestro sitio web utiliza cookies y tecnologias de rastreo similares para mejorar tu experiencia de navegacion, analizar el trafico del sitio y personalizar el contenido. Puedes controlar las preferencias de cookies a traves de la configuracion de tu navegador. Las cookies esenciales son necesarias para el funcionamiento del sitio, mientras que las cookies de analisis y marketing son opcionales.",
+    "thirdParty": "Servicios de Terceros",
+    "thirdPartyDesc": "Trabajamos con servicios de terceros de confianza para operar nuestro negocio: Stripe procesa tus pagos de forma segura, Firebase proporciona nuestra infraestructura de base de datos y autenticacion, y Vercel Analytics nos ayuda a entender como los visitantes utilizan nuestro sitio web. Cada uno de estos servicios tiene sus propias politicas de privacidad y maneja los datos de acuerdo con los estandares de la industria.",
+    "userRights": "Tus Derechos",
+    "userRightsDesc": "Tienes derecho a acceder, corregir o eliminar tus datos personales en cualquier momento. Tambien puedes solicitar una copia de los datos que tenemos sobre ti, optar por no recibir comunicaciones de marketing y retirar tu consentimiento para el procesamiento de datos. Para ejercer cualquiera de estos derechos, contactanos utilizando la informacion a continuacion.",
+    "contact": "Contactanos",
+    "contactDesc": "Si tienes alguna pregunta sobre esta politica de privacidad o como manejamos tus datos, contactanos a ivaniabeauty2@gmail.com. Responderemos a tu consulta dentro de 48 horas.",
+    "lastUpdated": "Ultima actualizacion: Febrero 2026"
+  },
+  "terms": {
+    "title": "Terminos y Condiciones",
+    "intro": "Por favor lee estos terminos y condiciones cuidadosamente antes de usar nuestro sitio web o realizar una compra.",
+    "acceptance": "Aceptacion de Terminos",
+    "acceptanceDesc": "Al acceder o utilizar el sitio web de Ivania Beauty, aceptas estar sujeto a estos terminos y condiciones. Si no estas de acuerdo con alguna parte de estos terminos, no debes usar nuestro sitio web ni realizar compras.",
+    "useOfWebsite": "Uso del Sitio Web",
+    "useOfWebsiteDesc": "Aceptas utilizar este sitio web solo para fines legales y de una manera que no infrinja los derechos de otros. No debes hacer un uso indebido del sitio web introduciendo software malicioso, intentando acceso no autorizado, o participando en cualquier actividad que pueda dañar o deteriorar la funcionalidad del sitio.",
+    "purchases": "Compra de Productos",
+    "purchasesDesc": "Todos los precios de los productos estan listados en dolares estadounidenses y estan sujetos a cambios sin previo aviso. Nos reservamos el derecho de limitar cantidades, rechazar pedidos o cancelar pedidos a nuestra discrecion. Las imagenes de productos son ilustrativas y los colores reales pueden variar ligeramente. Al realizar un pedido, confirmas que toda la informacion proporcionada es precisa y completa.",
+    "shippingReturns": "Envios y Devoluciones",
+    "shippingReturnsDesc": "Nuestras politicas de envio y devolucion se detallan en nuestra pagina dedicada. Por favor revisalas cuidadosamente antes de realizar una compra. Para mas detalles, visita nuestra pagina de",
+    "intellectualProperty": "Propiedad Intelectual",
+    "intellectualPropertyDesc": "Todo el contenido de este sitio web, incluyendo textos, graficos, logotipos, imagenes, diseños de productos y software, es propiedad de Ivania Beauty y esta protegido por las leyes de propiedad intelectual. No puedes reproducir, distribuir, modificar o crear obras derivadas de ningun contenido sin nuestro permiso expreso por escrito.",
+    "liability": "Limitacion de Responsabilidad",
+    "liabilityDesc": "Ivania Beauty no sera responsable por ningun daño indirecto, incidental, especial o consecuente que surja del uso de nuestro sitio web o productos. Nuestra responsabilidad total se limita al monto que pagaste por el producto o servicio especifico en cuestion. No garantizamos acceso ininterrumpido o libre de errores al sitio web.",
+    "governingLaw": "Ley Aplicable",
+    "governingLawDesc": "Estos terminos y condiciones se rigen e interpretan de acuerdo con las leyes de los Estados Unidos. Cualquier disputa que surja de estos terminos sera resuelta en los tribunales de la jurisdiccion aplicable dentro de los Estados Unidos.",
+    "contact": "Contacto",
+    "contactDesc": "Si tienes alguna pregunta sobre estos terminos y condiciones, contactanos a ivaniabeauty2@gmail.com. Haremos nuestro mejor esfuerzo para atender tus inquietudes con prontitud.",
+    "lastUpdated": "Ultima actualizacion: Febrero 2026"
+  },
+  "checkoutSuccess": {
+    "verifying": "Verificando tu pago...",
+    "errorHeading": "No pudimos verificar tu pago",
+    "errorMessage": "Si realizaste el pago, no te preocupes. Tu orden sera procesada automaticamente. Revisa tu correo electronico.",
+    "errorCta": "Volver a la tienda",
+    "loading": "Cargando..."
   }
 }

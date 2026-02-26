@@ -4,16 +4,29 @@ import { useEffect } from "react";
 import {
   type AdminFontId,
   getFontById,
-  getFontCSSValue,
   FONT_CSS_VAR,
 } from "@/lib/admin-fonts";
 
 const FONT_KEY = "admin-heading-font";
 const THEME_EVENT = "admin-theme-change";
 
+const loadedFonts = new Set<string>();
+
+function loadGoogleFont(url: string) {
+  if (loadedFonts.has(url)) return;
+  loadedFonts.add(url);
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = url;
+  document.head.appendChild(link);
+}
+
 function apply(fontId: AdminFontId) {
   const font = getFontById(fontId);
-  document.documentElement.style.setProperty(FONT_CSS_VAR, getFontCSSValue(font));
+  if (font.googleFontsUrl) {
+    loadGoogleFont(font.googleFontsUrl);
+  }
+  document.documentElement.style.setProperty(FONT_CSS_VAR, font.fallback);
 }
 
 export default function FontInitializer() {

@@ -151,10 +151,10 @@ export default function Footer() {
   }, []);
 
   const infoLinks = [
-    { label: t("footer.infoAboutUs"), href: "/#nosotros" },
-    { label: t("footer.infoShippingReturns"), href: "/envios-devoluciones" },
-    { label: t("footer.infoPrivacyPolicy"), href: "/envios-devoluciones" },
-    { label: t("footer.infoTerms"), href: "/envios-devoluciones" },
+    { key: "aboutUs", label: t("footer.infoAboutUs"), href: "/#nosotros" },
+    { key: "shipping", label: t("footer.infoShippingReturns"), href: "/envios-devoluciones" },
+    { key: "privacy", label: t("footer.infoPrivacyPolicy"), href: "/politica-privacidad" },
+    { key: "terms", label: t("footer.infoTerms"), href: "/terminos-condiciones" },
   ];
 
   const whatsappHref = toWhatsappUrl(
@@ -212,7 +212,7 @@ export default function Footer() {
               </h4>
               <ul className="flex flex-col gap-2.5">
                 {infoLinks.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.key}>
                     <Link
                       href={link.href}
                       className="text-sm text-white/75 hover:text-white hover:translate-x-1 transition-all duration-300 inline-block"

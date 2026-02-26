@@ -3,16 +3,6 @@ import {
   Poppins,
   Playfair_Display,
   Dancing_Script,
-  Cormorant_Garamond,
-  Lora,
-  Merriweather,
-  Libre_Baskerville,
-  DM_Serif_Display,
-  Spectral,
-  Josefin_Sans,
-  Raleway,
-  Outfit,
-  Inter,
 } from "next/font/google";
 import "./globals.css";
 import LayoutShell from "@/components/layout/LayoutShell";
@@ -42,81 +32,32 @@ const dancingScript = Dancing_Script({
   display: "swap",
 });
 
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-cormorant",
-  display: "swap",
-});
-
-const lora = Lora({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-lora",
-  display: "swap",
-});
-
-const merriweather = Merriweather({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-merriweather",
-  display: "swap",
-});
-
-const libreBaskerville = Libre_Baskerville({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-libre",
-  display: "swap",
-});
-
-const dmSerifDisplay = DM_Serif_Display({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-dmserif",
-  display: "swap",
-});
-
-const spectral = Spectral({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-spectral",
-  display: "swap",
-});
-
-const josefinSans = Josefin_Sans({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-josefin",
-  display: "swap",
-});
-
-const raleway = Raleway({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-raleway",
-  display: "swap",
-});
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-outfit",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  variable: "--font-inter",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://ivaniabeauty.com"),
   title: "Ivania Beauty | Fajas Premium - Tu Silueta Perfecta",
   description:
     "Fajas premium que moldean sin sacrificar tu comodidad. Descubre nuestra coleccion de fajas para playa, dia a dia, eventos y post-parto.",
   keywords: "fajas, fajas premium, shapewear, moldear, silueta, playa, bikini",
+  openGraph: {
+    title: "Ivania Beauty | Fajas Premium - Tu Silueta Perfecta",
+    description:
+      "Fajas premium que moldean sin sacrificar tu comodidad. Descubre nuestra coleccion de fajas para playa, dia a dia, eventos y post-parto.",
+    siteName: "Ivania Beauty",
+    locale: "es_US",
+    type: "website",
+    images: ["/og-image.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ivania Beauty | Fajas Premium - Tu Silueta Perfecta",
+    description:
+      "Fajas premium que moldean sin sacrificar tu comodidad. Descubre nuestra coleccion de fajas para playa, dia a dia, eventos y post-parto.",
+    images: ["/og-image.jpg"],
+  },
+  alternates: {
+    canonical: "https://ivaniabeauty.com",
+  },
   icons: {
     icon: [
       // Pink logo for light mode browsers
@@ -141,7 +82,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${poppins.variable} ${playfair.variable} ${dancingScript.variable} ${cormorant.variable} ${lora.variable} ${merriweather.variable} ${libreBaskerville.variable} ${dmSerifDisplay.variable} ${spectral.variable} ${josefinSans.variable} ${raleway.variable} ${outfit.variable} ${inter.variable} font-sans antialiased`}
+        className={`${poppins.variable} ${playfair.variable} ${dancingScript.variable} font-sans antialiased`}
       >
 
         <LanguageInitializer />

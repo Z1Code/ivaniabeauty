@@ -59,7 +59,7 @@ function CheckoutSuccessContent() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28">
         <div className="bg-white rounded-xl p-8 sm:p-12 shadow-sm border border-rosa-light/20 text-center">
           <Loader2 className="w-12 h-12 text-rosa animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Verificando tu pago...</p>
+          <p className="text-gray-600">{t("checkoutSuccess.verifying")}</p>
         </div>
       </div>
     );
@@ -71,17 +71,16 @@ function CheckoutSuccessContent() {
         <div className="bg-white rounded-xl p-8 sm:p-12 shadow-sm border border-rosa-light/20 text-center">
           <XCircle className="w-16 h-16 text-red-400 mx-auto mb-6" />
           <h1 className="font-serif text-2xl font-bold mb-3">
-            No pudimos verificar tu pago
+            {t("checkoutSuccess.errorHeading")}
           </h1>
           <p className="text-gray-600 mb-8">
-            Si realizaste el pago, no te preocupes. Tu orden será procesada
-            automáticamente. Revisa tu correo electrónico.
+            {t("checkoutSuccess.errorMessage")}
           </p>
           <Link
             href="/shop"
             className="inline-block py-3 px-8 btn-shimmer text-white rounded-full text-base font-semibold"
           >
-            Volver a la tienda
+            {t("checkoutSuccess.errorCta")}
           </Link>
         </div>
       </div>
@@ -134,13 +133,14 @@ function CheckoutSuccessContent() {
 }
 
 export default function CheckoutSuccessPage() {
+  const { t } = useTranslation();
   return (
     <Suspense
       fallback={
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28">
           <div className="bg-white rounded-xl p-8 sm:p-12 shadow-sm border border-rosa-light/20 text-center">
             <Loader2 className="w-12 h-12 text-rosa animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Cargando...</p>
+            <p className="text-gray-600">{t("checkoutSuccess.loading")}</p>
           </div>
         </div>
       }

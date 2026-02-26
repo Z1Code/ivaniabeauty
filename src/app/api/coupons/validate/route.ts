@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
+import { rateLimit } from "@/lib/security/rate-limiter";
 
 // GET: Validate a coupon code
 export async function GET(request: Request) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const { allowed } = rateLimit(ip, "/api/coupons/validate");
+    if (!allowed) {
+      return NextResponse.json(
+        { valid: false, message: "Too many requests" },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
     const subtotal = parseFloat(searchParams.get("subtotal") || "0");

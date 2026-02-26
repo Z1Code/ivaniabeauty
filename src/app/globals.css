@@ -3,7 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --font-heading: var(--font-cormorant), 'Cormorant Garamond', serif;
+  --font-heading: var(--font-playfair), 'Playfair Display', serif;
 }
 
 @theme inline {
@@ -239,6 +239,18 @@
   .cart-bounce {
     animation: cartBounce 0.4s ease-in-out;
   }
+
+  .animate-blob-float-1 {
+    animation: blobFloat1 10s ease-in-out infinite;
+  }
+
+  .animate-blob-float-2 {
+    animation: blobFloat2 12s ease-in-out infinite;
+  }
+
+  .animate-blob-float-3 {
+    animation: blobFloat3 9s ease-in-out infinite 0.5s;
+  }
 }
 
 /* Keyframes (outside layers - they are not affected by cascade) */
@@ -288,6 +300,21 @@
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateX(-8px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes blobFloat1 {
+  0%, 100% { transform: translateY(0); opacity: 0.45; }
+  50% { transform: translateY(-20px); opacity: 0.75; }
+}
+
+@keyframes blobFloat2 {
+  0%, 100% { transform: translateY(0); opacity: 0.35; }
+  50% { transform: translateY(24px); opacity: 0.65; }
+}
+
+@keyframes blobFloat3 {
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(-16px); opacity: 0.55; }
 }
 
 /* Respect reduced motion */

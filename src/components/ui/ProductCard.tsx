@@ -137,7 +137,6 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
         <Link
           href={`/shop/${slug}`}
           className="block flex-shrink-0 relative"
-          tabIndex={-1}
         >
           <div
             className={cn(
@@ -174,7 +173,7 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
             {isOutOfStock && (
               <div className="absolute inset-0 z-10 bg-black/30 flex items-center justify-center backdrop-blur-[1px]">
                 <span className="px-4 py-1.5 bg-black/70 text-white text-[10px] font-semibold rounded-full tracking-widest uppercase">
-                  {t("shop.outOfStock") || "Agotado"}
+                  {t("shop.outOfStock")}
                 </span>
               </div>
             )}
@@ -217,7 +216,7 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
             <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 pointer-events-none hidden sm:flex">
               <span className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#FFFDF9]/92 backdrop-blur-sm text-gray-800 text-[10px] font-medium rounded-full shadow-lg">
                 <Eye className="w-3 h-3" />
-                {t("shop.quickView") || "Ver detalle"}
+                {t("shop.quickView")}
               </span>
             </div>
           </div>
@@ -265,6 +264,8 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
                   className="w-3 h-3 rounded-full border border-gray-200/80 shadow-[0_0_0_0.5px_rgba(0,0,0,0.08)]"
                   style={{ backgroundColor: getColorHex(color) }}
                   title={color}
+                  aria-label={`${t("shop.selectColor")}: ${color}`}
+                  role="img"
                 />
               ))}
               {colors.length > 4 && (
@@ -308,7 +309,7 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
             )}
             aria-label={
               isOutOfStock
-                ? t("shop.outOfStock") || "Agotado"
+                ? t("shop.outOfStock")
                 : t("productDetail.addToCart")
             }
           >
@@ -331,7 +332,7 @@ function ProductCard({ product, imagePriority = false, className }: ProductCardP
                   key="oos"
                   className="relative z-10 flex items-center justify-center gap-2 text-gray-400 text-xs"
                 >
-                  {t("shop.outOfStock") || "Agotado"}
+                  {t("shop.outOfStock")}
                 </motion.span>
               ) : added ? (
                 <motion.span

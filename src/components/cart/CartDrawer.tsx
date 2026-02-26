@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -30,9 +30,65 @@ export default function CartDrawer() {
 
   const { t } = useTranslation();
   const router = useRouter();
+  const drawerRef = useRef<HTMLDivElement>(null);
   const [discountCode, setDiscountCode] = useState("");
+  const [discountLoading, setDiscountLoading] = useState(false);
+  const [discountError, setDiscountError] = useState("");
   const [checkoutFilling, setCheckoutFilling] = useState(false);
   const [checkoutReady, setCheckoutReady] = useState(false);
+
+  // Focus trap for cart drawer
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeCart();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const drawer = drawerRef.current;
+      if (!drawer) return;
+
+      const focusable = drawer.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    // Focus the drawer when it opens
+    const timer = setTimeout(() => {
+      const drawer = drawerRef.current;
+      if (drawer) {
+        const firstFocusable = drawer.querySelector<HTMLElement>(
+          'button, a[href], input'
+        );
+        firstFocusable?.focus();
+      }
+    }, 100);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      clearTimeout(timer);
+    };
+  }, [isOpen, closeCart]);
 
   const handleCheckout = useCallback(() => {
     if (checkoutFilling || checkoutReady) return;
@@ -67,6 +123,7 @@ export default function CartDrawer() {
 
           {/* Drawer Panel */}
           <motion.div
+            ref={drawerRef}
             className="fixed right-0 top-0 h-full w-full sm:w-[420px] bg-white shadow-2xl z-50 flex flex-col"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -221,17 +278,53 @@ export default function CartDrawer() {
             {items.length > 0 && (
               <div className="border-t border-rosa-light/30 p-6 space-y-4">
                 {/* Discount Code */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={discountCode}
-                    onChange={(e) => setDiscountCode(e.target.value)}
-                    placeholder={t("cart.discountPlaceholder")}
-                    className="flex-1 px-4 py-2 text-sm rounded-full border border-rosa-light/40 focus:border-rosa focus:ring-2 focus:ring-rosa/20 outline-none transition-all duration-200"
-                  />
-                  <button className="px-4 py-2 text-sm font-semibold text-rosa border border-rosa rounded-full hover:bg-rosa hover:text-white transition-colors duration-200">
-                    {t("cart.discountApply")}
-                  </button>
+                <div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={discountCode}
+                      onChange={(e) => {
+                        setDiscountCode(e.target.value.toUpperCase());
+                        if (discountError) setDiscountError("");
+                      }}
+                      placeholder={t("cart.discountPlaceholder")}
+                      className="flex-1 px-4 py-2 text-sm rounded-full border border-rosa-light/40 focus:border-rosa focus:ring-2 focus:ring-rosa/20 outline-none transition-all duration-200 uppercase"
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!discountCode.trim() || discountLoading) return;
+                        setDiscountLoading(true);
+                        setDiscountError("");
+                        try {
+                          const res = await fetch("/api/coupons/validate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ code: discountCode.trim() }),
+                          });
+                          const data = await res.json();
+                          if (data.valid) {
+                            closeCart();
+                            router.push(`/checkout?coupon=${encodeURIComponent(discountCode.trim())}`);
+                          } else {
+                            setDiscountError(data.message || t("checkout.couponInvalid"));
+                          }
+                        } catch {
+                          setDiscountError(t("checkout.couponInvalid"));
+                        } finally {
+                          setDiscountLoading(false);
+                        }
+                      }}
+                      disabled={discountLoading || !discountCode.trim()}
+                      className="px-4 py-2 text-sm font-semibold text-rosa border border-rosa rounded-full hover:bg-rosa hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {t("cart.discountApply")}
+                    </button>
+                  </div>
+                  {discountError && (
+                    <p role="alert" className="text-red-500 text-xs mt-1.5 px-2">
+                      {discountError}
+                    </p>
+                  )}
                 </div>
 
                 {/* Subtotal */}

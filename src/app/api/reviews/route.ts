@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
+import { rateLimit } from "@/lib/security/rate-limiter";
 
 // GET: Public endpoint - list approved reviews (optionally filtered by productId)
 export async function GET(request: Request) {
@@ -53,6 +54,15 @@ export async function GET(request: Request) {
 // POST: Submit a review (public)
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const { allowed } = rateLimit(ip, "/api/reviews");
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
 
     if (!body.productId || !body.name || !body.rating || !body.body) {
@@ -65,6 +75,13 @@ export async function POST(request: Request) {
     if (body.rating < 1 || body.rating > 5) {
       return NextResponse.json(
         { error: "Rating must be between 1 and 5" },
+        { status: 400 }
+      );
+    }
+
+    if (body.name?.length > 100 || body.title?.length > 200 || body.body?.length > 2000) {
+      return NextResponse.json(
+        { error: "Input too long" },
         { status: 400 }
       );
     }

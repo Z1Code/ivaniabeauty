@@ -65,6 +65,19 @@ export default function BeforeAfter() {
     isDragging.current = false;
   }, []);
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setSliderPos((prev) => Math.max(0, prev - 2));
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setSliderPos((prev) => Math.min(100, prev + 2));
+      }
+    },
+    []
+  );
+
   return (
     <motion.div
       ref={containerRef}
@@ -77,6 +90,13 @@ export default function BeforeAfter() {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      role="slider"
+      aria-valuenow={Math.round(sliderPos)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={t("beforeAfter.ariaLabel")}
     >
       {/* ===== BEFORE side (full background layer) ===== */}
       <div className="absolute inset-0 bg-gradient-to-br from-arena to-rosa-light/30">

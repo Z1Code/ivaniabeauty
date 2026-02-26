@@ -1,7 +1,31 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { unstable_cache } from "next/cache";
 import ShopPageClient from "@/components/shop/ShopPageClient";
 import { getProducts } from "@/lib/services/products";
+
+export const metadata: Metadata = {
+  title: "Shop Fajas Premium | Ivania Beauty",
+  description:
+    "Explora nuestra coleccion de fajas premium. Fajas para playa, dia a dia, eventos y post-parto con compresion firme y comodidad garantizada.",
+  openGraph: {
+    title: "Shop Fajas Premium | Ivania Beauty",
+    description:
+      "Explora nuestra coleccion de fajas premium. Fajas para playa, dia a dia, eventos y post-parto con compresion firme y comodidad garantizada.",
+    type: "website",
+    images: ["/og-image.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Shop Fajas Premium | Ivania Beauty",
+    description:
+      "Explora nuestra coleccion de fajas premium. Fajas para playa, dia a dia, eventos y post-parto.",
+    images: ["/og-image.jpg"],
+  },
+  alternates: {
+    canonical: "https://ivaniabeauty.com/shop",
+  },
+};
 
 interface ShopListProductPayload {
   id: string;

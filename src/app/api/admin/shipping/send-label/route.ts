@@ -8,10 +8,46 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const { to, orderNumber, customerName, trackingNumber, labelUrl, carrier, trackingUrl } = body;
+  function escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
-  if (!to || !labelUrl || !orderNumber) {
+  const body = await request.json();
+  const { to, orderNumber: rawOrderNumber, customerName: rawCustomerName, trackingNumber: rawTrackingNumber, labelUrl: rawLabelUrl, carrier: rawCarrier, trackingUrl: rawTrackingUrl } = body;
+  const orderNumber = escapeHtml(rawOrderNumber || "");
+  const customerName = escapeHtml(rawCustomerName || "");
+  const trackingNumber = rawTrackingNumber ? escapeHtml(rawTrackingNumber) : "";
+  // Validate URLs are https:// to prevent javascript: or data: URI injection
+  function assertHttpsUrl(raw: string | undefined, field: string): string {
+    if (!raw) return "";
+    try {
+      const parsed = new URL(raw);
+      if (parsed.protocol !== "https:") throw new Error(`${field} must be https`);
+      return raw;
+    } catch {
+      throw new Error(`Invalid ${field} URL`);
+    }
+  }
+
+  let labelUrl: string;
+  let trackingUrl: string;
+  try {
+    labelUrl = assertHttpsUrl(rawLabelUrl, "labelUrl");
+    trackingUrl = assertHttpsUrl(rawTrackingUrl, "trackingUrl");
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Invalid URL" },
+      { status: 400 }
+    );
+  }
+  const carrier = rawCarrier ? escapeHtml(rawCarrier) : "";
+
+  if (!to || !rawLabelUrl || !rawOrderNumber) {
     return NextResponse.json(
       { error: "to, labelUrl, and orderNumber are required" },
       { status: 400 }

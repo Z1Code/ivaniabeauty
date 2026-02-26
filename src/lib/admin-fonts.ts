@@ -19,6 +19,8 @@ export interface AdminFont {
   fallback: string;
   /** Preview text style hint */
   style: "serif" | "sans";
+  /** Google Fonts URL for lazy-loading (omit for fonts already in the root layout) */
+  googleFontsUrl?: string;
 }
 
 export const ADMIN_FONTS: AdminFont[] = [
@@ -35,6 +37,7 @@ export const ADMIN_FONTS: AdminFont[] = [
     variable: "--font-cormorant",
     fallback: "'Cormorant Garamond', serif",
     style: "serif",
+    googleFontsUrl: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap",
   },
   {
     id: "lora",
@@ -42,6 +45,7 @@ export const ADMIN_FONTS: AdminFont[] = [
     variable: "--font-lora",
     fallback: "'Lora', serif",
     style: "serif",
+    googleFontsUrl: "https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&display=swap",
   },
   {
     id: "merriweather",
@@ -49,6 +53,7 @@ export const ADMIN_FONTS: AdminFont[] = [
     variable: "--font-merriweather",
     fallback: "'Merriweather', serif",
     style: "serif",
+    googleFontsUrl: "https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap",
   },
   {
     id: "libre-baskerville",
@@ -56,6 +61,7 @@ export const ADMIN_FONTS: AdminFont[] = [
     variable: "--font-libre",
     fallback: "'Libre Baskerville', serif",
     style: "serif",
+    googleFontsUrl: "https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap",
   },
   {
     id: "dm-serif",
@@ -63,6 +69,7 @@ export const ADMIN_FONTS: AdminFont[] = [
     variable: "--font-dmserif",
     fallback: "'DM Serif Display', serif",
     style: "serif",
+    googleFontsUrl: "https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap",
   },
   {
     id: "spectral",
@@ -70,6 +77,7 @@ export const ADMIN_FONTS: AdminFont[] = [
     variable: "--font-spectral",
     fallback: "'Spectral', serif",
     style: "serif",
+    googleFontsUrl: "https://fonts.googleapis.com/css2?family=Spectral:wght@400;600;700&display=swap",
   },
   {
     id: "josefin",
@@ -77,6 +85,7 @@ export const ADMIN_FONTS: AdminFont[] = [
     variable: "--font-josefin",
     fallback: "'Josefin Sans', sans-serif",
     style: "sans",
+    googleFontsUrl: "https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&display=swap",
   },
   {
     id: "raleway",
@@ -84,6 +93,7 @@ export const ADMIN_FONTS: AdminFont[] = [
     variable: "--font-raleway",
     fallback: "'Raleway', sans-serif",
     style: "sans",
+    googleFontsUrl: "https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700&display=swap",
   },
   {
     id: "outfit",
@@ -91,6 +101,7 @@ export const ADMIN_FONTS: AdminFont[] = [
     variable: "--font-outfit",
     fallback: "'Outfit', sans-serif",
     style: "sans",
+    googleFontsUrl: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap",
   },
 ];
 
@@ -105,5 +116,9 @@ export function getFontById(id: AdminFontId): AdminFont {
 
 /** Build the CSS value for the --font-heading override */
 export function getFontCSSValue(font: AdminFont): string {
+  // Fonts loaded via next/font set CSS variables; lazy-loaded fonts use direct family names
+  if (font.googleFontsUrl) {
+    return font.fallback;
+  }
   return `var(${font.variable}), ${font.fallback}`;
 }

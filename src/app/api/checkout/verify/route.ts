@@ -4,10 +4,25 @@ import { adminDb } from "@/lib/firebase/admin";
 
 export async function GET(request: NextRequest) {
   const sessionId = request.nextUrl.searchParams.get("session_id");
+  const email = request.nextUrl.searchParams.get("email");
 
   if (!sessionId) {
     return NextResponse.json(
       { error: "session_id is required" },
+      { status: 400 }
+    );
+  }
+
+  if (!email) {
+    return NextResponse.json(
+      { error: "email is required" },
+      { status: 400 }
+    );
+  }
+
+  if (!sessionId.startsWith("cs_")) {
+    return NextResponse.json(
+      { error: "Invalid session_id" },
       { status: 400 }
     );
   }
@@ -36,6 +51,14 @@ export async function GET(request: NextRequest) {
     }
 
     const order = orderSnap.data()!;
+
+    // Verify email matches the order
+    if (order.customerEmail?.toLowerCase() !== email.toLowerCase()) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
 
     return NextResponse.json({
       orderNumber: order.orderNumber,

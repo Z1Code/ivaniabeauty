@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useSyncExternalStore, useLayoutEffect, useRef } from "react";
+import { useState, useEffect, useCallback, useSyncExternalStore, useLayoutEffect, useRef, type RefObject } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   Menu,
   X,
+  Search,
 } from "lucide-react";
 
 import { NAV_LINKS, SITE_NAME } from "@/lib/constants";
@@ -21,6 +22,8 @@ const DARK_HERO_PAGES: string[] = [];
 
 export default function Header() {
   const headerRef = useRef<HTMLElement | null>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuToggleRef = useRef<HTMLButtonElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const hasMounted = useSyncExternalStore(
     () => () => {},
@@ -79,6 +82,63 @@ export default function Header() {
     }
     return () => {
       document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
+  // Focus trap for mobile menu
+  const mobileMenuHasOpened = useRef(false);
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      if (mobileMenuHasOpened.current) {
+        mobileMenuToggleRef.current?.focus();
+      }
+      return;
+    }
+    mobileMenuHasOpened.current = true;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileMenuOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const menu = mobileMenuRef.current;
+      if (!menu) return;
+
+      const focusable = menu.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    const timer = setTimeout(() => {
+      const menu = mobileMenuRef.current;
+      if (menu) {
+        const firstFocusable = menu.querySelector<HTMLElement>("button, a[href]");
+        firstFocusable?.focus();
+      }
+    }, 100);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      clearTimeout(timer);
     };
   }, [mobileMenuOpen]);
 
@@ -156,6 +216,22 @@ export default function Header() {
               {/* Language Toggle */}
               <LanguageToggle />
 
+              {/* Search */}
+              <button
+                onClick={() => {
+                  const openSearch = (window as unknown as Record<string, unknown>).__openSearch;
+                  if (typeof openSearch === "function") openSearch();
+                }}
+                aria-label={t("header.search")}
+                className={`p-2 rounded-full transition-colors duration-500 ${
+                  heroWhite
+                    ? "text-white/80 hover:text-white hover:bg-white/20"
+                    : "text-foreground/70 hover:text-rosa-dark hover:bg-rosa-light/40"
+                }`}
+              >
+                <Search className="w-5 h-5" />
+              </button>
+
               {/* Cart */}
               <button
                 onClick={openCart}
@@ -184,6 +260,7 @@ export default function Header() {
 
               {/* Mobile Menu Toggle */}
               <button
+                ref={mobileMenuToggleRef}
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label={t("header.openMenu")}
                 className={`lg:hidden p-2 rounded-full transition-colors duration-500 ${
@@ -215,6 +292,7 @@ export default function Header() {
 
             {/* Drawer */}
             <motion.div
+              ref={mobileMenuRef as RefObject<HTMLDivElement>}
               className="fixed top-0 right-0 bottom-0 z-[70] w-full max-w-sm bg-perla shadow-2xl flex flex-col"
               initial={{ x: "100%" }}
               animate={{ x: 0 }}

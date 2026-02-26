@@ -55,7 +55,7 @@ export const DEFAULT_FOOTER_SETTINGS: FooterSettings = {
       id: "instagram",
       platform: "instagram",
       label: "Instagram",
-      href: "https://instagram.com",
+      href: "https://instagram.com/ivaniabeauty2",
     },
     {
       id: "tiktok",

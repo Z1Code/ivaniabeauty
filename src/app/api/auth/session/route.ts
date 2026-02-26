@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { adminAuth, adminDb, isFirebaseConfigured } from "@/lib/firebase/admin";
 import { cookies } from "next/headers";
+import { rateLimit } from "@/lib/security/rate-limiter";
 
 // POST: Create session cookie from Firebase ID token
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const { allowed } = rateLimit(ip, "/api/auth/session");
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429 }
+      );
+    }
+
     // Check if Firebase Admin SDK is properly configured
     if (!isFirebaseConfigured()) {
       console.error("SESSION ERROR: Firebase Admin SDK not configured. Check FIREBASE_ADMIN_* env vars.");
@@ -79,7 +89,7 @@ export async function POST(request: Request) {
     console.error("SESSION ERROR:", err.message);
     console.error("SESSION ERROR STACK:", err.stack);
     return NextResponse.json(
-      { error: "Failed to create session: " + err.message },
+      { error: "Authentication failed" },
       { status: 401 }
     );
   }

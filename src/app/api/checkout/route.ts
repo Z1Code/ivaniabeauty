@@ -2,9 +2,19 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
+import { rateLimit } from "@/lib/security/rate-limiter";
 
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const { allowed } = rateLimit(ip, "/api/checkout");
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
 
     if (!body.customer?.email || !body.items?.length) {
@@ -15,6 +25,31 @@ export async function POST(request: Request) {
     }
 
     const { customer, items, shippingMethod, paymentMethod, couponCode } = body;
+
+    // Server-side price validation: fetch actual prices from Firestore
+    for (const item of items) {
+      if (!item.productId) {
+        return NextResponse.json(
+          { error: "Price validation failed" },
+          { status: 400 }
+        );
+      }
+      const productDoc = await adminDb.collection("products").doc(item.productId).get();
+      if (!productDoc.exists) {
+        return NextResponse.json(
+          { error: "Price validation failed" },
+          { status: 400 }
+        );
+      }
+      const productData = productDoc.data()!;
+      const actualPrice = productData.salePrice ?? productData.price;
+      if (Math.round(item.unitPrice * 100) !== Math.round(actualPrice * 100)) {
+        return NextResponse.json(
+          { error: "Price validation failed" },
+          { status: 400 }
+        );
+      }
+    }
 
     // Calculate totals
     const subtotal = items.reduce(
@@ -199,7 +234,7 @@ export async function POST(request: Request) {
     }
 
     // Create Stripe Checkout Session
-    const origin = request.headers.get("origin") || "https://ivaniabeauty.com";
+    const origin = "https://ivaniabeauty.com";
 
     const session = await getStripe().checkout.sessions.create({
       mode: "payment",

@@ -19,10 +19,24 @@ export async function POST(request: Request) {
       );
     }
 
+    if (labelUrls.length > 50) {
+      return NextResponse.json(
+        { error: "Too many labels (max 50)" },
+        { status: 400 }
+      );
+    }
+
     const mergedPdf = await PDFDocument.create();
 
     for (const url of labelUrls) {
       try {
+        // Only allow fetching from goshippo.com domains
+        const parsedUrl = new URL(url);
+        if (!parsedUrl.hostname.endsWith(".goshippo.com") && parsedUrl.hostname !== "goshippo.com") {
+          console.warn(`Blocked fetch to non-allowed domain: ${parsedUrl.hostname}`);
+          continue;
+        }
+
         const res = await fetch(url);
         if (!res.ok) continue;
 

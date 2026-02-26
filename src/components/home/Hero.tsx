@@ -322,9 +322,9 @@ export default function Hero({ effectIntensity = "medium" }: HeroProps) {
           alt=""
           fill
           priority
-          quality={100}
+          quality={80}
           className="object-cover object-center"
-          sizes="100vw"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
         />
       </motion.div>
 
@@ -502,13 +502,13 @@ export default function Hero({ effectIntensity = "medium" }: HeroProps) {
             variants={childVariants}
             className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:items-start"
           >
-            <a
-              href="https://ivaniabeauty.com/shop"
+            <Link
+              href="/shop"
               className="btn-shimmer inline-flex items-center gap-2 px-8 py-3 text-base shadow-xl shadow-rosa/25"
             >
               {t("hero.cta")}
               <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
             <Link
               href="#colecciones"
               className="inline-flex items-center gap-2 rounded-full border border-rosa/30 bg-white/70 px-7 py-3 text-sm font-semibold text-rosa-dark transition-all hover:border-rosa hover:bg-white"

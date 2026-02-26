@@ -29,6 +29,21 @@ const nextConfig: NextConfig = {
         hostname: "ivaniabeauty.shop",
         pathname: "/cdn/shop/files/**",
       },
+      {
+        protocol: "https",
+        hostname: "p16-sign.tiktokcdn-us.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.tiktokcdn.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.tiktokcdn-us.com",
+        pathname: "/**",
+      },
     ],
   },
 };

@@ -33,6 +33,7 @@ interface CouponData {
 
 interface FormErrors {
   email?: string;
+  phone?: string;
   firstName?: string;
   lastName?: string;
   addressLine1?: string;
@@ -102,7 +103,7 @@ interface ZipLookupResult {
 }
 
 export default function CheckoutPage() {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const { items, subtotal } = useCart();
 
   // ── Form field state ──
@@ -232,6 +233,12 @@ export default function CheckoutPage() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errors.email = t("checkout.invalidEmail");
     }
+    if (phone.trim()) {
+      const digits = phone.replace(/\D/g, "");
+      if (digits.length < 10) {
+        errors.phone = t("checkout.phoneInvalid");
+      }
+    }
     if (!firstName.trim()) errors.firstName = t("checkout.fieldRequired");
     if (!lastName.trim()) errors.lastName = t("checkout.fieldRequired");
     if (!addressLine1.trim())
@@ -326,9 +333,7 @@ export default function CheckoutPage() {
     const missingSize = items.find((item) => !item.size);
     if (missingSize) {
       setOrderError(
-        language === "es"
-          ? `El producto "${missingSize.name}" no tiene talla seleccionada. Vuelve al carrito y selecciona una talla.`
-          : `The product "${missingSize.name}" has no size selected. Go back to cart and select a size.`
+        t("checkout.sizeValidationError").replace("{name}", missingSize.name)
       );
       return;
     }
@@ -415,7 +420,7 @@ export default function CheckoutPage() {
         </Link>
         <ChevronRight className="w-4 h-4" />
         <Link href="/shop" className="hover:text-rosa-dark transition-colors">
-          {t("checkout.breadcrumbCart")}
+          {t("nav.shop")}
         </Link>
         <ChevronRight className="w-4 h-4" />
         <span className="text-rosa-dark font-medium">
@@ -436,6 +441,7 @@ export default function CheckoutPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.4 }}
+            role="alert"
             className="mb-6 flex items-center gap-3 bg-white border border-red-200 shadow-lg rounded-xl px-6 py-4"
           >
             <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
@@ -468,7 +474,11 @@ export default function CheckoutPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
+                <label htmlFor="checkout-email" className="sr-only">
+                  {t("checkout.emailPlaceholder")}
+                </label>
                 <input
+                  id="checkout-email"
                   type="email"
                   placeholder={t("checkout.emailPlaceholder")}
                   value={email}
@@ -482,18 +492,35 @@ export default function CheckoutPage() {
                   }
                 />
                 {formErrors.email && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p role="alert" className="text-red-500 text-xs mt-1">
                     {formErrors.email}
                   </p>
                 )}
               </div>
-              <input
-                type="tel"
-                placeholder={t("checkout.phonePlaceholder")}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className={inputClasses}
-              />
+              <div>
+                <label htmlFor="checkout-phone" className="sr-only">
+                  {t("checkout.phonePlaceholder")}
+                </label>
+                <input
+                  id="checkout-phone"
+                  type="tel"
+                  placeholder={t("checkout.phonePlaceholder")}
+                  value={phone}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (formErrors.phone)
+                      setFormErrors((p) => ({ ...p, phone: undefined }));
+                  }}
+                  className={
+                    formErrors.phone ? inputErrorClasses : inputClasses
+                  }
+                />
+                {formErrors.phone && (
+                  <p role="alert" className="text-red-500 text-xs mt-1">
+                    {formErrors.phone}
+                  </p>
+                )}
+              </div>
             </div>
           </section>
 
@@ -510,7 +537,11 @@ export default function CheckoutPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
+                  <label htmlFor="checkout-firstName" className="sr-only">
+                    {t("checkout.firstNamePlaceholder")}
+                  </label>
                   <input
+                    id="checkout-firstName"
                     type="text"
                     placeholder={t("checkout.firstNamePlaceholder")}
                     value={firstName}
@@ -527,13 +558,17 @@ export default function CheckoutPage() {
                     }
                   />
                   {formErrors.firstName && (
-                    <p className="text-red-500 text-xs mt-1">
+                    <p role="alert" className="text-red-500 text-xs mt-1">
                       {formErrors.firstName}
                     </p>
                   )}
                 </div>
                 <div>
+                  <label htmlFor="checkout-lastName" className="sr-only">
+                    {t("checkout.lastNamePlaceholder")}
+                  </label>
                   <input
+                    id="checkout-lastName"
                     type="text"
                     placeholder={t("checkout.lastNamePlaceholder")}
                     value={lastName}
@@ -550,14 +585,18 @@ export default function CheckoutPage() {
                     }
                   />
                   {formErrors.lastName && (
-                    <p className="text-red-500 text-xs mt-1">
+                    <p role="alert" className="text-red-500 text-xs mt-1">
                       {formErrors.lastName}
                     </p>
                   )}
                 </div>
               </div>
               <div>
+                <label htmlFor="checkout-address1" className="sr-only">
+                  {t("checkout.addressLine1Placeholder")}
+                </label>
                 <input
+                  id="checkout-address1"
                   type="text"
                   placeholder={t("checkout.addressLine1Placeholder")}
                   value={addressLine1}
@@ -574,24 +613,34 @@ export default function CheckoutPage() {
                   }
                 />
                 {formErrors.addressLine1 && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p role="alert" className="text-red-500 text-xs mt-1">
                     {formErrors.addressLine1}
                   </p>
                 )}
               </div>
-              <input
-                type="text"
-                placeholder={t("checkout.addressLine2Placeholder")}
-                value={addressLine2}
-                onChange={(e) => setAddressLine2(e.target.value)}
-                className={inputClasses}
-              />
+              <div>
+                <label htmlFor="checkout-address2" className="sr-only">
+                  {t("checkout.addressLine2Placeholder")}
+                </label>
+                <input
+                  id="checkout-address2"
+                  type="text"
+                  placeholder={t("checkout.addressLine2Placeholder")}
+                  value={addressLine2}
+                  onChange={(e) => setAddressLine2(e.target.value)}
+                  className={inputClasses}
+                />
+              </div>
 
               {/* ZIP Code - triggers auto-fill */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
+                  <label htmlFor="checkout-zip" className="sr-only">
+                    {t("checkout.zipPlaceholder")}
+                  </label>
                   <div className="relative">
                     <input
+                      id="checkout-zip"
                       type="text"
                       inputMode="numeric"
                       placeholder={t("checkout.zipPlaceholder")}
@@ -614,7 +663,7 @@ export default function CheckoutPage() {
                     )}
                   </div>
                   {formErrors.zip && (
-                    <p className="text-red-500 text-xs mt-1">
+                    <p role="alert" className="text-red-500 text-xs mt-1">
                       {formErrors.zip}
                     </p>
                   )}
@@ -630,8 +679,12 @@ export default function CheckoutPage() {
               {/* City and State - with auto-fill indicator */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
+                  <label htmlFor="checkout-city" className="sr-only">
+                    {t("checkout.cityPlaceholder")}
+                  </label>
                   <div className="relative">
                     <input
+                      id="checkout-city"
                       type="text"
                       placeholder={t("checkout.cityPlaceholder")}
                       value={city}
@@ -647,7 +700,7 @@ export default function CheckoutPage() {
                   </div>
                   <AnimatePresence>
                     {formErrors.city && (
-                      <p className="text-red-500 text-xs mt-1">
+                      <p role="alert" className="text-red-500 text-xs mt-1">
                         {formErrors.city}
                       </p>
                     )}
@@ -666,8 +719,12 @@ export default function CheckoutPage() {
                   </AnimatePresence>
                 </div>
                 <div>
+                  <label htmlFor="checkout-state" className="sr-only">
+                    {t("checkout.stateSelectPlaceholder")}
+                  </label>
                   <div className="relative">
                     <select
+                      id="checkout-state"
                       value={state}
                       onChange={(e) => {
                         setState(e.target.value);
@@ -691,7 +748,7 @@ export default function CheckoutPage() {
                   </div>
                   <AnimatePresence>
                     {formErrors.state && (
-                      <p className="text-red-500 text-xs mt-1">
+                      <p role="alert" className="text-red-500 text-xs mt-1">
                         {formErrors.state}
                       </p>
                     )}
@@ -800,8 +857,7 @@ export default function CheckoutPage() {
             </div>
             <p className="mt-3 text-xs text-gray-500 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5" />
-              {t("checkout.stripeRedirectNotice") ||
-                "Seras redirigido a Stripe para ingresar tus datos de pago de forma segura."}
+              {t("checkout.stripeRedirectNotice")}
             </p>
           </section>
         </div>
@@ -1053,26 +1109,26 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-3 gap-2 mt-6">
                 <div className="flex flex-col items-center text-center gap-1.5">
                   <Shield className="w-5 h-5 text-rosa" />
-                  <span className="text-[10px] text-gray-500 leading-tight">
+                  <span className="text-xs text-gray-500 leading-tight">
                     {t("checkout.trustSecurePayment")}
                   </span>
                 </div>
                 <div className="flex flex-col items-center text-center gap-1.5">
                   <Lock className="w-5 h-5 text-rosa" />
-                  <span className="text-[10px] text-gray-500 leading-tight">
+                  <span className="text-xs text-gray-500 leading-tight">
                     {t("checkout.trustSslEncryption")}
                   </span>
                 </div>
                 <div className="flex flex-col items-center text-center gap-1.5">
                   <RefreshCw className="w-5 h-5 text-rosa" />
-                  <span className="text-[10px] text-gray-500 leading-tight">
+                  <span className="text-xs text-gray-500 leading-tight">
                     {t("checkout.trustReturnGuarantee")}
                   </span>
                 </div>
               </div>
 
               {/* Terms */}
-              <p className="text-[10px] text-gray-400 text-center mt-4 leading-relaxed">
+              <p className="text-xs text-gray-400 text-center mt-4 leading-relaxed">
                 {t("checkout.termsNotice")}
               </p>
             </div>
