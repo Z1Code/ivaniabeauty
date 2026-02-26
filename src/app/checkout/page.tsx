@@ -5,7 +5,6 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CreditCard,
-  Building,
   Shield,
   Lock,
   RefreshCw,
@@ -21,7 +20,6 @@ import { formatPrice, getColorHex, cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 
 type ShippingMethod = "standard" | "express";
-type PaymentMethod = "card" | "paypal" | "transfer";
 
 interface CouponData {
   code: string;
@@ -59,7 +57,6 @@ export default function CheckoutPage() {
   // ── Shipping / Payment ──
   const [shippingMethod, setShippingMethod] =
     useState<ShippingMethod>("standard");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
 
   // ── Coupon state ──
   const [couponCode, setCouponCode] = useState("");
@@ -178,7 +175,7 @@ export default function CheckoutPage() {
               unitPrice: item.price,
             })),
             shippingMethod,
-            paymentMethod,
+            paymentMethod: "card",
             couponCode: couponData ? couponData.code : undefined,
           }),
         });
@@ -476,7 +473,7 @@ export default function CheckoutPage() {
             </div>
           </section>
 
-          {/* Section 4: Payment Method */}
+          {/* Section 4: Payment */}
           <section className="bg-white rounded-xl p-6 shadow-sm border border-rosa-light/20">
             <div className="flex items-center gap-3 mb-4">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-rosa text-white text-sm font-bold">
@@ -486,78 +483,16 @@ export default function CheckoutPage() {
                 {t("checkout.paymentMethodHeading")}
               </h2>
             </div>
-            <div className="space-y-3">
-              {/* Credit Card */}
-              <label
-                className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                  paymentMethod === "card"
-                    ? "border-rosa bg-rosa/5"
-                    : "border-rosa-light/30 hover:border-rosa-light"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value="card"
-                  checked={paymentMethod === "card"}
-                  onChange={() => setPaymentMethod("card")}
-                  className="accent-rosa w-4 h-4"
-                />
-                <CreditCard className="w-5 h-5 text-rosa" />
-                <span className="font-medium text-sm">
-                  {t("checkout.paymentCard")}
-                </span>
-              </label>
-
-              {/* PayPal */}
-              <label
-                className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                  paymentMethod === "paypal"
-                    ? "border-rosa bg-rosa/5"
-                    : "border-rosa-light/30 hover:border-rosa-light"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value="paypal"
-                  checked={paymentMethod === "paypal"}
-                  onChange={() => setPaymentMethod("paypal")}
-                  className="accent-rosa w-4 h-4"
-                />
-                <span className="text-sm font-bold text-blue-600">{t("checkout.paymentPaypal")}</span>
-              </label>
-
-              {/* Bank Transfer */}
-              <label
-                className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                  paymentMethod === "transfer"
-                    ? "border-rosa bg-rosa/5"
-                    : "border-rosa-light/30 hover:border-rosa-light"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value="transfer"
-                  checked={paymentMethod === "transfer"}
-                  onChange={() => setPaymentMethod("transfer")}
-                  className="accent-rosa w-4 h-4"
-                />
-                <Building className="w-5 h-5 text-rosa" />
-                <span className="font-medium text-sm">
-                  {t("checkout.paymentTransfer")}
-                </span>
-              </label>
+            <div className="flex items-center gap-3 p-4 rounded-xl border-2 border-rosa bg-rosa/5">
+              <CreditCard className="w-5 h-5 text-rosa" />
+              <span className="font-medium text-sm">
+                {t("checkout.paymentCard")}
+              </span>
             </div>
-
-            {/* Card details are collected by Stripe Checkout */}
-            {paymentMethod === "card" && (
-              <p className="mt-3 text-xs text-gray-500 flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5" />
-                {t("checkout.stripeRedirectNotice") || "Serás redirigido a Stripe para ingresar tus datos de pago de forma segura."}
-              </p>
-            )}
+            <p className="mt-3 text-xs text-gray-500 flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5" />
+              {t("checkout.stripeRedirectNotice") || "Serás redirigido a Stripe para ingresar tus datos de pago de forma segura."}
+            </p>
           </section>
         </div>
 
