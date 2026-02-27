@@ -276,7 +276,7 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen bg-perla">
-      <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
+      <div className="max-w-4xl mx-auto px-4 pt-28 pb-12 sm:pt-32">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
