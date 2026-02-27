@@ -102,7 +102,7 @@ export default function BeforeAfter() {
       {/* ===== BEFORE side (full background layer) ===== */}
       <div className="absolute inset-0">
         <Image
-          src="/comparison/before.jpg"
+          src="/comparison/after.jpg"
           alt={t("beforeAfter.without")}
           fill
           className="object-cover"
@@ -122,7 +122,7 @@ export default function BeforeAfter() {
         style={{ clipPath: `inset(0 0 0 ${sliderPos}%)` }}
       >
         <Image
-          src="/comparison/after.jpg"
+          src="/comparison/before.jpg"
           alt={t("beforeAfter.with")}
           fill
           className="object-cover"
