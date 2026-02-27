@@ -24,7 +24,7 @@ const featureItems: FeatureCard[] = [
 export default function Features() {
   const { t } = useTranslation();
   return (
-    <section className="pt-14 pb-24 bg-gradient-to-b from-perla to-arena">
+    <section className="pt-14 pb-24 bg-white">
       <div className="max-w-6xl mx-auto px-6">
         {/* Section heading */}
         <div className="text-center">

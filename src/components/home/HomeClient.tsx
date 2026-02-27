@@ -32,6 +32,10 @@ const InstagramFeed = dynamic(
   () => import("@/components/home/InstagramFeed"),
   { ssr: false }
 );
+const HeroChipscroll = dynamic(
+  () => import("@/components/home/HeroChipscroll"),
+  { ssr: false }
+);
 
 interface SiteSectionsApiResponse {
   homeSections?: HomeSectionsSettings;
@@ -48,7 +52,8 @@ function isSameHomeSections(
     current.showSizeQuiz === next.showSizeQuiz &&
     current.showTikTok === next.showTikTok &&
     current.showInstagram === next.showInstagram &&
-    current.heroEffectIntensity === next.heroEffectIntensity
+    current.heroEffectIntensity === next.heroEffectIntensity &&
+    current.heroVariant === next.heroVariant
   );
 }
 
@@ -132,7 +137,13 @@ export default function HomeClient() {
       />
 
       <div className="relative z-10">
-        <Hero effectIntensity={homeSections.heroEffectIntensity} />
+        {homeSections.heroVariant === "chipscroll" ? (
+          <HeroChipscroll mode="fullbleed" />
+        ) : homeSections.heroVariant === "chipscroll-windowed" ? (
+          <HeroChipscroll mode="windowed" />
+        ) : (
+          <Hero effectIntensity={homeSections.heroEffectIntensity} />
+        )}
         <Features />
         <SocialProofBanner />
         {homeSections.showCollections && <Collections />}

@@ -1,4 +1,5 @@
 export type HeroEffectIntensity = "soft" | "medium" | "intense";
+export type HeroVariant = "default" | "chipscroll" | "chipscroll-windowed";
 
 export interface HomeSectionsSettings {
   showCollections: boolean;
@@ -7,6 +8,7 @@ export interface HomeSectionsSettings {
   showTikTok: boolean;
   showInstagram: boolean;
   heroEffectIntensity: HeroEffectIntensity;
+  heroVariant: HeroVariant;
 }
 
 export const HOME_SECTIONS_STORAGE_KEY = "ivania_settings_home_sections";
@@ -18,6 +20,12 @@ export const HERO_EFFECT_INTENSITY_OPTIONS: HeroEffectIntensity[] = [
   "intense",
 ];
 
+export const HERO_VARIANT_OPTIONS: HeroVariant[] = [
+  "default",
+  "chipscroll",
+  "chipscroll-windowed",
+];
+
 export const DEFAULT_HOME_SECTIONS_SETTINGS: HomeSectionsSettings = {
   showCollections: true,
   showFeaturedProduct: true,
@@ -25,12 +33,20 @@ export const DEFAULT_HOME_SECTIONS_SETTINGS: HomeSectionsSettings = {
   showTikTok: true,
   showInstagram: true,
   heroEffectIntensity: "medium",
+  heroVariant: "default",
 };
 
 function isHeroEffectIntensity(value: unknown): value is HeroEffectIntensity {
   return (
     typeof value === "string" &&
     HERO_EFFECT_INTENSITY_OPTIONS.includes(value as HeroEffectIntensity)
+  );
+}
+
+function isHeroVariant(value: unknown): value is HeroVariant {
+  return (
+    typeof value === "string" &&
+    HERO_VARIANT_OPTIONS.includes(value as HeroVariant)
   );
 }
 
@@ -65,6 +81,11 @@ export function sanitizeHomeSectionsSettings(input: unknown): HomeSectionsSettin
     heroEffectIntensity: isHeroEffectIntensity(candidate.heroEffectIntensity)
       ? candidate.heroEffectIntensity
       : DEFAULT_HOME_SECTIONS_SETTINGS.heroEffectIntensity,
+    heroVariant: isHeroVariant(
+      (candidate as Record<string, unknown>).heroVariant
+    )
+      ? ((candidate as Record<string, unknown>).heroVariant as HeroVariant)
+      : DEFAULT_HOME_SECTIONS_SETTINGS.heroVariant,
   };
 }
 

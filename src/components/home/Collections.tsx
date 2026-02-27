@@ -1,10 +1,68 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useInView } from "framer-motion";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { useTranslation } from "@/hooks/useTranslation";
+
+// ── Handwritten text reveal ──────────────────────────────────────
+function HandwrittenReveal({ text }: { text: string }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-30px" });
+  const [visibleCount, setVisibleCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setVisibleCount(i);
+      if (i >= text.length) clearInterval(interval);
+    }, 45);
+
+    return () => clearInterval(interval);
+  }, [isInView, text.length]);
+
+  return (
+    <p
+      ref={ref}
+      className="font-script text-2xl text-rosa-dark mt-4 h-[1.6em]"
+      aria-label={text}
+    >
+      {text.split("").map((char, i) => (
+        <span
+          key={i}
+          className="inline-block transition-opacity duration-150"
+          style={{
+            opacity: i < visibleCount ? 1 : 0,
+            transform: i < visibleCount ? "translateY(0)" : "translateY(4px)",
+            transition: "opacity 0.15s ease-out, transform 0.15s ease-out",
+          }}
+        >
+          {char === " " ? "\u00A0" : char}
+        </span>
+      ))}
+      {/* Blinking cursor */}
+      <span
+        className="inline-block w-[2px] h-[1.1em] bg-rosa-dark/60 ml-0.5 align-middle"
+        style={{
+          opacity: visibleCount < text.length ? 1 : 0,
+          animation: "blink-cursor 0.8s steps(1) infinite",
+          transition: "opacity 0.3s ease-out",
+        }}
+      />
+      <style jsx>{`
+        @keyframes blink-cursor {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}</style>
+    </p>
+  );
+}
 
 interface CollectionItem {
   nameKey: string;
@@ -123,11 +181,7 @@ export default function Collections() {
             <div className="mx-auto mt-4 w-24 h-1 bg-gradient-to-r from-rosa-light via-rosa to-rosa-dark rounded-full" />
           </ScrollReveal>
 
-          <ScrollReveal direction="up" delay={0.1}>
-            <p className="font-script text-2xl text-rosa-dark mt-4">
-              {t("collections.subtitle")}
-            </p>
-          </ScrollReveal>
+          <HandwrittenReveal text={t("collections.subtitle")} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-16">

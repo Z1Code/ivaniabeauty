@@ -36,10 +36,12 @@ import {
 import {
   DEFAULT_HOME_SECTIONS_SETTINGS,
   HERO_EFFECT_INTENSITY_OPTIONS,
+  HERO_VARIANT_OPTIONS,
   HOME_SECTIONS_STORAGE_KEY,
   HOME_SECTIONS_UPDATED_EVENT,
   sanitizeHomeSectionsSettings,
   type HeroEffectIntensity,
+  type HeroVariant,
   type HomeSectionsSettings,
 } from "@/lib/home-sections-config";
 import {
@@ -291,6 +293,13 @@ export default function SettingsPage() {
     setHomeSections((prev) => ({
       ...prev,
       heroEffectIntensity: intensity,
+    }));
+  }, []);
+
+  const setHomeHeroVariant = useCallback((variant: HeroVariant) => {
+    setHomeSections((prev) => ({
+      ...prev,
+      heroVariant: variant,
     }));
   }, []);
 
@@ -1519,6 +1528,49 @@ export default function SettingsPage() {
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-rosa" />
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Tipo de Hero
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {HERO_VARIANT_OPTIONS.map((variant) => {
+                const selected = homeSections.heroVariant === variant;
+                const label =
+                  variant === "default"
+                    ? "Clásico"
+                    : variant === "chipscroll"
+                    ? "Chipscroll"
+                    : "Chipscroll Ventana";
+                const desc =
+                  variant === "default"
+                    ? "Hero animado con parallax y partículas."
+                    : variant === "chipscroll"
+                    ? "Animación cinematográfica full-width."
+                    : "Animación en ventana con borde elegante.";
+                return (
+                  <button
+                    key={variant}
+                    type="button"
+                    onClick={() => setHomeHeroVariant(variant)}
+                    className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                      selected
+                        ? "border-rosa bg-rosa/10 text-rosa-dark"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-rosa/45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">{label}</p>
+                    <p className="mt-1 text-xs opacity-80">{desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {homeSections.heroVariant === "default" && (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70 p-4 mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-rosa" />
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Intensidad visual del Hero
               </p>
             </div>
@@ -1547,6 +1599,7 @@ export default function SettingsPage() {
               })}
             </div>
           </div>
+          )}
 
           <div className="flex justify-end">
             <button
