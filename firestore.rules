@@ -15,6 +15,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // User Profiles - users can read/write their own profile, admins can read all
+    match /userProfiles/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if isAdmin();
+    }
+
     // Products - anyone can read active products, only admins can write
     match /products/{productId} {
       allow read: if resource.data.isActive == true;
@@ -34,8 +40,9 @@ service cloud.firestore {
       allow create: if true;
     }
 
-    // Orders - admin can read/write all, public can create
+    // Orders - users can read their own orders, admin can read/write all, public can create
     match /orders/{orderId} {
+      allow read: if request.auth != null && resource.data.customerEmail == request.auth.token.email;
       allow read, write: if isAdmin();
       allow create: if true;
     }

@@ -15,7 +15,6 @@ export const COLORS = {
 export const NAV_LINKS = [
   { labelKey: "nav.home", href: "/" },
   { labelKey: "nav.shop", href: "/shop" },
-  { labelKey: "nav.collections", href: "/#colecciones" },
   { labelKey: "nav.about", href: "/#nosotros" },
   { labelKey: "nav.contact", href: "/#contacto" },
 ] as const;

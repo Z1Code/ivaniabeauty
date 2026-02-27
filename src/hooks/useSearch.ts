@@ -115,38 +115,55 @@ export function useSearch() {
   }, []);
 
   // Fetch all products once and cache in state
+  // Try Firestore client first, fall back to /api/search server endpoint
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
 
+    async function fetchFromFirestore(): Promise<SearchProduct[]> {
+      const snap = await getDocs(
+        query(collection(db, "products"), where("isActive", "==", true))
+      );
+      return snap.docs.map((doc) => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          slug: d.slug || "",
+          nameEn: d.nameEn || "",
+          nameEs: d.nameEs || "",
+          descriptionEn: d.descriptionEn || "",
+          descriptionEs: d.descriptionEs || "",
+          shortDescriptionEn: d.shortDescriptionEn || "",
+          shortDescriptionEs: d.shortDescriptionEs || "",
+          category: d.category || "",
+          price: Number(d.price) || 0,
+          originalPrice: d.originalPrice ? Number(d.originalPrice) : null,
+          images: Array.isArray(d.images) ? d.images : [],
+          inStock: d.inStock !== false,
+          badgeEn: d.badgeEn || null,
+          badgeEs: d.badgeEs || null,
+        };
+      });
+    }
+
     async function fetchProducts() {
       try {
-        const snap = await getDocs(
-          query(collection(db, "products"), where("isActive", "==", true))
-        );
-        const items: SearchProduct[] = snap.docs.map((doc) => {
-          const d = doc.data();
-          return {
-            id: doc.id,
-            slug: d.slug || "",
-            nameEn: d.nameEn || "",
-            nameEs: d.nameEs || "",
-            descriptionEn: d.descriptionEn || "",
-            descriptionEs: d.descriptionEs || "",
-            shortDescriptionEn: d.shortDescriptionEn || "",
-            shortDescriptionEs: d.shortDescriptionEs || "",
-            category: d.category || "",
-            price: Number(d.price) || 0,
-            originalPrice: d.originalPrice ? Number(d.originalPrice) : null,
-            images: Array.isArray(d.images) ? d.images : [],
-            inStock: d.inStock !== false,
-            badgeEn: d.badgeEn || null,
-            badgeEs: d.badgeEs || null,
-          };
-        });
+        const items = await fetchFromFirestore();
         setProducts(items);
       } catch (err) {
-        console.warn("useSearch: failed to fetch products", err);
+        console.warn("useSearch: Firestore client fetch failed, trying API fallback", err);
+        // Fallback: use the server API endpoint which uses admin SDK
+        try {
+          const res = await fetch("/api/search/products");
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.products)) {
+              setProducts(data.products);
+            }
+          }
+        } catch (fallbackErr) {
+          console.warn("useSearch: API fallback also failed", fallbackErr);
+        }
       }
     }
 

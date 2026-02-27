@@ -40,10 +40,7 @@ export default function Header() {
   const pathname = usePathname();
   const isPrimaryCommerce =
     pathname === "/" || pathname === "/shop" || pathname.startsWith("/shop/");
-  const hideCollectionsLink = pathname === "/" || pathname === "/shop" || pathname === "/shop/";
-  const navigationLinks = hideCollectionsLink
-    ? NAV_LINKS.filter((link) => link.labelKey !== "nav.collections")
-    : NAV_LINKS;
+  const navigationLinks = NAV_LINKS;
 
   // Show white text when on a page with a dark hero and not scrolled
   const heroWhite = DARK_HERO_PAGES.includes(pathname) && !scrolled;
