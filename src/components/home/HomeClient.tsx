@@ -166,7 +166,7 @@ export default function HomeClient() {
                 className="font-script text-xl text-rosa"
               />
             </div>
-            <div className="max-w-5xl mx-auto">
+            <div className="max-w-[42rem] mx-auto">
               <BeforeAfter />
             </div>
           </div>
