@@ -16,7 +16,7 @@ export default function BeforeAfter() {
   const containerRef = useRef<HTMLDivElement>(null);
   const clipRef = useRef<HTMLDivElement>(null);
   const lineRef = useRef<HTMLDivElement>(null);
-  const posRef = useRef(5);
+  const posRef = useRef(0);
   const isDragging = useRef(false);
   const hasAutoPlayed = useRef(false);
   const rafId = useRef(0);
@@ -66,13 +66,13 @@ export default function BeforeAfter() {
     let cancelled = false;
 
     const run = async () => {
-      await animateTo(5, 95, 3500);
+      await animateTo(0, 100, 3500);
       if (cancelled || isDragging.current) return;
 
       await new Promise((r) => setTimeout(r, 1000));
       if (cancelled || isDragging.current) return;
 
-      await animateTo(95, 50, 3000);
+      await animateTo(100, 0, 3500);
     };
 
     run();
@@ -182,7 +182,7 @@ export default function BeforeAfter() {
         <div
           ref={clipRef}
           className="absolute inset-0"
-          style={{ clipPath: `inset(0 0 0 5%)` }}
+          style={{ clipPath: `inset(0 0 0 0%)` }}
         >
           <Image
             src="/comparison/before.webp"
@@ -200,7 +200,7 @@ export default function BeforeAfter() {
         <div
           ref={lineRef}
           className="absolute top-0 bottom-0 z-10"
-          style={{ left: "5%", transform: "translateX(-50%)" }}
+          style={{ left: "0%", transform: "translateX(-50%)" }}
         >
           <div className="absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-white shadow-[0_0_8px_rgba(0,0,0,0.3)]" />
           <div className="absolute top-1/2 left-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full bg-white shadow-lg ring-2 ring-white/50 active:cursor-grabbing transition-transform hover:scale-110">
