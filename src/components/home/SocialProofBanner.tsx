@@ -26,7 +26,7 @@ interface StatItem {
 const statItems: StatItem[] = [
   {
     icon: Users,
-    numericValue: 2500,
+    numericValue: 25000,
     prefix: "",
     suffix: "+",
     decimals: 0,

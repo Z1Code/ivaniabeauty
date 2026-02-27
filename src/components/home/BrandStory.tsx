@@ -18,7 +18,7 @@ interface Stat {
 }
 
 const stats: Stat[] = [
-  { value: "2,500+", labelKey: "brandStory.statClientsLabel" },
+  { value: "25,000+", labelKey: "brandStory.statClientsLabel" },
   { value: "30+", labelKey: "brandStory.statDesignsLabel" },
   { value: "98%", labelKey: "brandStory.statSatisfactionLabel" },
 ];
