@@ -60,20 +60,20 @@ export default function Features() {
                 {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
 
-                {/* Content */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 text-left">
+                {/* Content — icon pinned at fixed offset, text fills below */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-left h-[11rem]">
                   {/* Icon circle */}
                   <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 transition-all duration-300 group-hover:bg-white/30 group-hover:scale-110">
                     <Icon className="w-5 h-5 text-white" />
                   </div>
 
                   {/* Title */}
-                  <h3 className="font-serif text-lg font-bold text-white">
+                  <h3 className="font-serif text-base font-bold text-white leading-tight">
                     {t(feature.titleKey)}
                   </h3>
 
                   {/* Description */}
-                  <p className="mt-2 text-sm text-white/80 leading-relaxed">
+                  <p className="mt-1.5 text-[13px] text-white/80 leading-relaxed line-clamp-3">
                     {t(feature.descKey)}
                   </p>
                 </div>
