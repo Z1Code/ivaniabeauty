@@ -66,13 +66,18 @@ export default function BeforeAfter() {
     let cancelled = false;
 
     const run = async () => {
-      await animateTo(0, 100, 3500);
-      if (cancelled || isDragging.current) return;
+      while (!cancelled && !isDragging.current) {
+        await animateTo(0, 100, 3500);
+        if (cancelled || isDragging.current) return;
 
-      await new Promise((r) => setTimeout(r, 1000));
-      if (cancelled || isDragging.current) return;
+        await new Promise((r) => setTimeout(r, 1000));
+        if (cancelled || isDragging.current) return;
 
-      await animateTo(100, 0, 3500);
+        await animateTo(100, 0, 3500);
+        if (cancelled || isDragging.current) return;
+
+        await new Promise((r) => setTimeout(r, 1000));
+      }
     };
 
     run();
