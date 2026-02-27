@@ -47,6 +47,13 @@
     "panelBadge": "Premium pick 2026",
     "scrollIndicator": "Scroll"
   },
+  "chipscroll": {
+    "overlay1Line1": "Your Perfect Silhouette",
+    "overlay1Line2": "Your Best Summer",
+    "overlay2": "Invisible Design",
+    "overlay3": "Shape Without Compressing",
+    "overlay4": "Breathable Fabrics"
+  },
   "features": {
     "heading": "Why Choose Us",
     "subtitle": "The difference is in the details",

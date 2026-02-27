@@ -47,6 +47,13 @@
     "panelBadge": "Selección premium 2026",
     "scrollIndicator": "Desliza"
   },
+  "chipscroll": {
+    "overlay1Line1": "Tu Silueta Perfecta",
+    "overlay1Line2": "Tu Mejor Verano",
+    "overlay2": "Diseño Invisible",
+    "overlay3": "Moldea Sin Comprimir",
+    "overlay4": "Telas Transpirables"
+  },
   "features": {
     "heading": "Por Qué Elegirnos",
     "subtitle": "La diferencia está en los detalles",

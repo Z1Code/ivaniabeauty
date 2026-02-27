@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // ── Configuration ────────────────────────────────────────────────
 const BG_COLOR = "#f5f0eb";
@@ -11,7 +12,7 @@ const FRAME_EXT = ".webp";
 
 // ── Text Overlays ────────────────────────────────────────────────
 interface TextOverlay {
-  lines: { text: string; gradient?: string }[];
+  lines: { key: string; gradient?: string }[];
   position: "center" | "bottom-left" | "bottom-right";
   size: "default" | "large";
   startFrame: number;
@@ -23,11 +24,11 @@ const textOverlays: TextOverlay[] = [
   {
     lines: [
       {
-        text: "Your Perfect Silhouette",
+        key: "chipscroll.overlay1Line1",
         gradient:
           "linear-gradient(90deg, #f5e6d8, #e8c4b8, #f5f0eb, #dbb5a0, #f5e6d8)",
       },
-      { text: "Your Best Summer" },
+      { key: "chipscroll.overlay1Line2" },
     ],
     position: "center",
     size: "default",
@@ -37,7 +38,7 @@ const textOverlays: TextOverlay[] = [
   {
     lines: [
       {
-        text: "Invisible Design",
+        key: "chipscroll.overlay2",
         gradient:
           "linear-gradient(90deg, #e8d5f0, #d4b5e8, #f0e6f5, #c9a5db, #e8d5f0)",
       },
@@ -50,7 +51,7 @@ const textOverlays: TextOverlay[] = [
   {
     lines: [
       {
-        text: "Shape Without Compressing",
+        key: "chipscroll.overlay3",
         gradient:
           "linear-gradient(90deg, #f0d6e0, #e8b5c8, #f5e6ed, #dba5b8, #f0d6e0)",
       },
@@ -63,7 +64,7 @@ const textOverlays: TextOverlay[] = [
   {
     lines: [
       {
-        text: "Breathable Fabrics",
+        key: "chipscroll.overlay4",
         gradient:
           "linear-gradient(90deg, #e0d0f0, #c8b0e0, #ede4f5, #bfa0d8, #e0d0f0)",
       },
@@ -109,6 +110,7 @@ function TextOverlayItem({
   overlay: TextOverlay;
   currentFrame: number;
 }) {
+  const { t } = useTranslation();
   const isVisible =
     currentFrame >= overlay.startFrame && currentFrame <= overlay.endFrame;
 
@@ -164,7 +166,7 @@ function TextOverlayItem({
               }),
             }}
           >
-            {line.text}
+            {t(line.key)}
           </h2>
         ))}
       </div>
