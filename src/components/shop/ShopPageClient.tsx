@@ -493,6 +493,12 @@ function ShopPageContent({ initialProducts }: ShopPageClientProps) {
         setRequestedSectionId((prev) =>
           prev === sectionParam ? prev : sectionParam
         );
+        // Scroll to the section after a short delay to let render settle
+        setTimeout(() => {
+          document
+            .getElementById(sectionParam)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 150);
       });
     }
 

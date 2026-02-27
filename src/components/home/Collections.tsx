@@ -18,17 +18,17 @@ const collections: CollectionItem[] = [
   {
     nameKey: "collections.hairBodyCare",
     image: "/ourcollections/1.png",
-    slug: "hair-body-care",
+    slug: "shampoo-fragrance",
   },
   {
     nameKey: "collections.shapewear",
     image: "/ourcollections/2.png",
-    slug: "shapewear",
+    slug: "fajas",
   },
   {
     nameKey: "collections.waistCinchers",
     image: "/ourcollections/3.png",
-    slug: "waist-cinchers",
+    slug: "cinturillas",
   },
   {
     nameKey: "collections.topsShorts",
@@ -71,7 +71,7 @@ function CollectionCard({ collection, index }: { collection: CollectionItem; ind
 
   return (
     <ScrollReveal direction="up" delay={index * 0.15}>
-      <Link href={`/shop?category=${collection.slug}`}>
+      <Link href={`/shop?section=${collection.slug}`}>
         <div
           ref={cardRef}
           onMouseMove={handleMouseMove}
