@@ -162,7 +162,7 @@ export default function TikTokFeed() {
   );
 
   return (
-    <section className="py-24 bg-arena">
+    <section className="py-24 bg-white">
       <div className="max-w-6xl mx-auto px-6">
         <ScrollReveal direction="up">
           <h2 className="font-serif text-4xl text-center text-gray-800">
