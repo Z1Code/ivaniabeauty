@@ -151,7 +151,7 @@ export default function HomeClient() {
         <BrandStory />
 
         {/* Before & After Section */}
-        <section className="py-24 bg-arena/80 backdrop-blur-[1px]">
+        <section className="py-24 bg-white">
           <div className="max-w-6xl mx-auto px-6">
             <h2 className="font-serif text-4xl text-center mb-4">
               {t("beforeAfter.headingPrefix")}{" "}
