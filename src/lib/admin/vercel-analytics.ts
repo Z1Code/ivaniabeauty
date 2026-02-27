@@ -39,7 +39,10 @@ export async function fetchVercelAnalytics(
   range: "7d" | "30d" | "90d" = "30d"
 ): Promise<VercelAnalyticsData> {
   const token = process.env.VERCEL_ANALYTICS_TOKEN;
+  // VERCEL_PROJECT_ID is auto-injected by Vercel as a system env var
   const projectId = process.env.VERCEL_PROJECT_ID;
+
+  console.log("[vercel-analytics] token exists:", !!token, "projectId exists:", !!projectId);
 
   if (!token || !projectId) {
     return emptyData(false);
@@ -64,10 +67,16 @@ export async function fetchVercelAnalytics(
 
   try {
     const [timeSeriesRes, pagesRes, referrersRes] = await Promise.all([
-      fetch(`${baseUrl}/stats/path?${params}&type=timeseries`, { headers, next: { revalidate: 300 } }).catch(() => null),
-      fetch(`${baseUrl}/stats/path?${params}`, { headers, next: { revalidate: 300 } }).catch(() => null),
-      fetch(`${baseUrl}/stats/referrer?${params}`, { headers, next: { revalidate: 300 } }).catch(() => null),
+      fetch(`${baseUrl}/stats/path?${params}&type=timeseries`, { headers }).catch(() => null),
+      fetch(`${baseUrl}/stats/path?${params}`, { headers }).catch(() => null),
+      fetch(`${baseUrl}/stats/referrer?${params}`, { headers }).catch(() => null),
     ]);
+
+    console.log("[vercel-analytics] API responses:",
+      "timeSeries:", timeSeriesRes?.status,
+      "pages:", pagesRes?.status,
+      "referrers:", referrersRes?.status
+    );
 
     let timeSeries: VercelTimeSeries[] = [];
     let topPages: VercelPageView[] = [];
