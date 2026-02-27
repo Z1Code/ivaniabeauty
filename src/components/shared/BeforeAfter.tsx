@@ -15,30 +15,40 @@ export default function BeforeAfter() {
   const inViewRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(inViewRef, { once: true, margin: "-80px" });
 
-  // Auto-animate from left to right over 3s when first in view
+  // Auto-animate: 5→95 (3s) → pause 1s → 95→50 (3s)
   useEffect(() => {
     if (!isInView || hasAutoPlayed.current) return;
     hasAutoPlayed.current = true;
 
-    const duration = 3000;
-    const start = performance.now();
-    const from = 5;
-    const to = 95;
+    const easeInOut = (t: number) =>
+      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-    const tick = (now: number) => {
+    const animateTo = (from: number, to: number, duration: number) =>
+      new Promise<void>((resolve) => {
+        const start = performance.now();
+        const tick = (now: number) => {
+          if (isDragging.current) { resolve(); return; }
+          const p = Math.min((now - start) / duration, 1);
+          setSliderPos(from + (to - from) * easeInOut(p));
+          if (p < 1) requestAnimationFrame(tick); else resolve();
+        };
+        requestAnimationFrame(tick);
+      });
+
+    const pause = (ms: number) =>
+      new Promise<void>((resolve) => {
+        const id = setTimeout(resolve, ms);
+        // If user drags during pause, just continue
+        void id;
+      });
+
+    (async () => {
+      await animateTo(5, 95, 3000);
       if (isDragging.current) return;
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      // ease-in-out cubic
-      const eased =
-        progress < 0.5
-          ? 4 * progress * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-      setSliderPos(from + (to - from) * eased);
-      if (progress < 1) requestAnimationFrame(tick);
-    };
-
-    requestAnimationFrame(tick);
+      await pause(1000);
+      if (isDragging.current) return;
+      await animateTo(95, 50, 3000);
+    })();
   }, [isInView]);
 
   const updateSlider = useCallback((clientX: number) => {
