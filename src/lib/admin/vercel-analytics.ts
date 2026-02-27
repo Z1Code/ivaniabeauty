@@ -20,15 +20,18 @@ export interface VercelAnalyticsData {
   topReferrers: VercelReferrer[];
   totalPageViews: number;
   totalVisitors: number;
+  /** Whether the env vars are configured (token + projectId present) */
+  configured: boolean;
 }
 
-function emptyData(): VercelAnalyticsData {
+function emptyData(configured = false): VercelAnalyticsData {
   return {
     timeSeries: [],
     topPages: [],
     topReferrers: [],
     totalPageViews: 0,
     totalVisitors: 0,
+    configured,
   };
 }
 
@@ -39,7 +42,7 @@ export async function fetchVercelAnalytics(
   const projectId = process.env.VERCEL_PROJECT_ID;
 
   if (!token || !projectId) {
-    return emptyData();
+    return emptyData(false);
   }
 
   const now = new Date();
@@ -70,35 +73,39 @@ export async function fetchVercelAnalytics(
     let topPages: VercelPageView[] = [];
     let topReferrers: VercelReferrer[] = [];
 
-    if (timeSeriesRes?.ok) {
-      const data = await timeSeriesRes.json();
-      if (Array.isArray(data?.data)) {
-        timeSeries = data.data.map((d: Record<string, unknown>) => ({
-          date: String(d.key || d.date || ""),
-          pageViews: Number(d.total || d.pageViews || 0),
-          visitors: Number(d.visitors || d.total || 0),
-        }));
+    // Helper: safely parse JSON (204 No Content returns empty body)
+    const safeJson = async (res: Response | null) => {
+      if (!res?.ok || res.status === 204) return null;
+      try {
+        return await res.json();
+      } catch {
+        return null;
       }
+    };
+
+    const timeSeriesJson = await safeJson(timeSeriesRes);
+    if (Array.isArray(timeSeriesJson?.data)) {
+      timeSeries = timeSeriesJson.data.map((d: Record<string, unknown>) => ({
+        date: String(d.key || d.date || ""),
+        pageViews: Number(d.total || d.pageViews || 0),
+        visitors: Number(d.visitors || d.total || 0),
+      }));
     }
 
-    if (pagesRes?.ok) {
-      const data = await pagesRes.json();
-      if (Array.isArray(data?.data)) {
-        topPages = data.data.slice(0, 10).map((d: Record<string, unknown>) => ({
-          key: String(d.key || ""),
-          total: Number(d.total || 0),
-        }));
-      }
+    const pagesJson = await safeJson(pagesRes);
+    if (Array.isArray(pagesJson?.data)) {
+      topPages = pagesJson.data.slice(0, 10).map((d: Record<string, unknown>) => ({
+        key: String(d.key || ""),
+        total: Number(d.total || 0),
+      }));
     }
 
-    if (referrersRes?.ok) {
-      const data = await referrersRes.json();
-      if (Array.isArray(data?.data)) {
-        topReferrers = data.data.slice(0, 10).map((d: Record<string, unknown>) => ({
-          key: String(d.key || "(direct)"),
-          total: Number(d.total || 0),
-        }));
-      }
+    const referrersJson = await safeJson(referrersRes);
+    if (Array.isArray(referrersJson?.data)) {
+      topReferrers = referrersJson.data.slice(0, 10).map((d: Record<string, unknown>) => ({
+        key: String(d.key || "(direct)"),
+        total: Number(d.total || 0),
+      }));
     }
 
     const totalPageViews = topPages.reduce((sum, p) => sum + p.total, 0);
@@ -110,9 +117,10 @@ export async function fetchVercelAnalytics(
       topReferrers,
       totalPageViews,
       totalVisitors,
+      configured: true,
     };
   } catch (error) {
     console.error("Error fetching Vercel analytics:", error);
-    return emptyData();
+    return emptyData(true);
   }
 }

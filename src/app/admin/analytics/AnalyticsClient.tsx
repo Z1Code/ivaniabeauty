@@ -61,7 +61,8 @@ export default function AnalyticsClient({
     fetchVercel(vercelRange);
   }, [vercelRange, fetchVercel]);
 
-  const vercelConfigured =
+  const vercelEnvConfigured = vercelData?.configured ?? false;
+  const vercelHasData =
     vercelData &&
     (vercelData.timeSeries.length > 0 || vercelData.topPages.length > 0 || vercelData.totalPageViews > 0);
 
@@ -141,11 +142,21 @@ export default function AnalyticsClient({
           <div className="flex items-center justify-center py-16">
             <div className="w-8 h-8 border-4 border-rosa/30 border-t-rosa rounded-full animate-spin" />
           </div>
-        ) : !vercelConfigured ? (
+        ) : !vercelEnvConfigured ? (
           <div className="text-center py-10">
             <Globe className="w-10 h-10 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
             <p className="text-sm text-gray-400 dark:text-gray-500">
-              Vercel Analytics no configurado. Agrega VERCEL_ANALYTICS_TOKEN en variables de entorno.
+              Vercel Analytics no configurado. Agrega VERCEL_ANALYTICS_TOKEN y VERCEL_PROJECT_ID en variables de entorno.
+            </p>
+          </div>
+        ) : !vercelHasData ? (
+          <div className="text-center py-10">
+            <Eye className="w-10 h-10 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+              Vercel Analytics configurado
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              Aun no hay datos de visitas. Los datos aparecen cuando el sitio recibe trafico en produccion.
             </p>
           </div>
         ) : (
