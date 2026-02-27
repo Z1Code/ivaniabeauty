@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Hero from "@/components/home/Hero";
+import HandwrittenReveal from "@/components/ui/HandwrittenReveal";
 import { useTranslation } from "@/hooks/useTranslation";
 import { motion } from "framer-motion";
 import Features from "@/components/home/Features";
@@ -159,10 +160,13 @@ export default function HomeClient() {
               </span>{" "}
               {t("beforeAfter.headingSuffix")}
             </h2>
-            <p className="font-script text-xl text-rosa text-center mb-12">
-              {t("beforeAfter.subtitle")}
-            </p>
-            <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-12">
+              <HandwrittenReveal
+                text={t("beforeAfter.subtitle")}
+                className="font-script text-xl text-rosa"
+              />
+            </div>
+            <div className="max-w-5xl mx-auto">
               <BeforeAfter />
             </div>
           </div>

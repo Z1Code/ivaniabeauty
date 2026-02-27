@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+import HandwrittenReveal from "@/components/ui/HandwrittenReveal";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -101,9 +102,12 @@ export default function Testimonials() {
           <h2 className="font-serif text-4xl text-center text-gray-800">
             {t("testimonials.heading")}
           </h2>
-          <p className="font-script text-2xl text-rosa text-center mt-4">
-            {t("testimonials.subtitle")}
-          </p>
+          <div className="text-center">
+            <HandwrittenReveal
+              text={t("testimonials.subtitle")}
+              className="font-script text-2xl text-rosa mt-4"
+            />
+          </div>
         </ScrollReveal>
 
         <div
