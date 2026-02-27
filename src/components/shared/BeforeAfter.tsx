@@ -1,73 +1,108 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { useInView } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 
+// Ease-in-out cubic
+function easeInOut(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 export default function BeforeAfter() {
   const { t } = useTranslation();
-  const [sliderPos, setSliderPos] = useState(5);
   const containerRef = useRef<HTMLDivElement>(null);
+  const clipRef = useRef<HTMLDivElement>(null);
+  const lineRef = useRef<HTMLDivElement>(null);
+  const posRef = useRef(5);
   const isDragging = useRef(false);
   const hasAutoPlayed = useRef(false);
+  const rafId = useRef(0);
   const inViewRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(inViewRef, { once: true, margin: "-80px" });
 
-  // Auto-animate: 5→95 (3s) → pause 1s → 95→50 (3s)
+  // Apply slider position directly to DOM (no React re-render)
+  const applyPos = useCallback((pct: number) => {
+    posRef.current = pct;
+    if (clipRef.current) clipRef.current.style.clipPath = `inset(0 0 0 ${pct}%)`;
+    if (lineRef.current) lineRef.current.style.left = `${pct}%`;
+  }, []);
+
+  // Animate between two values over `duration` ms
+  const animateTo = useCallback(
+    (from: number, to: number, duration: number): Promise<void> =>
+      new Promise((resolve) => {
+        const startTime = performance.now();
+
+        const tick = (now: number) => {
+          if (isDragging.current) {
+            resolve();
+            return;
+          }
+          const elapsed = now - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const value = from + (to - from) * easeInOut(progress);
+          applyPos(value);
+
+          if (progress < 1) {
+            rafId.current = requestAnimationFrame(tick);
+          } else {
+            resolve();
+          }
+        };
+
+        rafId.current = requestAnimationFrame(tick);
+      }),
+    [applyPos]
+  );
+
+  // Auto-animate sequence: 5→95 (3.5s) → pause 1s → 95→50 (3s)
   useEffect(() => {
     if (!isInView || hasAutoPlayed.current) return;
     hasAutoPlayed.current = true;
 
-    const easeInOut = (t: number) =>
-      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    let cancelled = false;
 
-    const animateTo = (from: number, to: number, duration: number) =>
-      new Promise<void>((resolve) => {
-        const start = performance.now();
-        const tick = (now: number) => {
-          if (isDragging.current) { resolve(); return; }
-          const p = Math.min((now - start) / duration, 1);
-          setSliderPos(from + (to - from) * easeInOut(p));
-          if (p < 1) requestAnimationFrame(tick); else resolve();
-        };
-        requestAnimationFrame(tick);
-      });
+    const run = async () => {
+      await animateTo(5, 95, 3500);
+      if (cancelled || isDragging.current) return;
 
-    const pause = (ms: number) =>
-      new Promise<void>((resolve) => {
-        const id = setTimeout(resolve, ms);
-        // If user drags during pause, just continue
-        void id;
-      });
+      await new Promise((r) => setTimeout(r, 1000));
+      if (cancelled || isDragging.current) return;
 
-    (async () => {
-      await animateTo(5, 95, 3000);
-      if (isDragging.current) return;
-      await pause(1000);
-      if (isDragging.current) return;
       await animateTo(95, 50, 3000);
-    })();
-  }, [isInView]);
+    };
 
-  const updateSlider = useCallback((clientX: number) => {
-    const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const x = clientX - rect.left;
-    setSliderPos(Math.max(0, Math.min(100, (x / rect.width) * 100)));
-  }, []);
+    run();
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId.current);
+    };
+  }, [isInView, animateTo]);
+
+  // Convert clientX → percentage and apply
+  const updateFromPointer = useCallback(
+    (clientX: number) => {
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+      applyPos(pct);
+    },
+    [applyPos]
+  );
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       isDragging.current = true;
-      updateSlider(e.clientX);
+      cancelAnimationFrame(rafId.current);
+      updateFromPointer(e.clientX);
 
-      const move = (ev: MouseEvent) => {
-        if (isDragging.current) updateSlider(ev.clientX);
-      };
+      const move = (ev: MouseEvent) => updateFromPointer(ev.clientX);
       const up = () => {
         isDragging.current = false;
         window.removeEventListener("mousemove", move);
@@ -76,37 +111,41 @@ export default function BeforeAfter() {
       window.addEventListener("mousemove", move);
       window.addEventListener("mouseup", up);
     },
-    [updateSlider]
+    [updateFromPointer]
   );
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       isDragging.current = true;
-      updateSlider(e.touches[0].clientX);
+      cancelAnimationFrame(rafId.current);
+      updateFromPointer(e.touches[0].clientX);
     },
-    [updateSlider]
+    [updateFromPointer]
   );
 
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
-      if (isDragging.current) updateSlider(e.touches[0].clientX);
+      updateFromPointer(e.touches[0].clientX);
     },
-    [updateSlider]
+    [updateFromPointer]
   );
 
   const handleTouchEnd = useCallback(() => {
     isDragging.current = false;
   }, []);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      setSliderPos((p) => Math.max(0, p - 2));
-    } else if (e.key === "ArrowRight") {
-      e.preventDefault();
-      setSliderPos((p) => Math.min(100, p + 2));
-    }
-  }, []);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        applyPos(Math.max(0, posRef.current - 2));
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        applyPos(Math.min(100, posRef.current + 2));
+      }
+    },
+    [applyPos]
+  );
 
   return (
     <div ref={inViewRef}>
@@ -120,7 +159,7 @@ export default function BeforeAfter() {
         onKeyDown={handleKeyDown}
         tabIndex={0}
         role="slider"
-        aria-valuenow={Math.round(sliderPos)}
+        aria-valuenow={Math.round(posRef.current)}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={t("beforeAfter.ariaLabel")}
@@ -141,8 +180,9 @@ export default function BeforeAfter() {
 
         {/* AFTER (with shaper) — clipped overlay */}
         <div
+          ref={clipRef}
           className="absolute inset-0"
-          style={{ clipPath: `inset(0 0 0 ${sliderPos}%)` }}
+          style={{ clipPath: `inset(0 0 0 5%)` }}
         >
           <Image
             src="/comparison/before.webp"
@@ -158,8 +198,9 @@ export default function BeforeAfter() {
 
         {/* Divider + handle */}
         <div
+          ref={lineRef}
           className="absolute top-0 bottom-0 z-10"
-          style={{ left: `${sliderPos}%`, transform: "translateX(-50%)" }}
+          style={{ left: "5%", transform: "translateX(-50%)" }}
         >
           <div className="absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-white shadow-[0_0_8px_rgba(0,0,0,0.3)]" />
           <div className="absolute top-1/2 left-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full bg-white shadow-lg ring-2 ring-white/50 active:cursor-grabbing transition-transform hover:scale-110">
