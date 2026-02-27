@@ -27,7 +27,7 @@ export default function BrandStory() {
   const { t } = useTranslation();
 
   return (
-    <section className="relative py-24 bg-white overflow-hidden">
+    <section id="nosotros" className="relative py-24 bg-white overflow-hidden">
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-rosa-light/5 via-transparent to-arena/10 pointer-events-none" />
 
