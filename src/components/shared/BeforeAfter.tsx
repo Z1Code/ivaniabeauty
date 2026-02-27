@@ -179,7 +179,7 @@ export default function BeforeAfter() {
             sizes="672px"
           />
           <span className="absolute top-4 left-4 rounded-full bg-black/50 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
-            {t("beforeAfter.without")}
+            {t("beforeAfter.with")}
           </span>
         </div>
 
@@ -197,7 +197,7 @@ export default function BeforeAfter() {
             sizes="672px"
           />
           <span className="absolute top-4 right-4 rounded-full bg-rosa/80 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
-            {t("beforeAfter.with")}
+            {t("beforeAfter.without")}
           </span>
         </div>
 
