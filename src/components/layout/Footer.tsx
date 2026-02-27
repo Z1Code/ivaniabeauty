@@ -297,9 +297,6 @@ export default function Footer() {
               <span className="text-xs text-white/50 font-medium tracking-wide px-3 py-1 rounded-full border border-white/15">
                 Mastercard
               </span>
-              <span className="text-xs text-white/50 font-medium tracking-wide px-3 py-1 rounded-full border border-white/15">
-                PayPal
-              </span>
             </div>
           </div>
         </div>
