@@ -290,13 +290,18 @@ export default function Footer() {
             <p className="text-xs text-white/60">
               &copy; {currentYear} {SITE_NAME}. {t("footer.copyright")}
             </p>
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-white/50 font-medium tracking-wide px-3 py-1 rounded-full border border-white/15">
-                Visa
-              </span>
-              <span className="text-xs text-white/50 font-medium tracking-wide px-3 py-1 rounded-full border border-white/15">
-                Mastercard
-              </span>
+            <div className="flex items-center gap-3">
+              {/* Visa */}
+              <svg className="h-8 w-auto opacity-60" viewBox="0 0 780 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M293.2 348.73l33.36-195.76h53.34l-33.38 195.76H293.2zm246.11-191.54c-10.57-3.98-27.17-8.22-47.89-8.22-52.73 0-89.9 26.6-90.18 64.67-.28 28.17 26.51 43.89 46.75 53.27 20.76 9.58 27.73 15.71 27.64 24.27-.14 13.11-16.58 19.1-31.91 19.1-21.35 0-32.68-2.96-50.18-10.27l-6.88-3.11-7.49 43.96c12.46 5.48 35.52 10.23 59.47 10.47 56.07 0 92.5-26.29 92.92-66.92.21-22.3-14.01-39.28-44.79-53.27-18.64-9.08-30.07-15.13-29.95-24.32 0-8.15 9.66-16.87 30.53-16.87 17.43-.28 30.06 3.53 39.91 7.49l4.78 2.26 7.27-42.49zm138.78-4.22h-41.23c-12.77 0-22.33 3.49-27.94 16.26l-79.27 179.49h56.05s9.16-24.14 11.23-29.44l68.33.08c1.6 7.26 6.49 29.36 6.49 29.36h49.53l-43.19-195.75zm-65.15 126.41c4.41-11.28 21.26-54.71 21.26-54.71-.31.52 4.38-11.33 7.07-18.69l3.6 16.89s10.22 46.77 12.36 56.51h-44.29zM327.57 152.97L275.2 285.56l-5.58-27.12c-9.7-31.27-39.93-65.16-73.74-82.12l47.82 171.28 56.42-.06 83.93-195.57h-56.48z" fill="rgba(255,255,255,0.8)"/>
+                <path d="M221.02 152.97h-85.95l-.68 4c66.94 16.21 111.24 55.37 129.6 102.39l-18.71-90.05c-3.22-12.35-12.58-16-24.26-16.34z" fill="rgba(255,255,255,0.5)"/>
+              </svg>
+              {/* Mastercard */}
+              <svg className="h-8 w-auto opacity-60" viewBox="0 0 780 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="312" cy="250" r="150" fill="rgba(255,255,255,0.4)"/>
+                <circle cx="468" cy="250" r="150" fill="rgba(255,255,255,0.3)"/>
+                <path d="M390 130.7c-30.93 24.36-50.81 62.15-50.81 104.3s19.88 79.94 50.81 104.3c30.93-24.36 50.81-62.15 50.81-104.3s-19.88-79.94-50.81-104.3z" fill="rgba(255,255,255,0.55)"/>
+              </svg>
             </div>
           </div>
         </div>
