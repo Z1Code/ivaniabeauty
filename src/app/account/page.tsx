@@ -96,6 +96,9 @@ export default function AccountPage() {
   const [editingAddress, setEditingAddress] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [savedAddress, setSavedAddress] = useState(false);
+  const [zipLookedUp, setZipLookedUp] = useState(false);
+  const [zipLoading, setZipLoading] = useState(false);
+  const [zipError, setZipError] = useState("");
   const [addressForm, setAddressForm] = useState({
     addressLine1: "",
     addressLine2: "",
@@ -132,8 +135,39 @@ export default function AccountPage() {
         zipCode: profile.zipCode,
         country: profile.country,
       });
+      if (profile.zipCode) setZipLookedUp(true);
     }
   }, [profile]);
+
+  // ZIP code lookup via Zippopotam.us
+  const lookupZip = useCallback(async (zip: string) => {
+    if (zip.length !== 5 || !/^\d{5}$/.test(zip)) return;
+    setZipLoading(true);
+    setZipError("");
+    try {
+      const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
+      if (!res.ok) {
+        setZipError(language === "es" ? "ZIP no encontrado" : "ZIP not found");
+        setZipLoading(false);
+        return;
+      }
+      const data = await res.json();
+      const place = data.places?.[0];
+      if (place) {
+        setAddressForm((prev) => ({
+          ...prev,
+          city: place["place name"] || "",
+          state: place["state abbreviation"] || place.state || "",
+          country: "United States",
+        }));
+        setZipLookedUp(true);
+      }
+    } catch {
+      setZipError(language === "es" ? "Error al buscar ZIP" : "ZIP lookup failed");
+    } finally {
+      setZipLoading(false);
+    }
+  }, [language]);
 
   // Fetch orders when tab switches
   const fetchOrders = useCallback(async () => {
@@ -669,134 +703,193 @@ export default function AccountPage() {
 
                 {editingAddress ? (
                   <div className="space-y-4">
+                    {/* Step 1: ZIP Code — prominent, first field */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        {t("auth.addressLine1")}
+                        {t("auth.zipCode")}
                       </label>
-                      <input
-                        value={addressForm.addressLine1}
-                        onChange={(e) =>
-                          setAddressForm({
-                            ...addressForm,
-                            addressLine1: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        {t("auth.addressLine2")}
-                      </label>
-                      <input
-                        value={addressForm.addressLine2}
-                        onChange={(e) =>
-                          setAddressForm({
-                            ...addressForm,
-                            addressLine2: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          {t("auth.city")}
-                        </label>
-                        <input
-                          value={addressForm.city}
-                          onChange={(e) =>
-                            setAddressForm({
-                              ...addressForm,
-                              city: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
-                        />
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            value={addressForm.zipCode}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, "").slice(0, 5);
+                              setAddressForm({ ...addressForm, zipCode: val });
+                              if (val.length === 5) lookupZip(val);
+                              if (val.length < 5) {
+                                setZipLookedUp(false);
+                                setZipError("");
+                              }
+                            }}
+                            placeholder="e.g. 33101"
+                            maxLength={5}
+                            inputMode="numeric"
+                            autoFocus
+                            className={cn(
+                              "w-full px-4 py-3 rounded-xl border text-lg font-medium tracking-widest text-gray-800 focus:outline-none focus:ring-2 transition-all",
+                              zipError
+                                ? "border-red-300 focus:ring-red-200 focus:border-red-400"
+                                : zipLookedUp
+                                  ? "border-emerald-300 bg-emerald-50/30 focus:ring-emerald-200 focus:border-emerald-400"
+                                  : "border-gray-200 bg-gray-50/50 focus:ring-rosa/30 focus:border-rosa"
+                            )}
+                          />
+                          {zipLoading && (
+                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-rosa" />
+                          )}
+                          {zipLookedUp && !zipLoading && (
+                            <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          {t("auth.state")}
-                        </label>
-                        <input
-                          value={addressForm.state}
-                          onChange={(e) =>
-                            setAddressForm({
-                              ...addressForm,
-                              state: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
-                        />
-                      </div>
+                      {zipError && (
+                        <p className="text-xs text-red-500 mt-1">{zipError}</p>
+                      )}
+                      {!zipLookedUp && !zipError && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          {language === "es"
+                            ? "Ingresa tu ZIP code para autocompletar ciudad y estado"
+                            : "Enter your ZIP code to auto-fill city and state"}
+                        </p>
+                      )}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          {t("auth.zipCode")}
-                        </label>
-                        <input
-                          value={addressForm.zipCode}
-                          onChange={(e) =>
-                            setAddressForm({
-                              ...addressForm,
-                              zipCode: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          {t("auth.country")}
-                        </label>
-                        <input
-                          value={addressForm.country}
-                          onChange={(e) =>
-                            setAddressForm({
-                              ...addressForm,
-                              country: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        onClick={handleSaveAddress}
-                        disabled={savingAddress}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-rosa hover:bg-rosa-dark text-white text-sm font-medium transition-all disabled:opacity-60 cursor-pointer"
+
+                    {/* Auto-filled location summary */}
+                    {zipLookedUp && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-200/60 text-sm text-emerald-700 flex items-center gap-2"
                       >
-                        {savingAddress ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Save className="w-4 h-4" />
-                        )}
-                        {savingAddress
-                          ? t("auth.saving")
-                          : t("auth.saveChanges")}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingAddress(false);
-                          if (profile) {
-                            setAddressForm({
-                              addressLine1: profile.addressLine1,
-                              addressLine2: profile.addressLine2,
-                              city: profile.city,
-                              state: profile.state,
-                              zipCode: profile.zipCode,
-                              country: profile.country,
-                            });
-                          }
-                        }}
-                        className="px-5 py-2.5 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all cursor-pointer"
+                        <MapPin className="w-4 h-4 flex-shrink-0" />
+                        <span>
+                          {addressForm.city}, {addressForm.state} — {addressForm.country}
+                        </span>
+                      </motion.div>
+                    )}
+
+                    {/* Step 2: Street address — only shows after ZIP lookup */}
+                    {zipLookedUp && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="space-y-4"
                       >
-                        {language === "es" ? "Cancelar" : "Cancel"}
-                      </button>
-                    </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            {t("auth.addressLine1")}
+                          </label>
+                          <input
+                            value={addressForm.addressLine1}
+                            onChange={(e) =>
+                              setAddressForm({
+                                ...addressForm,
+                                addressLine1: e.target.value,
+                              })
+                            }
+                            placeholder={language === "es" ? "Ej: 123 Main Street" : "e.g. 123 Main Street"}
+                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            {t("auth.addressLine2")}
+                          </label>
+                          <input
+                            value={addressForm.addressLine2}
+                            onChange={(e) =>
+                              setAddressForm({
+                                ...addressForm,
+                                addressLine2: e.target.value,
+                              })
+                            }
+                            placeholder={language === "es" ? "Apto, Suite, Unidad (opcional)" : "Apt, Suite, Unit (optional)"}
+                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
+                          />
+                        </div>
+
+                        {/* City / State — editable but pre-filled */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                              {t("auth.city")}
+                            </label>
+                            <input
+                              value={addressForm.city}
+                              onChange={(e) =>
+                                setAddressForm({
+                                  ...addressForm,
+                                  city: e.target.value,
+                                })
+                              }
+                              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                              {t("auth.state")}
+                            </label>
+                            <input
+                              value={addressForm.state}
+                              onChange={(e) =>
+                                setAddressForm({
+                                  ...addressForm,
+                                  state: e.target.value,
+                                })
+                              }
+                              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-rosa/30 focus:border-rosa transition-all"
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Save / Cancel */}
+                    {zipLookedUp && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex gap-3 pt-2"
+                      >
+                        <button
+                          onClick={handleSaveAddress}
+                          disabled={savingAddress || !addressForm.addressLine1.trim()}
+                          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-rosa hover:bg-rosa-dark text-white text-sm font-medium transition-all disabled:opacity-60 cursor-pointer"
+                        >
+                          {savingAddress ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Save className="w-4 h-4" />
+                          )}
+                          {savingAddress
+                            ? t("auth.saving")
+                            : t("auth.saveChanges")}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingAddress(false);
+                            setZipLookedUp(false);
+                            setZipError("");
+                            if (profile) {
+                              setAddressForm({
+                                addressLine1: profile.addressLine1,
+                                addressLine2: profile.addressLine2,
+                                city: profile.city,
+                                state: profile.state,
+                                zipCode: profile.zipCode,
+                                country: profile.country,
+                              });
+                              if (profile.zipCode) setZipLookedUp(true);
+                            }
+                          }}
+                          className="px-5 py-2.5 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all cursor-pointer"
+                        >
+                          {language === "es" ? "Cancelar" : "Cancel"}
+                        </button>
+                      </motion.div>
+                    )}
                   </div>
                 ) : profile?.addressLine1 ? (
                   <div className="space-y-1 text-sm text-gray-600">
