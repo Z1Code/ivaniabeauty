@@ -66,6 +66,9 @@ export default function BrandStory() {
               <p className="mt-3 text-sm text-gray-600 leading-relaxed">
                 {t("brandStory.paragraph2")}
               </p>
+              <p className="mt-3 text-sm text-gray-600 leading-relaxed">
+                {t("brandStory.paragraph3")}
+              </p>
             </ScrollReveal>
 
             <ScrollReveal direction="up" delay={0.2}>
