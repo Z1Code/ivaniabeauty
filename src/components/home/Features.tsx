@@ -61,7 +61,7 @@ export default function Features() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
 
                 {/* Content — icon pinned at fixed offset, text fills below */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 text-left h-[11rem]">
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-left h-[12rem]">
                   {/* Icon circle */}
                   <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 transition-all duration-300 group-hover:bg-white/30 group-hover:scale-110">
                     <Icon className="w-5 h-5 text-white" />
